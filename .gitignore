@@ -1,0 +1,7 @@
+venv
+.idea
+*.xml
+*.iml
+*.png
+*.db
+/postgres-data/

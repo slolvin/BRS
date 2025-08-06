@@ -1,0 +1,8 @@
+in /HYDayReward/
+venv\Scripts\activate.bat
+$env:FLASK_APP = "app.py"
+flask --app app/app.py --debug run
+
+Docker
+docker build -t test .
+docker run -d -p 5001:5000 test
