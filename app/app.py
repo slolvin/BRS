@@ -1,9 +1,9 @@
 from flask import Flask, render_template, request, url_for, flash, redirect, session, abort, g
 import os
 from flask_bootstrap import Bootstrap5
-from peewee import *
+
 from flask_sqlalchemy import SQLAlchemy
-from config import Config
+from flask_migrate import Migrate
 
 
 app = Flask(__name__)
@@ -11,22 +11,35 @@ bootstrap = Bootstrap5(app)
 
 app.secret_key = 'super secret key'
 app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL")
+app.config['SQLALCHEMY_COMMIT_ON_TEARDOWN'] = True
 app.config["SECRET_KEY"] = os.getenv("SECRET_KEY")
 app.config['SESSION_TYPE'] = 'filesystem'
 app.config['ALLOWED_EXTENSIONS'] = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
 app.debug = True
 
+db = SQLAlchemy(app)
+migrate = Migrate(app, db)
 
-db = PostgresqlDatabase('postgres', user='postgres', password='example', host='db', port=5432)
+
+class Role(db.Model):
+    __tablename__ = 'roles'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(64), unique=True)
+    users = db.relationship('User', backref='role')
+
+    def __repr__(self):
+        return '<Role %r' % self.name
 
 
-class BaseModel(Model):
-    id = PrimaryKeyField(null=False, unique=True)
+class User(db.Model):
+    __tablename__ = 'users'
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(64), unique=True, index=True)
+    mail = db.Column(db.String(64), unique=True, index=True)
+    role_id = db.Column(db.Integer, db.ForeignKey('roles.id'))
 
-    class Meta:
-        order_by = 'id'
-        database = db
-
+    def __repr__(self):
+        return '<User %r>' % self.username
 
 # class Cart(BaseModel):
 #     name = CharField()
@@ -63,6 +76,7 @@ def object_list(template_name, qr, var_name='object_list', **kwargs):
 
 @app.route('/')
 def main():
+    # db.create_all()
     return render_template('main.html')
 
 

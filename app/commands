@@ -6,3 +6,9 @@ flask --app app/app.py --debug run
 Docker
 docker build -t test .
 docker run -d -p 5001:5000 test
+
+
+flask db init
+flask db migrate
+flask db upgrade
+https://pypi.org/project/Flask-Migrate/

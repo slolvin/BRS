@@ -3,6 +3,8 @@ services:
   web:
     container_name: BRS
     build: ./app
+    volumes:
+      - ./migrations:/usr/src/app/migrations
     ports:
       - "8000:5000"
     depends_on:
