@@ -1,7 +1,8 @@
 from flask import Flask, render_template, request, url_for, flash, redirect, session, abort, g
+from app import db
 import os
 from flask_bootstrap import Bootstrap5
-
+from ..config import config
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 
@@ -17,29 +18,9 @@ app.config['SESSION_TYPE'] = 'filesystem'
 app.config['ALLOWED_EXTENSIONS'] = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
 app.debug = True
 
-db = SQLAlchemy(app)
-migrate = Migrate(app, db)
+# db = SQLAlchemy(app)
+# migrate = Migrate(app, db)
 
-
-class Role(db.Model):
-    __tablename__ = 'roles'
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(64), unique=True)
-    users = db.relationship('User', backref='role')
-
-    def __repr__(self):
-        return '<Role %r' % self.name
-
-
-class User(db.Model):
-    __tablename__ = 'users'
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(64), unique=True, index=True)
-    mail = db.Column(db.String(64), unique=True, index=True)
-    role_id = db.Column(db.Integer, db.ForeignKey('roles.id'))
-
-    def __repr__(self):
-        return '<User %r>' % self.username
 
 # class Cart(BaseModel):
 #     name = CharField()
@@ -58,19 +39,11 @@ class User(db.Model):
 #     cart = ManyToManyField(Cart, backref='cart')
 
 
-@app.errorhandler(404)
-def page_not_found(error):
-    if session.get('logged_in'):
-        return render_template('page_not_found.html', badge=None), 404
-    else:
-        return render_template('page_not_found.html', badge=None), 404
-
-
 def object_list(template_name, qr, var_name='object_list', **kwargs):
     kwargs.update(
         page=int(request.args.get('page', 1)),
-        pages=int(qr.count() / Config.REWARDS_PER_PAGE))
-    kwargs[var_name] = qr.paginate(kwargs['page'], Config.REWARDS_PER_PAGE)
+        pages=int(qr.count() / config.REWARDS_PER_PAGE))
+    kwargs[var_name] = qr.paginate(kwargs['page'], config.REWARDS_PER_PAGE)
     return render_template(template_name, **kwargs)
 
 
