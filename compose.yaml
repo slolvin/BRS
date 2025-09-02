@@ -2,7 +2,7 @@
 services:
   web:
     container_name: BRS
-    build: ./app
+    build: ./
     volumes:
       - ./migrations:/usr/src/app/migrations
     ports:

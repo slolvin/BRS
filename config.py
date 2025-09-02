@@ -1,13 +1,13 @@
-
 import os
+
 
 class Config:
     # DB SETTING #
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'super secret key'
     SQLALCHEMY_COMMIT_ON_TEARDOWN = True
-    FLASKY_MAIL_SUBJECT_PREFIX = '[Flasky]'
-    FLASKY_MAIL_SENDER = ''
-    FLASKY_ADMIN = os.environ.get('ADMIN')
+    # FLASKY_MAIL_SUBJECT_PREFIX = '[Flasky]'
+    # FLASKY_MAIL_SENDER = ''
+    # FLASKY_ADMIN = os.environ.get('ADMIN')
     SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL")
 
     # FILES SETTING #
@@ -37,6 +37,7 @@ class DevelopmentConfig(Config):
 
 
 class TestingConfig(Config):
+    TESTING = True
     SQLALCHEMY_DATABASE_URI = os.getenv("TEST_DATABASE_URL")
 
 

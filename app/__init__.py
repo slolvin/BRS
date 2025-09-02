@@ -3,8 +3,8 @@ from flask_bootstrap import Bootstrap5
 # from flask.ext.mail import Mail
 # from flask.ext.moment import Moment
 from flask_sqlalchemy import SQLAlchemy
-from ..config import config
-from main import main as main_blueprint
+from config import config
+
 
 bootstrap = Bootstrap5()
 # mail = Mail()
@@ -12,7 +12,7 @@ bootstrap = Bootstrap5()
 db = SQLAlchemy()
 
 
-def create_app(config_name):
+def create_app(config_name='default'):
     app = Flask(__name__)
     app.config.from_object(config[config_name])
     config[config_name].init_app(app)
@@ -21,6 +21,7 @@ def create_app(config_name):
     # mail.init_app(app)
     # moment.init_app(app)
     db.init_app(app)
+    from app.main import main as main_blueprint
     app.register_blueprint(main_blueprint)
 
     # custom errors and routes
