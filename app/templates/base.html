@@ -19,12 +19,9 @@
                 <a class="navbar-brand" href="/">CartShare</a>
                 <div class="collapse navbar-collapse" id="navbarTogglerDemo03">
                     <ul class="navbar-nav mr-auto mt-2 mt-lg-0">
-                        {% if not session.logged_in %}
+                        {% if current_user.is_authenticated %}
                             <li class="nav-item">
-                                <a class="nav-link" href="/join/">JOIN</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="/login/">LOGIN</a>
+                                <a class="nav-link" href="{url_for('auth.logout')}">Sing Out</a>
                             </li>
                             <li class="nav-item">
                                 <a class="nav-link" href="/add_drink/">ADD DRINK</a>
@@ -39,8 +36,11 @@
                                 <a class="nav-link" href="/drinks/">DRINKS</a>
                             </li>
                         {% else %}
-                            <li class="nav-item"><!--                        Move to login as admin only-->
-                                <a class="nav-link" href="/logout/">Logout</a>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{url_for('auth.login')}">Sing In</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="/login/">LOGIN</a>
                             </li>
                         {% endif %}
                     </ul>

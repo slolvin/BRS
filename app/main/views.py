@@ -6,9 +6,9 @@ from .. import db
 # from ..models import User
 
 
-@main.route('/', methods=['GET','POST'])
+@main.route('/', methods=['GET', 'POST'])
 def index():
-    return render_template('main.html')
+    return render_template('index.html')
     # form = NameForm()
     # if form.validate_on_submit():
     #     # ...
