@@ -1,7 +1,8 @@
-from . import db
 from werkzeug.security import generate_password_hash,check_password_hash
+import hashlib
 from flask_login import UserMixin
-from . import login_manager
+from flask import current_app, request, url_for
+from . import db, login_manager
 
 
 @login_manager.user_loader
@@ -23,8 +24,8 @@ class User(UserMixin, db.Model):
     __tablename__ = 'users'
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(64), unique=True, index=True)
-    password_hash = db.Column(db.String(128))
-    mail = db.Column(db.String(64), unique=True, index=True)
+    password_hash = db.Column(db.String(256))
+    email = db.Column(db.String(64), unique=True, index=True)
     role_id = db.Column(db.Integer, db.ForeignKey('roles.id'))
 
     @property

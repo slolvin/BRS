@@ -1,15 +1,28 @@
 {% extends 'base.html' %}
-{% import "bootstrap/wtf.html" as wtf %}
 {% block title %}Login{% endblock %}
 
-{% block page_content %}
-    <div class="page-header">
-        <h1>Login</h1>
+{% block content %}
+    {% if error %}<p class=error><strong>Error:</strong> {{ error }}{% endif %}
+    <div class="container">
+        <form action="{{ url_for('auth.login') }}" method=post>
+            <div class="form-group">
+                <label>Username</label>
+                <input type="text" name="email" class="form-control" placeholder="Enter username">
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" name="password" class="form-control" placeholder="Password">
+            </div>
+            <div class="form-group">
+                <label>Remember me</label>
+                <input type="checkbox" name="remember" class="form-control">
+            </div>
+            <button name="submit" type="submit" class="btn btn-primary" value="submit">Login</button>
+        </form>
     </div>
     <div class="col-md-4">
-        {{ wtf.quick_form(form) }}
         <br>
-        <p>Forgot your password? <a href="{{ url_for('auth.password_reset_request') }}">Click here to reset it</a>.</p>
+        <p>Forgot your password? <a href="">Click here to reset it</a>.</p>
         <p>New user? <a href="{{ url_for('auth.register') }}">Click here to register</a>.</p>
     </div>
 {% endblock %}

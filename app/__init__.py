@@ -4,7 +4,8 @@ from flask_bootstrap import Bootstrap5
 #from flask_moment import Moment
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
-from config import config
+from config import DevelopmentConfig
+from flask_migrate import Migrate, upgrade
 
 
 bootstrap = Bootstrap5()
@@ -17,10 +18,11 @@ login_manager.session_protection = 'strong'
 login_manager.login_view = 'auth.login'
 
 
-def create_app(config_name='default'):
+def create_app(config_name=DevelopmentConfig):
     app = Flask(__name__)
-    app.config.from_object(config[config_name])
-    config[config_name].init_app(app)
+    app.config.from_object(DevelopmentConfig)
+    DevelopmentConfig.init_app(app)
+    migrate = Migrate(app, db)
 
     bootstrap.init_app(app)
     # mail.init_app(app)
