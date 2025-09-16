@@ -4,13 +4,16 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="eb508b55-b16e-4136-8abd-996021fa5540" name="Changes" comment="All works for this moment">
-      <change afterPath="$PROJECT_DIR$/app/decorators.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.env" beforeDir="false" afterPath="$PROJECT_DIR$/.env" afterDir="false" />
+    <list default="true" id="eb508b55-b16e-4136-8abd-996021fa5540" name="Changes" comment="Done with system and users">
+      <change afterPath="$PROJECT_DIR$/app/templates/auth/unconfirmed.html" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/templates/edit_profile.html" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/templates/user.html" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/main/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/main/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/auth/views.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/auth/views.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/main/forms.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/main/forms.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/main/views.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/main/views.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/models.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/models.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/config.py" beforeDir="false" afterPath="$PROJECT_DIR$/config.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/templates/base.html" beforeDir="false" afterPath="$PROJECT_DIR$/app/templates/base.html" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -20,8 +23,8 @@
   <component name="FileTemplateManagerImpl">
     <option name="RECENT_TEMPLATES">
       <list>
-        <option value="HTML File" />
         <option value="Python Script" />
+        <option value="HTML File" />
       </list>
     </option>
   </component>
@@ -123,7 +126,15 @@
       <option name="project" value="LOCAL" />
       <updated>1757968466667</updated>
     </task>
-    <option name="localTasksCounter" value="7" />
+    <task id="LOCAL-00007" summary="Done with system and users">
+      <option name="closed" value="true" />
+      <created>1758048969408</created>
+      <option name="number" value="00007" />
+      <option name="presentableId" value="LOCAL-00007" />
+      <option name="project" value="LOCAL" />
+      <updated>1758048969408</updated>
+    </task>
+    <option name="localTasksCounter" value="8" />
     <servers />
   </component>
   <component name="UnknownFeatures">
@@ -136,6 +147,7 @@
     <MESSAGE value="Work after creating new structure" />
     <MESSAGE value="User registration and login without email verification. ToDo:Rework login/register pages" />
     <MESSAGE value="All works for this moment" />
-    <option name="LAST_COMMIT_MESSAGE" value="All works for this moment" />
+    <MESSAGE value="Done with system and users" />
+    <option name="LAST_COMMIT_MESSAGE" value="Done with system and users" />
   </component>
 </project>
