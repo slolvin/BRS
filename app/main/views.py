@@ -1,7 +1,7 @@
 from flask import render_template, redirect, url_for, abort, flash, request, current_app, make_response
 from flask_login import login_required, current_user
 from . import main
-# from .forms import NameForm
+from .forms import EditProfileAdminForm
 from .. import db
 from ..models import User, Role, Permission
 
@@ -19,7 +19,7 @@ def edit_profile():
     if request.method == 'POST':
         current_user.name = request.form['name']
         current_user.location = request.form['location']
-        current_user.email  =  request.form['email']
+        current_user.email = request.form['email']
         db.session.add(current_user._get_current_object())
         db.session.commit()
         flash('Your profile has been updated.')
@@ -38,3 +38,23 @@ def index():
     #                        form=form, name=session.get('name'),
     #                        know=session.get('know', False),
     #                        current_time=datetime.utcnow())
+
+
+@main.route('/edit-profile/<int:id>', methods=['GET', 'POST'])
+@login_required
+# @admin_required
+def edit_profile_admin(id):
+    user = User.query.get_or_404(id)
+    if request.method == 'POST':
+        user.email = request.form['email']
+        user.username = request.form['username']
+        # user.confirmed = form.confirmed.data
+        user.role = Role.query.get(request.form['role'])
+        user.name = request.form['name']
+        user.location = request.form['location']
+        user.about_me = request.form['about_me']
+        db.session.add(user)
+        db.session.commit()
+        flash('The profile has been updated.')
+        return redirect(url_for('.user', username=user.username))
+    return render_template('edit_profile_admin.html', editing_user=user)

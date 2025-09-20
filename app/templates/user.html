@@ -23,5 +23,11 @@
             Edit Profile
             </a>
         {% endif %}
+        {% if current_user.is_administrator() %}
+            <a style="background-color:grey" class="btn btn-danger"
+            href="{{ url_for('.edit_profile_admin', id=user.id) }}">
+            Edit Profile [Admin]
+            </a>
+        {% endif %}
     </div>
 {% endblock %}
