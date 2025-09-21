@@ -4,6 +4,7 @@ from datetime import datetime
 from flask_login import UserMixin, AnonymousUserMixin
 from flask import current_app, request, url_for
 from . import db, login_manager
+from hashlib import md5
 
 
 @login_manager.user_loader
@@ -74,12 +75,25 @@ class User(UserMixin, db.Model):
     password_hash = db.Column(db.String(256))
     email = db.Column(db.String(64), unique=True, index=True)
     role_id = db.Column(db.Integer, db.ForeignKey('roles.id'))
-
+    type = db.Column(db.String(64))
     name = db.Column(db.String(64))
     location = db.Column(db.String(64))
     about_me = db.Column(db.Text())
     member_since = db.Column(db.DateTime(), default=datetime.utcnow)
     last_seen = db.Column(db.DateTime(), default=datetime.utcnow)
+    avatar_hash = db.Column(db.String(32))
+
+    def gravatar_hash(self):
+        return hashlib.md5(self.email.lower().encode('utf-8')).hexdigest()
+
+    def gravatar_url(self, size=80, default='identicon', rating='g'):
+        if request.is_secure:
+            url = 'https://secure.gravatar.com/avatar'
+        else:
+            url = 'http://www.gravatar.com/avatar'
+        hash = hashlib.md5(self.email.strip().lower().encode('utf-8')).hexdigest()
+        return '{url}/{hash}?s={size}&d={default}&r={rating}'.format(
+            url=url, hash=hash, size=size, default=default, rating=rating)
 
     def __init__(self, **kwargs):
         super(User, self).__init__(**kwargs)
@@ -89,6 +103,9 @@ class User(UserMixin, db.Model):
                 self.role = Role.query.filter_by(permissions=0xff).first()
         if self.role is None:
             self.role = Role.query.filter_by(default=True).first()
+
+        if self.email is not None and self.avatar_hash is None:
+            self.avatar_hash = self.gravatar_hash()
 
     @property
     def password(self):
@@ -115,6 +132,40 @@ class User(UserMixin, db.Model):
     def __repr__(self):
         return '<User %r>' % self.username
 
+    __mapper_args__ = {
+        'polymorphic_identity': 'user',
+        'polymorphic_on': 'type'
+    }
+
+
+class Manager(User):
+    __tablename__ = 'managers'
+    manager_id = db.Column(db.Integer, db.ForeignKey('users.id'), primary_key=True)
+    bars = db.relationship('Bar', backref='manager', lazy=True)
+
+    __mapper_args__ = {
+        'polymorphic_identity': 'manager'
+    }
+
+
+class Bar(db.Model):
+    __tablename__ = 'bars'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(64), unique=True)
+    admin_id = db.Column(db.Integer, db.ForeignKey('managers.manager_id'), nullable=False)
+    address = db.Column(db.Text())
+#
+    def __repr__(self):
+        return '<Bar %r>' % self.username
+
+class Drink(db.Model):
+    __tablename__ = 'drinks'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(64), unique=True)
+    score = db.Column(db.Numeric(10, 2))
+
+    def __repr__(self):
+        return '<Drink %r>' % self.username
 
 class AnonymousUser(AnonymousUserMixin):
     def can(self, permissions):

@@ -3,6 +3,7 @@
 
 {% block content %}
     <div class="page-header">
+        <img src="{{ user.gravatar_url(size=100) }}" alt="Admin" class="img-rounded profile-thumbnail">
         <h1>{{ user['username'] }}</h1>
         {% if user['name'] or user['location'] %}
         <p>
