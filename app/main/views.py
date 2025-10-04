@@ -3,7 +3,7 @@ from flask_login import login_required, current_user
 from . import main
 from .forms import EditProfileAdminForm
 from .. import db
-from ..models import User, Role, Permission
+from ..models import User, Role, Permission, Bar
 
 
 @main.route('/user/<username>')
@@ -58,3 +58,9 @@ def edit_profile_admin(id):
         flash('The profile has been updated.')
         return redirect(url_for('.user', username=user.username))
     return render_template('edit_profile_admin.html', editing_user=user)
+
+
+@main.route('/bars/', methods=['GET'])
+def get_bars_list():
+    bars = Bar.query.all()
+    return render_template('bars.html', bars=bars)

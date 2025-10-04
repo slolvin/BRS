@@ -154,9 +154,14 @@ class Bar(db.Model):
     name = db.Column(db.String(64), unique=True)
     admin_id = db.Column(db.Integer, db.ForeignKey('managers.manager_id'), nullable=False)
     address = db.Column(db.Text())
-#
+
     def __repr__(self):
-        return '<Bar %r>' % self.username
+        return '<Bar %r>' % self.name
+
+    def get_user_name(self):
+        manager = User.query.get_or_404(self.admin_id)
+        return manager.name
+
 
 class Drink(db.Model):
     __tablename__ = 'drinks'
