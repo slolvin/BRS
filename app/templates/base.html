@@ -21,22 +21,22 @@
                     <ul class="navbar-nav mr-auto mt-2 mt-lg-0">
                         {% if current_user.is_authenticated %}
                             <li class="nav-item">
-                                <a class="nav-link" href="{{ url_for('main.user', username=current_user.username) }}">Profile </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="{{ url_for('auth.logout') }}">Sing Out</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="/add_drink/">ADD DRINK</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="/add_bar/">ADD BAR</a>
+                                <a class="nav-link" href="{{ url_for('main.add_bar') }}">ADD BAR</a>
                             </li>
                             <li class="nav-item">
                                 <a class="nav-link" href="{{ url_for('main.get_bars_list') }}">BARS</a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link" href="/drinks/">DRINKS</a>
+                                <a class="nav-link" href="{{ url_for('main.add_drink') }}">ADD DRINK</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ url_for('main.get_drinks_list') }}">DRINKS</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ url_for('main.user', username=current_user.username) }}">Profile </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ url_for('auth.logout') }}">Sing Out</a>
                             </li>
                         {% else %}
                             <li class="nav-item">

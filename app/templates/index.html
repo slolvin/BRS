@@ -2,10 +2,10 @@
 {% block title %}Index{% endblock %}
 
 {% block content %}
-    <P>Hello,</P>
+    <h2>Hello,</h2>
     {% if current_user.is_authenticated %}
-    <P>{{ current_user.username }}</P>
+    <h4>{{ current_user.username }}</h4>
     {% else %}
-    <P>Stranger</P>
+    <h4>Stranger</h4>
     {% endif %}!
 {% endblock %}

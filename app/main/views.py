@@ -3,7 +3,7 @@ from flask_login import login_required, current_user
 from . import main
 from .forms import EditProfileAdminForm
 from .. import db
-from ..models import User, Role, Permission, Bar
+from ..models import User, Role, Permission, Bar, Drink
 
 
 @main.route('/user/<username>')
@@ -64,3 +64,37 @@ def edit_profile_admin(id):
 def get_bars_list():
     bars = Bar.query.all()
     return render_template('bars.html', bars=bars)
+
+
+@main.route('/add_bar/', methods=['GET', 'POST'])
+def add_bar():
+    if request.method == 'POST':
+        bar = Bar()
+        bar.name = request.form['name']
+        bar.city = request.form['city']
+        bar.address = request.form['address']
+        bar.admin_id = current_user.id # if user not in admin list he can't add bars (bug or feature?)
+        db.session.add(bar)
+        db.session.commit()
+        flash('The bar has been created.')
+        redirect(url_for('main.get_bars_list'))
+    return render_template('/creators/create_bar.html')
+
+
+@main.route('/drinks/', methods=['GET'])
+def get_drinks_list():
+    drinks = Drink.query.all()
+    return render_template('drinks.html', drinks=drinks)
+
+
+@main.route('/add_drink/', methods=['GET', 'POST'])
+def add_drink():
+    if request.method == 'POST':
+        drink = Drink()
+        drink.name = request.form['name']
+        db.session.add(drink)
+        db.session.commit()
+        flash('The drink has been created.')
+        redirect(url_for('main.get_bars_list'))
+    return render_template('/creators/create_drink.html')
+

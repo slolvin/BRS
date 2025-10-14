@@ -4,13 +4,18 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="eb508b55-b16e-4136-8abd-996021fa5540" name="Changes" comment="Add Bars, Admins and Drinks models">
-      <change afterPath="$PROJECT_DIR$/app/templates/bars.html" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/templates/includes/bars_card.html" afterDir="false" />
+    <list default="true" id="eb508b55-b16e-4136-8abd-996021fa5540" name="Changes" comment="Add bars card with main info and manager name">
+      <change afterPath="$PROJECT_DIR$/ToDo.txt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/templates/creators/create_bar.html" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/templates/creators/create_drink.html" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/templates/drinks.html" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/templates/editors/edit_bar.html" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/main/views.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/main/views.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/models.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/models.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/templates/base.html" beforeDir="false" afterPath="$PROJECT_DIR$/app/templates/base.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/templates/includes/item_card.html" beforeDir="false" afterPath="$PROJECT_DIR$/app/templates/includes/item_card.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/templates/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/app/templates/index.html" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -37,19 +42,20 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;DefaultHtmlFileTemplate&quot;: &quot;HTML File&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
-    &quot;last_opened_file_path&quot;: &quot;/Users/haris/PycharmProjects/BRS/app/static/icons&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "DefaultHtmlFileTemplate": "HTML File",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "git-widget-placeholder": "master",
+    "last_opened_file_path": "/Users/haris/PycharmProjects/BRS/app/static/icons",
+    "settings.editor.selected.configurable": "configurable.group.editor"
   }
-}</component>
+}]]></component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$/app/static/icons" />
-      <recent name="$PROJECT_DIR$/app/templates/includes" />
       <recent name="$PROJECT_DIR$/app/templates" />
+      <recent name="$PROJECT_DIR$/app/templates/includes" />
       <recent name="$PROJECT_DIR$/app/templates/auth" />
       <recent name="$PROJECT_DIR$/app" />
     </key>
@@ -156,7 +162,15 @@
       <option name="project" value="LOCAL" />
       <updated>1758474126059</updated>
     </task>
-    <option name="localTasksCounter" value="11" />
+    <task id="LOCAL-00011" summary="Add bars card with main info and manager name">
+      <option name="closed" value="true" />
+      <created>1759613218910</created>
+      <option name="number" value="00011" />
+      <option name="presentableId" value="LOCAL-00011" />
+      <option name="project" value="LOCAL" />
+      <updated>1759613218910</updated>
+    </task>
+    <option name="localTasksCounter" value="12" />
     <servers />
   </component>
   <component name="UnknownFeatures">
@@ -184,6 +198,7 @@
     <MESSAGE value="Add simple profile and user info changing by themselves" />
     <MESSAGE value="Worked users system with roles and users (+admin) editors" />
     <MESSAGE value="Add Bars, Admins and Drinks models" />
-    <option name="LAST_COMMIT_MESSAGE" value="Add Bars, Admins and Drinks models" />
+    <MESSAGE value="Add bars card with main info and manager name" />
+    <option name="LAST_COMMIT_MESSAGE" value="Add bars card with main info and manager name" />
   </component>
 </project>
