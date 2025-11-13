@@ -168,7 +168,7 @@ class Drink(db.Model):
     __tablename__ = 'drinks'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(64), unique=True)
-    score = db.Column(db.Numeric(10, 2))
+    score = db.Column(db.Numeric(5, 2))
 
     def __repr__(self):
         return '<Drink %r>' % self.username
