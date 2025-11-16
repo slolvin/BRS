@@ -29,7 +29,7 @@ def edit_profile():
 
 @main.route('/', methods=['GET', 'POST'])
 def index():
-    return render_template('index.html')
+    return redirect(url_for('main.get_bars_list'))
     # form = NameForm()
     # if form.validate_on_submit():
     #     # ...
@@ -81,9 +81,23 @@ def add_bar():
     return render_template('/creators/create_bar.html')
 
 
+@main.route('/edit_bar/<int:id>', methods=['GET', 'POST'])
+def edit_bar(id):
+    bar = Bar.query.get_or_404(id)
+    if request.method == 'POST':
+        bar.name = request.form['name']
+        bar.admin_id = request.form['admin_id']
+        bar.address = request.form['address']
+        db.session.add(bar)
+        db.session.commit()
+        flash('The bar has been changed.')
+        return redirect(url_for('main.get_bars_list'))
+    return render_template('editors/edit_bar.html', editing_bar=bar)
+
+
 @main.route('/drinks/', methods=['GET'])
 def get_drinks_list():
-    drinks = Drink.query.all()
+    drinks = Drink.query.order_by(Drink.score).all()
     return render_template('drinks.html', drinks=drinks)
 
 
@@ -95,6 +109,14 @@ def add_drink():
         db.session.add(drink)
         db.session.commit()
         flash('The drink has been created.')
-        redirect(url_for('main.get_bars_list'))
+        redirect(url_for('main.get_drinks_list'))
     return render_template('/creators/create_drink.html')
 
+
+@main.route('/rate/<int:drink_id>', methods=['POST'])
+def rate_drink(drink_id):
+    drink = Drink.query.get_or_404(drink_id)
+    drink.score = int(request.form['rate'])
+    db.session.add(drink)
+    db.session.commit()
+    return redirect(url_for('main.get_drinks_list'))

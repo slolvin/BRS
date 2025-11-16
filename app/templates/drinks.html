@@ -14,6 +14,18 @@
                         <p class="card-text">This is a longer card with supporting text below as a natural lle bit longer.</p>
                     </div>
                     {% include "includes/rate_drink.html" %}
+                    <form class="mx-1 mx-md-4" action="{{ url_for('main.rate_drink', drink_id=drink['id']) }}" method=post>
+                        <div class="row">
+                            <select class="form-select" id="rate" name="rate" aria-label="Default select example">
+                                <option value="5">5</option>
+                                <option value="4">4</option>
+                                <option value="3">3</option>
+                                <option value="2">2</option>
+                                <option value="1">1</option>
+                            </select>
+                            <input type="submit" value="Submit Rating">
+                        </div>
+                    </form>
                 </div>
             </div>
             {% endfor %}

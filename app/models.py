@@ -155,6 +155,7 @@ class Bar(db.Model):
     admin_id = db.Column(db.Integer, db.ForeignKey('managers.manager_id'), nullable=False)
     address = db.Column(db.Text())
     city = db.Column(db.Text())
+    drinks = db.relationship('Drink', backref='bar', lazy=True)
 
     def __repr__(self):
         return '<Bar %r>' % self.name
@@ -167,8 +168,9 @@ class Bar(db.Model):
 class Drink(db.Model):
     __tablename__ = 'drinks'
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(64), unique=True)
+    name = db.Column(db.String(64))
     score = db.Column(db.Numeric(5, 2))
+    bar_id = db.Column(db.Integer, db.ForeignKey('bars.id'), nullable=True)
 
     def __repr__(self):
         return '<Drink %r>' % self.username
