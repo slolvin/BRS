@@ -8,7 +8,7 @@
             {% for drink in drinks %}
             <div class="col">
                 <div class="card">
-                    <img src="/static/drinks/coca-cola.png" class="card-img-top" alt="Drink view">
+                    <img src="{{ drink['image'] }}" class="card-img-top" alt="Drink view">
                     <div class="card-body">
                         <h5 class="card-title">{{ drink['name'] }}</h5>
                         <p class="card-text">This is a longer card with supporting text below as a natural lle bit longer.</p>

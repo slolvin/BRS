@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+
+{% block title %}All Drins in {{ bar['name'] }} {% endblock %}
+
+{% block content %}
+    <div class="container">
+        <h1>{{ bar['name'] }}</h1>
+        <h2>{{ bar['city'] }}</h2>
+        <h3>{{ bar['address'] }}</h3>
+        <h4>{{ bar.get_user_name() }}</h4>
+        {% include "includes/stars.html" %}
+    </div>
+    <div class="container">
+        <h3>DRINKS</h3>
+        <div class="card-group justify-content-center">
+            {% for drink in bar['drinks'] %}
+                <div class="card">
+                    <img src="{{ drink['image'] }}" class="card-img-top" alt="Drink view">
+                    <div class="card-body">
+                        <h5 class="card-title">{{ drink['name'] }}</h5>
+                        <p class="card-text">This is a longer card with supporting text below as a natural lle bit longer.</p>
+                    </div>
+                    <div class="card-footer">
+                        <small class="text-muted">Last updated 3 mins ago</small>
+                        {% include "includes/rate_drink.html" %}
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+{% endblock %}

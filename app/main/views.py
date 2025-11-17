@@ -101,6 +101,13 @@ def get_drinks_list():
     return render_template('drinks.html', drinks=drinks)
 
 
+@main.route('/bar/<int:id>', methods=['GET'])
+@login_required
+def get_bar_drinks(id):
+    bar = Bar.query.get_or_404(id)
+    return render_template('/includes/bar_drinks.html', bar=bar)
+
+
 @main.route('/add_drink/', methods=['GET', 'POST'])
 def add_drink():
     if request.method == 'POST':

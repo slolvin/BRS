@@ -156,6 +156,7 @@ class Bar(db.Model):
     address = db.Column(db.Text())
     city = db.Column(db.Text())
     drinks = db.relationship('Drink', backref='bar', lazy=True)
+    rate = db.Column(db.Numeric(5, 2))
 
     def __repr__(self):
         return '<Bar %r>' % self.name
@@ -164,12 +165,20 @@ class Bar(db.Model):
         manager = User.query.get_or_404(self.admin_id)
         return manager.name
 
+    def get_bar_rate(self):
+        if len(self.drinks) != 0:
+            self.rate = sum(item.score for item in self.drinks)/len(self.drinks)
+        else:
+            self.rate = 0
+        return self.rate
+
 
 class Drink(db.Model):
     __tablename__ = 'drinks'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(64))
     score = db.Column(db.Numeric(5, 2))
+    image = db.Column(db.String(128))
     bar_id = db.Column(db.Integer, db.ForeignKey('bars.id'), nullable=True)
 
     def __repr__(self):
