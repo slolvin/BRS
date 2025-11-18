@@ -27,10 +27,10 @@ def edit_profile():
     return render_template('edit_profile.html')
 
 
-@main.route('/', methods=['GET', 'POST'])
-def index():
-    return redirect(url_for('main.get_bars_list'))
-    # form = NameForm()
+# @main.route('/', methods=['GET', 'POST'])
+# def index():
+#     redirect(url_for('get_bars_list'))
+#     # form = NameForm()
     # if form.validate_on_submit():
     #     # ...
     #     return redirect(url_for('.index'))
@@ -38,7 +38,6 @@ def index():
     #                        form=form, name=session.get('name'),
     #                        know=session.get('know', False),
     #                        current_time=datetime.utcnow())
-
 
 @main.route('/edit-profile/<int:id>', methods=['GET', 'POST'])
 @login_required
@@ -61,6 +60,7 @@ def edit_profile_admin(id):
 
 
 @main.route('/bars/', methods=['GET'])
+@main.route('/')
 def get_bars_list():
     bars = Bar.query.all()
     return render_template('bars.html', bars=bars)
@@ -88,6 +88,7 @@ def edit_bar(id):
         bar.name = request.form['name']
         bar.admin_id = request.form['admin_id']
         bar.address = request.form['address']
+        bar.rate = bar.get_bar_rate()
         db.session.add(bar)
         db.session.commit()
         flash('The bar has been changed.')
@@ -113,6 +114,8 @@ def add_drink():
     if request.method == 'POST':
         drink = Drink()
         drink.name = request.form['name']
+        drink.type = request.form['type']
+        drink.description = request.form['description']
         db.session.add(drink)
         db.session.commit()
         flash('The drink has been created.')
@@ -126,4 +129,8 @@ def rate_drink(drink_id):
     drink.score = int(request.form['rate'])
     db.session.add(drink)
     db.session.commit()
+    # bar = Drink.query.get_or_404(drink.bar_id)
+    # bar.rate = bar.get_bar_rate()
+    # db.session.add(bar)
+    # db.session.commit()
     return redirect(url_for('main.get_drinks_list'))

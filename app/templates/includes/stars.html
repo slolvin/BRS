@@ -1,18 +1,29 @@
 <div class="row">
-        {% set full_stars = bar.get_bar_rate() | int %}
-        {% set half_star = (bar.get_bar_rate() - full_stars) >= 0.5 %}
-        {% set empty_stars = 5 - full_stars - (1 if half_star else 0) %}
+    {% set full_stars = bar.get_bar_rate() | int %}
+    {% set half_star = (bar.get_bar_rate() - full_stars) >= 0.5 %}
+    {% set empty_stars = 5 - full_stars - (1 if half_star else 0) %}
+    <div class="col-10">
+        <div class="row">
+            {% for _ in range(full_stars) %}
+                <div class="col-2">
+                    <span><img src="/static/icons/star.png" class="card-img-top" alt="Stars"></span>
+                </div>
+            {% endfor %}
 
-        {% for _ in range(full_stars) %}
-            <span style="width: 64px;height: 64px;"><img src="/static/icons/star.png" class="card-img-top" alt="Stars"></span>
-        {% endfor %}
+            {% if half_star %}
+                <div class="col-2">
+                    <span><img src="/static/icons/half-star.png" class="card-img-top" alt="Half star"></span>
+                </div>
+            {% endif %}
 
-        {% if half_star %}
-            <span style="width: 64px;height: 64px;"><img src="/static/icons/half-star.png" class="card-img-top" alt="Half star"></span>
-        {% endif %}
-
-        {% for _ in range(empty_stars) %}
-            <span style="width: 64px;height: 64px;"><img src="/static/icons/empty-star.png" class="card-img-top" alt="Empty star"></span>
-        {% endfor %}
-        <p>{{ bar.get_bar_rate() }}</p>
+            {% for _ in range(empty_stars) %}
+                <div class="col-2">
+                    <span><img src="/static/icons/empty-star.png" class="card-img-top" alt="Empty star"></span>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+    <div class="col-2">
+        <small>{{ bar.get_bar_rate() }}</small>
+    </div>
 </div>

@@ -18,11 +18,13 @@
                     <img src="{{ drink['image'] }}" class="card-img-top" alt="Drink view">
                     <div class="card-body">
                         <h5 class="card-title">{{ drink['name'] }}</h5>
-                        <p class="card-text">This is a longer card with supporting text below as a natural lle bit longer.</p>
+                        <p class="card-text">{{ drink['description'] }}</p>
                     </div>
                     <div class="card-footer">
-                        <small class="text-muted">Last updated 3 mins ago</small>
-                        {% include "includes/rate_drink.html" %}
+                        <small class="text-muted">{{ drink['type'] }}</small>
+                        {% if drink['rate'] is not none %}
+                            {% include "includes/rate_drink.html" %}
+                        {% endif %}
                     </div>
                 </div>
             {% endfor %}

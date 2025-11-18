@@ -6,6 +6,15 @@
             <div class="input-group mb-3">
                 <input class="form-control" type="text" name="name" placeholder="Name"
                        value="{{ request.form['name'] }}">
+                <select class="form-select" id="type" name="type" aria-label="Type">
+                    <option value="Water">Water</option>
+                    <option value="Beer">Beer</option>
+                    <option value="Vodka">Vodka</option>
+                    <option value="Wiskey">Wiskey</option>
+                    <option value="Cocktail">Cocktail</option>
+                </select>
+                <input class="form-control" type="text" name="description" placeholder="Description"
+                       value="{{ request.form['description'] }}">
             </div>
             <button class="btn btn-primary" type="submit">Submit</button>
         </form>

@@ -177,6 +177,8 @@ class Drink(db.Model):
     __tablename__ = 'drinks'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(64))
+    type = db.Column(db.String(64))
+    description = db.Column(db.Text())
     score = db.Column(db.Numeric(5, 2))
     image = db.Column(db.String(128))
     bar_id = db.Column(db.Integer, db.ForeignKey('bars.id'), nullable=True)
