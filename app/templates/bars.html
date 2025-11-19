@@ -6,6 +6,22 @@
     <div class="container-fluid">
         <h1 style="color: white">Bars</h1>
     </div>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-2">
+                <form action="{{ url_for('.get_bars_list') }}" method=post enctype="multipart/form-data">
+                    <select class="form-select" id="type" name="type" aria-label="Type">
+                        {% for option in options %}
+                            <option value="{{ option }}">
+                                {{ option }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                    <button class="btn btn-primary" type="submit">Filter</button>
+                </form>
+            </div>
+        </div>
+    </div>
     <div class="container justify-content-center">
         <div class="card-group">
             {% for bar in bars %}

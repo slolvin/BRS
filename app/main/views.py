@@ -59,11 +59,20 @@ def edit_profile_admin(id):
     return render_template('edit_profile_admin.html', editing_user=user)
 
 
-@main.route('/bars/', methods=['GET'])
 @main.route('/')
+def index():
+    return redirect(url_for('.get_bars_list'))
+
+
+@main.route('/bars/', methods=['GET', 'POST'])
 def get_bars_list():
-    bars = Bar.query.all()
-    return render_template('bars.html', bars=bars)
+    options = ['Water', 'Beer', 'Vodka', 'Wiskey', 'Cocktail']
+    bars = Bar.query.order_by(Bar.rate.asc()).distinct().all()
+    if request.method == 'POST':
+        drink = request.form['type']
+        bars = Bar.query.join(Drink).filter(Drink.type == drink).order_by(Drink.score).all()
+        return render_template('bars.html', options=options, bars=bars)
+    return render_template('bars.html', options=options, bars=bars)
 
 
 @main.route('/add_bar/', methods=['GET', 'POST'])
