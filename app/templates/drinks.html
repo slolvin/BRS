@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% import 'includes/pagination2.html' as macros %}
 
 {% block title %}All drinks{% endblock %}
 
@@ -32,4 +33,9 @@
             {% endfor %}
         </div>
     </div>
+    {% if pagination %}
+        <div class="row row-cols-1 pagination">
+            {{ macros.pagination_widget(pagination, '.get_drinks_list', id=drinks[0].id) }}
+        </div>
+    {% endif %}
 {% endblock %}

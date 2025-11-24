@@ -4,6 +4,7 @@ from . import main
 from .forms import EditProfileAdminForm
 from .. import db
 from ..models import User, Role, Permission, Bar, Drink
+from config import Config
 
 
 @main.route('/user/<username>')
@@ -107,8 +108,12 @@ def edit_bar(id):
 
 @main.route('/drinks/', methods=['GET'])
 def get_drinks_list():
-    drinks = Drink.query.order_by(Drink.score).all()
-    return render_template('drinks.html', drinks=drinks)
+    page = request.args.get('page', 1, type=int)
+    pagination = Drink.query.order_by(Drink.score).paginate(
+        page=page, per_page=Config.DRINKS_PER_PAGE,
+        error_out=False)
+    drinks = pagination.items
+    return render_template('drinks.html', drinks=drinks, pagination=pagination)
 
 
 @main.route('/bar/<int:id>', methods=['GET'])

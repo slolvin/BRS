@@ -15,7 +15,7 @@ class Config:
     ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
 
     # PAGINATION SETTING #
-    REWARDS_PER_PAGE = 4
+    DRINKS_PER_PAGE = 3
     UPLOAD_FOLDER = 'static/icons/'
     ICONS_FOLDER = 'static/icons/'
 
