@@ -3,6 +3,7 @@ import hashlib
 from datetime import datetime
 from flask_login import UserMixin, AnonymousUserMixin
 from flask import current_app, request, url_for
+from app.exeptions import ValidationError
 from . import db, login_manager
 from hashlib import md5
 
@@ -82,6 +83,14 @@ class User(UserMixin, db.Model):
     member_since = db.Column(db.DateTime(), default=datetime.utcnow)
     last_seen = db.Column(db.DateTime(), default=datetime.utcnow)
     avatar_hash = db.Column(db.String(32))
+
+    def to_json(self):
+        json_user = {
+            'username': self.username,
+            'member_since': self.member_since,
+            'last_seen': self.last_seen,
+        }
+        return json_user
 
     def gravatar_hash(self):
         return hashlib.md5(self.email.lower().encode('utf-8')).hexdigest()
@@ -171,6 +180,25 @@ class Bar(db.Model):
         else:
             self.rate = 0
         return self.rate
+
+    def to_json(self):
+        json_post = {
+            'name': self.name,
+            'address': self.address,
+            'city': self.city,
+        }
+        return json_post
+
+    @staticmethod
+    def from_json(json_post):
+        # body = json_post.get('body')
+        name = json_post.get('name')
+        city = json_post.get('city')
+        address = json_post.get('address')
+        admin_id = json_post.get('admin_id')
+        # if body is None or body == '':
+        #     raise ValidationError('Bar does not have a body')
+        return Bar(name=name, address=address, city=city, admin_id=admin_id)
 
 
 class Drink(db.Model):
