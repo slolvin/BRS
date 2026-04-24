@@ -214,6 +214,28 @@ class Drink(db.Model):
     def __repr__(self):
         return '<Drink %r>' % self.username
 
+    def to_json(self):
+        json_post = {
+            'name': self.name,
+            'type': self.type,
+            'description': self.description,
+            'score': self.score,
+            'bar': self.bar_id,
+        }
+        return json_post
+
+    @staticmethod
+    def from_json(json_post):
+        # body = json_post.get('body')
+        name = json_post.get('name')
+        type = json_post.get('type')
+        description = json_post.get('description')
+        bar_id = json_post.get('bar_id')
+        # if body is None or body == '':
+        #     raise ValidationError('Bar does not have a body')
+        return Drink(name=name, type=type, descripotion=description, bar_id=bar_id)
+
+
 class AnonymousUser(AnonymousUserMixin):
     def can(self, permissions):
         return False
