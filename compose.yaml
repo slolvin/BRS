@@ -4,6 +4,9 @@ services:
     build: ./
     volumes:
       - ./migrations:/usr/src/app/migrations
+      - ./app:/app
+    environment:
+      - FLASK_DEBUG=1
     ports:
       - "8000:5000"
     depends_on:
