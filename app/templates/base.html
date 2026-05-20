@@ -1,16 +1,17 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-bs-theme="dark" class="h-100">
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <head>
         {% block head %}
             {% block styles %}
                 {{ bootstrap.load_css() }}
+                <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
             {% endblock %}
             <title>{% block title %}{% endblock %} - Main</title>
         {% endblock %}
     </head>
-    <body style="background-color: #32354D;">
+    <body style="background-color: #32354D; min-vh-100 d-flex flex-column bg-body">
         {% block navbar %}
             <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
                 <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarTogglerDemo03" aria-controls="navbarTogglerDemo03" aria-expanded="false" aria-label="Toggle navigation">
@@ -54,25 +55,48 @@
                 </div>
             </nav>
         {% endblock %}
-
-        {% block content %}{% endblock %}
+        <main class="flex-grow-1">
+            {% block content %}{% endblock %}
+        </main>
         {% block footer %}
-        <div class="container-fluid text-center text-white bg-dark">
-            <footer class="d-flex flex-wrap justify-content-between align-items-center py-3 my-4 border-top">
-                <div class="col-md-4 d-flex align-items-center">
-                    <a href="/" class="mb-3 me-2 mb-md-0 text-muted text-decoration-none lh-1">
-                        <svg class="bi" width="30" height="24"><use xlink:href="#bootstrap"></use></svg>
-                    </a>
-                    <span class="text-muted">© 2023 Haris York <a href="mailto:harisyork@outlook.com">harisyork@outlook.com</a></span>
-                </div>
+        <!-- mt-auto гарантирует, что футер всегда прижат к низу, если контента мало -->
+            <div class="container-fluid bg-body-tertiary border-top border-secondary border-opacity-10 mt-auto">
+                <div class="container">
+                    <footer class="d-flex flex-wrap justify-content-between align-items-center py-3">
 
-                <ul class="nav col-md-4 justify-content-end list-unstyled d-flex">
-                    <li class="ms-3"><a class="text-muted" href="#"><svg class="bi" width="24" height="24"><use xlink:href="#twitter"></use></svg></a></li>
-                    <li class="ms-3"><a class="text-muted" href="#"><svg class="bi" width="24" height="24"><use xlink:href="#instagram"></use></svg></a></li>
-                    <li class="ms-3"><a class="text-muted" href="#"><svg class="bi" width="24" height="24"><use xlink:href="#facebook"></use></svg></a></li>
-                </ul>
-            </footer>
-        </div>
+                        <!-- Левая часть: Копирайт и Email -->
+                        <div class="col-12 col-md-6 d-flex align-items-center justify-content-center justify-content-md-start mb-3 mb-md-0">
+                            <!-- Неоновая иконка коктейля вместо логотипа Bootstrap -->
+                            <a href="/" class="me-2 text-primary fs-5 lh-1" title="На главную">
+                                <i class="bi bi-layer-forward"></i>
+                            </a>
+                            <span class="text-secondary small">
+                                © 2026 SlOlVin <a href="mailto:harisyork@outlook.com" class="text-secondary text-decoration-none border-bottom border-secondary border-opacity-25 pb-0.5 ms-1 hover-link">harisyork@outlook.com</a>
+                            </span>
+                        </div>
+
+                        <!-- Правая часть: Иконки соцсетей -->
+                        <ul class="nav col-12 col-md-6 justify-content-center justify-content-md-end list-unstyled d-flex gap-3">
+                            <li>
+                                <a class="text-secondary fs-5 opacity-75 opacity-100-hover" href="#" aria-label="Twitter">
+                                    <i class="bi bi-twitter-x"></i>
+                                </a>
+                            </li>
+                            <li>
+                                <a class="text-secondary fs-5 opacity-75 opacity-100-hover" href="#" aria-label="Instagram">
+                                    <i class="bi bi-instagram"></i>
+                                </a>
+                            </li>
+                            <li>
+                                <a class="text-secondary fs-5 opacity-75 opacity-100-hover" href="#" aria-label="Facebook">
+                                    <i class="bi bi-facebook"></i>
+                                </a>
+                            </li>
+                        </ul>
+
+                    </footer>
+                </div>
+            </div>
         {% endblock %}
 
         {% block body %}

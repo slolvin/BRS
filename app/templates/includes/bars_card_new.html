@@ -1,0 +1,41 @@
+<!-- Подключение Bootstrap 5 (CSS и Иконки для звездочек) -->
+<link href="https://jsdelivr.net" rel="stylesheet">
+<link href="https://jsdelivr.net" rel="stylesheet">
+
+<!-- Контейнер карточки -->
+<div class="card h-100 shadow-sm border-0 rounded-4 overflow-hidden" style="max-width: 360px;">
+
+  <!-- Изображение с бейджем -->
+  <div class="position-relative">
+    <img class="rounded mx-auto d-block card-img-top" style="height: 200px; object-fit: cover;" src="/static/icons/placeholder.png" alt="RИнтерьер бара" rad>
+    <!-- Бейдж категории -->
+    <span class="position-absolute top-0 start-0 m-3 badge rounded-pill bg-dark bg-opacity-75 text-danger border border-secondary border-opacity-25 py-2 px-3 fs-7">
+      Коктейльный бар
+    </span>
+  </div>
+
+  <!-- Содержимое карточки -->
+  <div class="card-body bg-dark text-light p-4">
+
+    <!-- Название -->
+    <h5 class="card-title fw-bold mb-2 text-white">Neon & Wine</h5>
+
+    <!-- Рейтинг -->
+    <div class="d-flex align-items-center gap-2 mb-3">
+      <div class="text-warning fs-5 lh-1">
+        <i class="bi bi-star-fill me-1"></i>
+        <i class="bi bi-star-fill me-1"></i>
+        <i class="bi bi-star-fill me-1"></i>
+        <i class="bi bi-star-fill me-1"></i>
+        <i class="bi bi-star text-muted"></i>
+      </div>
+      <span class="text-secondary small fw-medium">4.2</span>
+    </div>
+
+    <!-- Описание -->
+    <p class="card-text text-secondary small mb-0 lh-base">
+      Уютное пространство с авторскими коктейлями, приглушенным неоновым светом и виниловым проигрывателем.
+    </p>
+
+  </div>
+</div>

@@ -4,13 +4,16 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="eb508b55-b16e-4136-8abd-996021fa5540" name="Changes" comment="Back to GitHub">
-      <change afterPath="$PROJECT_DIR$/docs/api_new.md" afterDir="false" />
+    <list default="true" id="eb508b55-b16e-4136-8abd-996021fa5540" name="Changes" comment="Add API instruction and ToDo">
+      <change afterPath="$PROJECT_DIR$/app/templates/includes/bars_card_new.html" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/API.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/API.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ToDo.md" beforeDir="false" afterPath="$PROJECT_DIR$/ToDo.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/templates/bars.html" beforeDir="false" afterPath="$PROJECT_DIR$/app/templates/bars.html" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/templates/base.html" beforeDir="false" afterPath="$PROJECT_DIR$/app/templates/base.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/compose.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/compose.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/templates/drinks.html" beforeDir="false" afterPath="$PROJECT_DIR$/app/templates/drinks.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/templates/includes/bar_drinks.html" beforeDir="false" afterPath="$PROJECT_DIR$/app/templates/includes/bar_drinks.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/templates/includes/bars_card.html" beforeDir="false" afterPath="$PROJECT_DIR$/app/templates/includes/bars_card.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/templates/includes/pagination2.html" beforeDir="false" afterPath="$PROJECT_DIR$/app/templates/includes/pagination2.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/templates/includes/rate_drink.html" beforeDir="false" afterPath="$PROJECT_DIR$/app/templates/includes/rate_drink.html" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -28,18 +31,18 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
-  <component name="GitHubPullRequestSearchHistory"><![CDATA[{
-  "lastFilter": {
-    "state": "OPEN",
-    "assignee": "slolvin"
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;slolvin&quot;
   }
-}]]></component>
-  <component name="GithubPullRequestsUISettings"><![CDATA[{
-  "selectedUrlAndAccountId": {
-    "url": "https://github.com/slolvin/BRS.git",
-    "accountId": "826e3e2e-0939-40de-b36a-53c0361a8189"
+}</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/slolvin/BRS.git&quot;,
+    &quot;accountId&quot;: &quot;826e3e2e-0939-40de-b36a-53c0361a8189&quot;
   }
-}]]></component>
+}</component>
   <component name="HighlightingSettingsPerFile">
     <setting file="file://$PROJECT_DIR$/ToDo.txt" root0="SKIP_HIGHLIGHTING" />
   </component>
@@ -52,15 +55,15 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "DefaultHtmlFileTemplate": "HTML File",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "git-widget-placeholder": "master",
-    "last_opened_file_path": "/Users/haris/PycharmProjects/BRS/app/templates/includes",
-    "settings.editor.selected.configurable": "org.jetbrains.plugins.github.ui.GithubSettingsConfigurable"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;DefaultHtmlFileTemplate&quot;: &quot;HTML File&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
+    &quot;last_opened_file_path&quot;: &quot;/Users/haris/PycharmProjects/BRS/app/templates/includes&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;org.jetbrains.plugins.github.ui.GithubSettingsConfigurable&quot;
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$/app/templates/includes" />
@@ -253,7 +256,15 @@
       <option name="project" value="LOCAL" />
       <updated>1777062692187</updated>
     </task>
-    <option name="localTasksCounter" value="21" />
+    <task id="LOCAL-00021" summary="Add API instruction and ToDo">
+      <option name="closed" value="true" />
+      <created>1779295207538</created>
+      <option name="number" value="00021" />
+      <option name="presentableId" value="LOCAL-00021" />
+      <option name="project" value="LOCAL" />
+      <updated>1779295207538</updated>
+    </task>
+    <option name="localTasksCounter" value="22" />
     <servers />
   </component>
   <component name="UnknownFeatures">
@@ -291,6 +302,7 @@
     <MESSAGE value="Add pagination for drinks" />
     <MESSAGE value="Add base API for bars" />
     <MESSAGE value="Back to GitHub" />
-    <option name="LAST_COMMIT_MESSAGE" value="Back to GitHub" />
+    <MESSAGE value="Add API instruction and ToDo" />
+    <option name="LAST_COMMIT_MESSAGE" value="Add API instruction and ToDo" />
   </component>
 </project>

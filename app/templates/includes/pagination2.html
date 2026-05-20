@@ -1,31 +1,50 @@
 {% macro pagination_widget(pagination, endpoint) %}
-<nav aria-label="Page navigation example">
-    <ul class="pagination pagination-lg justify-content-center">
-        <li{% if not pagination.has_prev %} class="disabled" class="previous page-item"{% endif %}>
-            <a href="{% if pagination.has_prev %}{{ url_for(endpoint, page=pagination.prev_num, **kwargs) }}{% else %}#{% endif %}">
+<nav aria-label="Навигация по страницам" class="mt-5">
+    <!-- pagination-lg делает кнопки крупными и удобными для клика -->
+    <!-- justify-content-center ровняет блок строго по центру страницы -->
+    <ul class="pagination pagination-lg justify-content-center m-0">
+
+        <!-- Кнопка «Назад» -->
+        <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+            <a class="page-link border-secondary border-opacity-25 bg-body-tertiary"
+               href="{% if pagination.has_prev %}{{ url_for(endpoint, page=pagination.prev_num, **kwargs) }}{% else %}#{% endif %}"
+               aria-label="Предыдущая">
                 <span aria-hidden="true">&laquo;</span>
             </a>
         </li>
+
+        <!-- Итерация по страницам -->
         {% for p in pagination.iter_pages() %}
             {% if p %}
                 {% if p == pagination.page %}
-                <li class="active">
-                    <a class="btn btn-outline-primary" href="{{ url_for(endpoint, page = p, **kwargs) }}">{{ p }}</a>
-                </li>
+                    <!-- Активная страница -->
+                    <li class="page-item active" aria-current="page">
+                        <span class="page-link border-primary bg-primary text-white fw-bold">{{ p }}</span>
+                    </li>
                 {% else %}
-                <li>
-                    <a class="btn btn-primary" href="{{ url_for(endpoint, page = p, **kwargs) }}">{{ p }}</a>
-                </li>
+                    <!-- Обычная страница -->
+                    <li class="page-item">
+                        <a class="page-link border-secondary border-opacity-25 bg-body-tertiary text-secondary-emphasis"
+                           href="{{ url_for(endpoint, page=p, **kwargs) }}">{{ p }}</a>
+                    </li>
                 {% endif %}
             {% else %}
-            <li class="disabled"><a href="#">&hellip;</a></li>
+                <!-- Троеточие (разделитель длинных списков страниц) -->
+                <li class="page-item disabled">
+                    <span class="page-link border-secondary border-opacity-25 bg-body-tertiary text-muted">&hellip;</span>
+                </li>
             {% endif %}
         {% endfor %}
-        <li{% if not pagination.has_next %} class="disabled"{% else %} class="next disabled page-item"{% endif %}>
-            <a href="{% if pagination.has_next %}{{ url_for(endpoint, page=pagination.next_num, **kwargs) }}{% else %}#{% endif %}">
+
+        <!-- Кнопка «Вперед» -->
+        <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+            <a class="page-link border-secondary border-opacity-25 bg-body-tertiary"
+               href="{% if pagination.has_next %}{{ url_for(endpoint, page=pagination.next_num, **kwargs) }}{% else %}#{% endif %}"
+               aria-label="Следующая">
                 <span aria-hidden="true">&raquo;</span>
             </a>
         </li>
+
     </ul>
 </nav>
 {% endmacro %}

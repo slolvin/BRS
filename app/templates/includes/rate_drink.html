@@ -1,29 +1,29 @@
-<div class="row">
-        {% set full_stars = drink['score'] | int %}
-        {% set half_star = (drink['score'] - full_stars) >= 0.5 %}
-        {% set empty_stars = 5 - full_stars - (1 if half_star else 0) %}
-    <div class="col-10">
-        <div class="row">
-            {% for _ in range(full_stars) %}
-                <div class="col-2">
-                    <span><img src="/static/icons/star.png" class="card-img-top" alt="Stars"></span>
-                </div>
-            {% endfor %}
+<div class="d-flex align-items-center gap-2">
+    <!-- Логика расчёта звёзд (остаётся прежней) -->
+    {% set full_stars = drink['score'] | int %}
+    {% set half_star = (drink['score'] - full_stars) >= 0.5 %}
+    {% set empty_stars = 5 - full_stars - (1 if half_star else 0) %}
 
-            {% if half_star %}
-                <div class="col-2">
-                    <span><img src="/static/icons/half-star.png" class="card-img-top" alt="Half star"></span>
-                </div>
-            {% endif %}
+    <!-- Контейнер для звёздочек (всегда в одну линию) -->
+    <div class="d-flex text-warning fs-6 lh-1">
+        <!-- Целые звёзды -->
+        {% for _ in range(full_stars) %}
+            <i class="bi bi-star-fill me-0.5"></i>
+        {% endfor %}
 
-            {% for _ in range(empty_stars) %}
-                <div class="col-2">
-                    <span><img src="/static/icons/empty-star.png" class="card-img-top" alt="Empty star"></span>
-                </div>
-            {% endfor %}
-        </div>
+        <!-- Половинка звезды -->
+        {% if half_star %}
+            <i class="bi bi-star-half me-0.5"></i>
+        {% endif %}
+
+        <!-- Пустые звёзды -->
+        {% for _ in range(empty_stars) %}
+            <i class="bi bi-star text-muted opacity-50 me-0.5"></i>
+        {% endfor %}
     </div>
-    <div class="col-2">
-        <small>{{ drink['score'] }}</small>
-    </div>
+
+    <!-- Текстовое значение оценки -->
+    <span class="badge bg-body-tertiary border border-secondary border-opacity-25 text-secondary-emphasis small fw-semibold px-2 py-1 rounded">
+        {{ "%.1f"|format(drink['score']) }}
+    </span>
 </div>

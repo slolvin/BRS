@@ -7,27 +7,63 @@
     <div class="container">
         <div class="row row-cols-1 row-cols-md-3 g-4">
             {% for drink in drinks %}
-            <div class="col">
-                <div class="card">
-                    <img src="{{ drink['image'] }}" class="card-img-top" alt="Drink view">
-                    <div class="card-body">
-                        <h5 class="card-title">{{ drink['name'] }}</h5>
-                        <small>{{ drink['type'] }}</small>
-                        <p class="card-text">{{ drink['description'] }}</p>
+            <div class="col d-flex">
+                <!-- Карточка напитка с мягкой границей и тёмным фоном -->
+                <div class="card h-100 w-100 shadow border-0 rounded-4 overflow-hidden bg-dark bg-opacity-20 mx-auto" style="max-width: 340px;">
+
+                    <!-- Изображение напитка с фиксированной высотой -->
+                    <div class="position-relative" style="height: 200px;">
+                        <img src="{{ drink['image'] }}" class="w-100 h-100" alt="{{ drink['name'] }}" style="object-fit: cover;">
+
+                        <!-- Абсолютное позиционирование типа напитка поверх фото -->
+                        <span class="position-absolute top-0 end-0 m-3 badge bg-dark bg-opacity-75 border border-secondary border-opacity-25 rounded-pill px-2.5 py-1.5 fs-8 text-secondary">
+                            {{ drink['type'] }}
+                        </span>
                     </div>
-                    {% include "includes/rate_drink.html" %}
-                    <form class="mx-1 mx-md-4" action="{{ url_for('main.rate_drink', drink_id=drink['id']) }}" method=post>
-                        <div class="row">
-                            <select class="form-select" id="rate" name="rate" aria-label="Default select example">
-                                <option value="5">5</option>
-                                <option value="4">4</option>
-                                <option value="3">3</option>
-                                <option value="2">2</option>
-                                <option value="1">1</option>
-                            </select>
-                            <input type="submit" value="Submit Rating">
+
+                    <!-- Тело карточки с контентом -->
+                    <div class="card-body p-4 d-flex flex-column">
+                        <!-- Название напитка -->
+                        <h5 class="card-title fw-bold text-white mb-2">{{ drink['name'] }}</h5>
+
+                        <!-- Описание напитка (занимает всё свободное место) -->
+                        <p class="card-text text-secondary small mb-4 flex-grow-1 lh-base">
+                            {{ drink['description'] }}
+                        </p>
+
+                        <!-- Текущий рейтинг (вынесли внутрь body перед формой оценки) -->
+                        <div class="mb-3 pt-3 border-top border-secondary border-opacity-10">
+                            <span class="text-secondary small d-block mb-1 fw-medium text-uppercase tracking-wider fs-8">Текущая оценка</span>
+                            {% include "includes/rate_drink.html" %}
                         </div>
-                    </form>
+                    </div>
+
+                    <!-- Подвал карточки с компактной формой оценки -->
+                    <div class="card-footer bg-transparent border-top border-secondary border-opacity-10 p-4 pt-0">
+                        <form action="{{ url_for('main.rate_drink', drink_id=drink['id']) }}" method="post" class="w-100">
+                            <span class="text-secondary small d-block mb-2 fw-medium text-uppercase tracking-wider fs-8">Оценить напиток</span>
+
+                            <div class="input-group">
+                                <!-- Красивый селектор со звездочкой внутри -->
+                                <span class="input-group-text bg-body-tertiary border-secondary border-opacity-25 text-warning">
+                                    <i class="bi bi-star-fill"></i>
+                                </span>
+                                <select class="form-select bg-body-tertiary border-secondary border-opacity-25" id="rate" name="rate" aria-label="Рейтинг напитка">
+                                    <option value="5" selected>5 — Отлично</option>
+                                    <option value="4">4 — Хорошо</option>
+                                    <option value="3">3 — Нормально</option>
+                                    <option value="2">2 — Плохо</option>
+                                    <option value="1">1 — Ужасно</option>
+                                </select>
+
+                                <!-- Стильная кнопка отправки -->
+                                <button class="btn btn-primary px-3" type="submit" title="Отправить оценку">
+                                    <i class="bi bi-check-lg"></i>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
                 </div>
             </div>
             {% endfor %}
