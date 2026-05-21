@@ -2,33 +2,88 @@
 {% block title %}{{ user['username'] }}{% endblock %}
 
 {% block content %}
-    <div class="page-header">
-        <img src="{{ user.gravatar_url(size=100) }}" alt="Admin" class="img-rounded profile-thumbnail">
-        <h1>{{ user['username'] }}</h1>
-        {% if user['name'] or user['location'] %}
-        <p>
-            {% if user['name'] %}{{ user['name'] }}{% endif %}
-            {% if user['location'] %}
-                From <a href="http://maps.google.com/?q={{ user.location }}">
-                    {{ user['location'] }}
-                </a>
-            {% endif %}
-        </p>
-        {% endif %}
-        {% if current_user.is_administrator() %}
-            <p><a href="mailto:{{ user['email'] }}">{{ user['email'] }}</a></p>
-        {% endif %}
-        {% if user['about_me'] %}<p>{{ user['about_me'] }}</p>{% endif %}
-        {% if user == current_user %}
-            <a class="btn btn-default" href="{{ url_for('.edit_profile') }}">
-            Edit Profile
-            </a>
-        {% endif %}
-        {% if current_user.is_administrator() %}
-            <a style="background-color:grey" class="btn btn-danger"
-            href="{{ url_for('.edit_profile_admin', id=user.id) }}">
-            Edit Profile [Admin]
-            </a>
-        {% endif %}
+    <div class="container py-5">
+        <div class="row justify-content-center">
+            <!-- Ограничиваем ширину, чтобы профиль выглядел аккуратной карточкой-панелью -->
+            <div class="col-12 col-lg-8">
+
+                <!-- Главная карточка профиля -->
+                <div class="card border-0 rounded-4 shadow-sm bg-body-tertiary p-4 p-md-5">
+                    <div class="row align-items-center g-4">
+
+                        <!-- Блок с аватаром -->
+                        <div class="col-12 col-md-3 text-center text-md-start">
+                            <img src="{{ user.gravatar_url(size=120) }}" alt="{{ user['username'] }}"
+                                 class="rounded-circle shadow border border-secondary border-opacity-25 p-1"
+                                 style="width: 120px; height: 120px; object-fit: cover;">
+                        </div>
+
+                        <!-- Блок с основной информацией -->
+                        <div class="col-12 col-md-9 text-center text-md-start">
+                            <!-- Юзернейм в виде технического тега -->
+                            <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 rounded-pill px-3 py-1.5 fs-8 text-uppercase tracking-wider mb-2">
+                                @{{ user['username'] }}
+                            </span>
+
+                            <!-- Реальное имя (если есть) -->
+                            <h2 class="h1 fw-bold text-white mb-2">
+                                {% if user['name'] %}{{ user['name'] }}{% else %}{{ user['username'] }}{% endif %}
+                            </h2>
+
+                            <!-- Геолокация и Email администратора -->
+                            <div class="d-flex flex-wrap justify-content-center justify-content-md-start gap-3 small text-secondary mb-0">
+                                {% if user['location'] %}
+                                    <a href="http://maps.google.com/?q={{ user.location }}"
+                                       class="text-primary text-decoration-none d-flex align-items-center gap-1 hover-link"
+                                       target="_blank">
+                                        <i class="bi bi-geo-alt-fill text-danger"></i>
+                                        <span>{{ user['location'] }}</span>
+                                    </a>
+                                {% endif %}
+
+                                {% if current_user.is_administrator() %}
+                                    <a href="mailto:{{ user['email'] }}" class="text-secondary text-decoration-none d-flex align-items-center gap-1 hover-link">
+                                        <i class="bi bi-envelope-at text-secondary"></i>
+                                        <span>{{ user['email'] }}</span>
+                                    </a>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Описание профиля / Блок "О себе" (если заполнен) -->
+                        {% if user['about_me'] %}
+                            <div class="col-12 pt-4 mt-4 border-top border-secondary border-opacity-10">
+                                <span class="text-secondary d-block fs-8 text-uppercase tracking-wider fw-medium mb-2">О себе</span>
+                                <div class="p-3 bg-dark bg-opacity-20 rounded-3 border border-secondary border-opacity-10 text-secondary-emphasis lh-base small">
+                                    {{ user['about_me'] }}
+                                </div>
+                            </div>
+                        {% endif %}
+
+                        <!-- Панель управления и кнопок (в самом низу карточки) -->
+                        <div class="col-12 pt-4 mt-4 border-top border-secondary border-opacity-10 d-flex flex-wrap gap-2 justify-content-center justify-content-md-end">
+
+                            <!-- Кнопка обычного редактирования (если это свой профиль) -->
+                            {% if user == current_user %}
+                                <a class="btn btn-outline-secondary px-4 py-2 fs-7 fw-medium text-uppercase tracking-wide" href="{{ url_for('.edit_profile') }}">
+                                    <i class="bi bi-pencil-square me-1"></i> Edit Profile
+                                </a>
+                            {% endif %}
+
+                            <!-- Кнопка админского редактирования (заменили старый серый цвет на стильный контурный красный) -->
+                            {% if current_user.is_administrator() %}
+                                <a class="btn btn-outline-danger px-4 py-2 fs-7 fw-medium text-uppercase tracking-wide"
+                                   href="{{ url_for('.edit_profile_admin', id=user.id) }}">
+                                    <i class="bi bi-shield-exclamation me-1"></i> Edit Profile [Admin]
+                                </a>
+                            {% endif %}
+
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+        </div>
     </div>
 {% endblock %}

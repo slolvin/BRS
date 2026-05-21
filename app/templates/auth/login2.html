@@ -2,33 +2,83 @@
 {% block title %}Login{% endblock %}
 
 {% block content %}
-  {% if error %}<p class=error><strong>Error:</strong> {{ error }}{% endif %}
-    <section class="vh-100" style="background-color: #508bfc;">
-      <div class="container py-5 h-100">
-        <div class="row d-flex justify-content-center align-items-center h-100">
+  <div class="container min-vh-100 d-flex align-items-center justify-content-center py-5">
+      <div class="row justify-content-center w-100">
+          <!-- Ограничиваем ширину карточки для идеального отображения на ПК и мобильных -->
           <div class="col-12 col-md-8 col-lg-6 col-xl-5">
-            <div class="card shadow-2-strong" style="border-radius: 1rem;">
-              <div class="card-body p-5 text-center ">
-                <form action="{{ url_for('auth.login') }}" method=post>
 
-                  <h3 class="mb-5">Sign in</h3>
-
-                  <div data-mdb-input-init class="form-outline mb-4">
-                    <input name="email" type="email" id="typeEmailX-2" class="form-control form-control-lg" />
-                    <label class="form-label" for="typeEmailX-2">Email</label>
+              <!-- Динамический вывод ошибок Flask -->
+              {% if error %}
+                  <div class="alert alert-danger border-0 bg-danger bg-opacity-10 text-danger rounded-4 p-3 mb-4 d-flex align-items-center gap-2 small shadow-sm" role="alert">
+                      <i class="bi bi-exclamation-triangle-fill fs-5"></i>
+                      <div>
+                          <strong>Ошибка авторизации:</strong> {{ error }}
+                      </div>
                   </div>
+              {% endif %}
 
-                  <div data-mdb-input-init class="form-outline mb-4">
-                    <input name="password" type="password" id="typePasswordX-2" class="form-control form-control-lg" />
-                    <label class="form-label" for="typePasswordX-2">Password</label>
+              <!-- Главная карточка авторизации в нашем фирменной дизайн-коде -->
+              <div class="card border-0 rounded-4 shadow bg-body-tertiary p-4 p-sm-5">
+                  <div class="card-body p-0">
+
+                      <!-- Шапка формы -->
+                      <div class="text-center mb-5">
+                          <div class="text-primary fs-1 lh-1 mb-2">
+                              <i class="bi bi-layer-forward"></i>
+                          </div>
+                          <h2 class="h3 fw-bold text-white text-uppercase tracking-wider mb-1">Войти в BRS</h2>
+                          <p class="text-secondary small">Введите свои данные для доступа к платформе</p>
+                      </div>
+
+                      <form action="{{ url_for('auth.login') }}" method="post" class="row g-4">
+
+                          <!-- 1. Поле ввода Email -->
+                          <div class="col-12">
+                              <label for="typeEmail" class="form-label small text-secondary fw-medium text-uppercase tracking-wider fs-8">Электронная почта</label>
+                              <div class="input-group input-group-lg">
+                                  <span class="input-group-text bg-dark bg-opacity-50 border-secondary border-opacity-25 text-secondary">
+                                      <i class="bi bi-envelope"></i>
+                                  </span>
+                                  <input name="email" type="email" id="typeEmail"
+                                         class="form-control bg-dark bg-opacity-20 border-secondary border-opacity-25 text-white fs-6"
+                                         placeholder="name@example.com" required autocomplete="email">
+                              </div>
+                          </div>
+
+                          <!-- 2. Поле ввода Пароля -->
+                          <div class="col-12">
+                              <label for="typePassword" class="form-label small text-secondary fw-medium text-uppercase tracking-wider fs-8">Пароль</label>
+                              <div class="input-group input-group-lg">
+                                  <span class="input-group-text bg-dark bg-opacity-50 border-secondary border-opacity-25 text-secondary">
+                                      <i class="bi bi-lock"></i>
+                                  </span>
+                                  <input name="password" type="password" id="typePassword"
+                                         class="form-control bg-dark bg-opacity-20 border-secondary border-opacity-25 text-white fs-6"
+                                         placeholder="••••••••" required autocomplete="current-password">
+                              </div>
+                          </div>
+
+                          <!-- 3. Кнопка отправки формы -->
+                          <div class="col-12 pt-2">
+                              <button class="btn btn-primary btn-lg w-100 fw-medium text-uppercase tracking-wide py-3 fs-6 shadow-sm" type="submit">
+                                  Войти в систему <i class="bi bi-box-arrow-in-right ms-1"></i>
+                              </button>
+                          </div>
+
+                          <!-- 4. Ссылка на регистрацию (Дополнительный полезный UX) -->
+                          <div class="col-12 text-center mt-4 pt-3 border-top border-secondary border-opacity-10">
+                              <span class="text-secondary small">Ещё не зарегистрированы?</span>
+                              <a href="{{ url_for('auth.register') }}" class="text-primary small text-decoration-none ms-1 hover-link">
+                                  Создать аккаунт
+                              </a>
+                          </div>
+
+                      </form>
+
                   </div>
-
-                  <button data-mdb-button-init data-mdb-ripple-init class="btn btn-primary btn-lg btn-block" type="submit">Login</button>
-                </form>
               </div>
-            </div>
+
           </div>
-        </div>
       </div>
-    </section>
+  </div>
 {% endblock %}

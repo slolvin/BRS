@@ -1,35 +1,97 @@
-<div class="card h-100 shadow border-0 rounded-4 overflow-hidden w-100 mx-auto" style="max-width: 340px;">
-    <img class="rounded mx-auto d-block" src="/static/icons/placeholder.png" alt="Reward icon" rad>
-    <div class="card-body">
-        <h2 class="card-title">{{ bar['name'] }}</h2>
-        <h4 class="card-title">Bar admin ID: {{ bar['admin_id'] }}</h4>
-        <h4 class="card-title">Bar admin name: {{ bar.get_user_name() }}</h4>
-        <a class="card-title" href="https://www.google.com/maps/search/?api=1&query=1200%20{{ bar['address'] }}">{{ bar['address'] }}</a>
-        {% if bar['rate'] is not none %}
-            <h4 class="card-title">Bar rating {{ bar['rate'] }}</h4>
-        {% else %}
-            <h4 class="card-title">Bar rating {{ bar.get_bar_rate() }}</h4>
-        {% endif %}
-        <h5>
-            <button class="btn btn-primary" type="submit">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-heart" viewBox="0 0 16 16">
-                  <path d="m8 2.748-.717-.737C5.6.281 2.514.878 1.4 3.053c-.523 1.023-.641 2.5.314 4.385.92 1.815 2.834 3.989 6.286 6.357 3.452-2.368 5.365-4.542 6.286-6.357.955-1.886.838-3.362.314-4.385C13.486.878 10.4.28 8.717 2.01zM8 15C-7.333 4.868 3.279-3.04 7.824 1.143q.09.083.176.171a3 3 0 0 1 .176-.17C12.72-3.042 23.333 4.867 8 15"/>
-                </svg>
+<div class="card h-100 w-100 shadow border-0 rounded-4 overflow-hidden bg-dark bg-opacity-20 mx-auto d-flex flex-column" style="max-width: 340px;">
+
+    <!-- 1. ИЗОБРАЖЕНИЕ БАРА С ЛАЙКОМ ПОВЕРХ НЕГО -->
+    <div class="position-relative" style="height: 180px; background: linear-gradient(45deg, #1f232b, #2d323f);">
+        <img class="w-100 h-100" src="/static/icons/placeholder.png" alt="{{ bar['name'] }}" style="object-fit: cover;">
+
+        <!-- Полупрозрачный градиент для глубины -->
+        <div class="position-absolute bottom-0 start-0 w-100 h-50 bg-gradient-to-t"></div>
+
+        <!-- Кнопка «Добавить в избранное» поверх картинки справа -->
+        <form class="position-absolute top-0 end-0 m-3" action="#" method="post">
+            <button class="btn btn-dark bg-opacity-75 text-white border border-secondary border-opacity-25 rounded-circle d-flex align-items-center justify-content-center hover-lift"
+                    type="submit" style="width: 38px; height: 38px;" title="В избранное">
+                <i class="bi bi-heart fs-6"></i>
             </button>
-        </h5>
-        <div class="row card-footer">
-            <div class="col-6">
-                <a style="background-color:grey" class="btn btn-danger"
-                href="{{ url_for('.edit_bar', id=bar['id']) }}">
-                Edit Bar
+        </form>
+    </div>
+
+    <!-- 2. ОСНОВНОЕ ТЕЛО КАРТОЧКИ -->
+    <div class="card-body p-4 d-flex flex-column flex-grow-1">
+
+        <!-- Название заведения -->
+        <h4 class="card-title fw-bold text-white mb-2 text-uppercase tracking-wide">{{ bar['name'] }}</h4>
+
+        <!-- Геолокация / Кликабельная ссылка на Google Maps -->
+        <div class="mb-3">
+            <a href="https://www.google.com/maps/search/?api=1&query=1200%20{{ bar['address'] }}"
+               class="text-primary text-decoration-none small d-flex align-items-start gap-1 hover-link"
+               target="_blank" title="Открыть карту">
+                <i class="bi bi-geo-alt-fill text-danger mt-0.5"></i>
+                <span class="lh-sm">{{ bar['address'] }}</span>
+            </a>
+        </div>
+
+        <!-- Информация об администраторе (сжатая и аккуратная) -->
+        <div class="mb-4 pt-3 border-top border-secondary border-opacity-10">
+            <span class="text-secondary d-block fs-8 text-uppercase tracking-wider fw-medium mb-1">Управляющий</span>
+            <div class="d-flex align-items-center gap-1.5 text-white-50 small">
+                <i class="bi bi-person-badge text-secondary fs-7"></i>
+                <span>{{ bar.get_user_name() }}</span>
+                <span class="text-muted fs-8">(ID: {{ bar['admin_id'] }})</span>
+            </div>
+        </div>
+
+        <!-- Динамический рейтинг со звездочками (выталкивается в самый низ контента) -->
+        <div class="mt-auto pt-3 border-top border-secondary border-opacity-10">
+            <span class="text-secondary d-block fs-8 text-uppercase tracking-wider fw-medium mb-2">Рейтинг заведения</span>
+
+            {% set current_rate = bar['rate'] if bar['rate'] is not none else bar.get_bar_rate() %}
+            <div class="d-flex align-items-center gap-2">
+                <!-- Расчет звезд по нашему проверенному алгоритму -->
+                {% set full_stars = current_rate | int %}
+                {% set half_star = (current_rate - full_stars) >= 0.5 %}
+                {% set empty_stars = 5 - full_stars - (1 if half_star else 0) %}
+
+                <div class="d-flex text-warning fs-6 lh-1">
+                    {% for _ in range(full_stars) %}
+                        <i class="bi bi-star-fill me-0.5"></i>
+                    {% endfor %}
+                    {% if half_star %}
+                        <i class="bi bi-star-half me-0.5"></i>
+                    {% endif %}
+                    {% for _ in range(empty_stars) %}
+                        <i class="bi bi-star text-muted opacity-50 Atlantic me-0.5"></i>
+                    {% endfor %}
+                </div>
+
+                <!-- Бейдж с точной оценкой -->
+                <span class="badge bg-body-tertiary border border-secondary border-opacity-25 text-secondary-emphasis small fw-semibold px-2 py-1 rounded">
+                    {{ "%.1f"|format(current_rate) }}
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. КНОПКИ ДЕЙСТВИЯ (ПОДВАЛ КАРТОЧКИ) -->
+    <div class="card-footer bg-transparent border-top border-secondary border-opacity-10 p-4 pt-0">
+        <div class="row g-2">
+            <!-- Кнопка Редактирования (только для администрации) -->
+            <div class="col-5">
+                <a class="btn btn-outline-secondary w-100 py-2 fs-7 fw-medium text-uppercase tracking-wide"
+                   href="{{ url_for('.edit_bar', id=bar['id']) }}">
+                   <i class="bi bi-pencil me-1"></i> Edit
                 </a>
             </div>
-            <div class="col-6">
-                <a class="btn btn-primary"
-                href="{{ url_for('.get_bar_drinks', id=bar['id']) }}">
-                Get menu
+            <!-- Кнопка перехода к Меню -->
+            <div class="col-7">
+                <a class="btn btn-primary w-100 py-2 fs-7 fw-medium text-uppercase tracking-wide d-flex align-items-center justify-content-center gap-1 shadow-sm"
+                   href="{{ url_for('.get_bar_drinks', id=bar['id']) }}">
+                   <span>Menu</span>
+                   <i class="bi bi-arrow-right-short fs-5 lh-1"></i>
                 </a>
             </div>
         </div>
     </div>
+
 </div>

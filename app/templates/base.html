@@ -11,47 +11,77 @@
             <title>{% block title %}{% endblock %} - Main</title>
         {% endblock %}
     </head>
-    <body style="background-color: #32354D; min-vh-100 d-flex flex-column bg-body">
+    <body style="min-vh-100 d-flex flex-column bg-body">
         {% block navbar %}
-            <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-                <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarTogglerDemo03" aria-controls="navbarTogglerDemo03" aria-expanded="false" aria-label="Toggle navigation">
-                <span class="navbar-toggler-icon"></span>
-                </button>
-                <a class="navbar-brand" href="/">BRS</a>
-                <div class="collapse navbar-collapse" id="navbarTogglerDemo03">
-                    <ul class="navbar-nav mr-auto mt-2 mt-lg-0">
-                        {% if current_user.is_authenticated %}
-                            <li class="nav-item">
-                                <a class="nav-link" href="{{ url_for('main.add_bar') }}">ADD BAR</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="{{ url_for('main.get_bars_list') }}">BARS</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="{{ url_for('main.add_drink') }}">ADD DRINK</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="{{ url_for('main.get_drinks_list') }}">DRINKS</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="{{ url_for('main.user', username=current_user.username) }}">Profile </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="{{ url_for('auth.logout') }}">Sing Out</a>
-                            </li>
-                        {% else %}
-                            <li class="nav-item">
-                                <a class="nav-link" href="{{ url_for('auth.login') }}">Login</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="{{ url_for('auth.register') }}">Register</a>
-                            </li>
-                        {% endif %}
-                    </ul>
-                    <form class="form-inline mt-2 mt-md-0">
-                        <input class="form-control mr-sm-2" type="text" placeholder="Search" aria-label="Search">
-                        <button class="btn btn-outline-success my-2 my-sm-0" type="submit">Search</button>
-                    </form>
+             <!-- navbar-expand-lg управляет сворачиванием на мобильных -->
+            <!-- bg-body-tertiary и border-bottom делают навбар адаптивным к смене тем -->
+            <nav class="navbar navbar-expand-lg bg-body-tertiary border-bottom border-secondary border-opacity-10 py-3 shadow-sm">
+                <div class="container-fluid px-4">
+
+                    <!-- Логотип бренда -->
+                    <a class="navbar-brand fw-bold text-primary tracking-wider fs-4" href="/">BRS</a>
+
+                    <!-- Кнопка мобильного меню (Исправлены data-bs атрибуты для Bootstrap 5) -->
+                    <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarBarsDemo" aria-controls="navbarBarsDemo" aria-expanded="false" aria-label="Toggle navigation">
+                        <span class="navbar-toggler-icon"></span>
+                    </button>
+
+                    <!-- Обертка адаптивного меню -->
+                    <div class="collapse navbar-collapse" id="navbarBarsDemo">
+
+                        <!-- Навигационные ссылки (ms-auto сдвигает их, а в BS5 вместо mr-auto используется me-auto) -->
+                        <ul class="navbar-nav me-auto mb-2 mb-lg-0 gap-1 mt-2 mt-lg-0">
+                            {% if current_user.is_authenticated %}
+                                <li class="nav-item">
+                                    <a class="nav-link fw-medium text-uppercase fs-7" href="{{ url_for('main.add_bar') }}">Add Bar</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link fw-medium text-uppercase fs-7" href="{{ url_for('main.get_bars_list') }}">Bars</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link fw-medium text-uppercase fs-7" href="{{ url_for('main.add_drink') }}">Add Drink</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link fw-medium text-uppercase fs-7" href="{{ url_for('main.get_drinks_list') }}">Drinks</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link fw-medium text-uppercase fs-7 text-primary-emphasis" href="{{ url_for('main.user', username=current_user.username) }}">
+                                        <i class="bi bi-person-circle me-1"></i> Profile
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link fw-medium text-uppercase fs-7 text-danger opacity-75" href="{{ url_for('auth.logout') }}">Sign Out</a>
+                                </li>
+                            {% else %}
+                                <li class="nav-item">
+                                    <a class="nav-link fw-medium text-uppercase fs-7" href="{{ url_for('auth.login') }}">Login</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link fw-medium text-uppercase fs-7" href="{{ url_for('auth.register') }}">Register</a>
+                                </li>
+                            {% endif %}
+                        </ul>
+
+                        <!-- Правая интерактивная панель: Поиск + Тогглер темы -->
+                        <div class="d-flex flex-column flex-lg-row align-items-stretch align-items-lg-center gap-3 mt-3 mt-lg-0">
+
+                            <!-- Форма поиска в новом стиле -->
+                            <form class="d-flex gap-2" role="search">
+                                <input class="form-control bg-dark bg-opacity-10 border-secondary border-opacity-25 text-white" type="search" placeholder="Search bars..." aria-label="Search">
+                                <button class="btn btn-outline-primary" type="submit">
+                                    <i class="bi bi-search"></i>
+                                </button>
+                            </form>
+
+                            <!-- Встроенный компактный тогглер тем (убрали текст, оставили только иконку для аккуратности) -->
+                            <button class="btn btn-outline-secondary rounded-pill d-flex align-items-center justify-content-center"
+                                    id="themeToggler" type="button" title="Переключить тему" style="width: 42px; height: 42px;">
+                                <i class="bi bi-moon-stars-fill fs-5" id="themeIcon"></i>
+                            </button>
+
+                        </div>
+
+                    </div>
                 </div>
             </nav>
         {% endblock %}
@@ -103,5 +133,30 @@
 
         {% endblock %}
         {{ bootstrap.load_js() }}
+        <script>
+            const themeToggler = document.getElementById('themeToggler');
+            const themeIcon = document.getElementById('themeIcon');
+            const htmlElement = document.documentElement;
+
+            function updateTogglerUI(theme) {
+                if (theme === 'dark') {
+                    themeIcon.className = 'bi bi-moon-stars-fill text-primary-emphasis fs-5';
+                } else {
+                    themeIcon.className = 'bi bi-sun-fill text-warning fs-5';
+                }
+            }
+
+            const savedTheme = localStorage.getItem('theme') || 'dark';
+            htmlElement.setAttribute('data-bs-theme', savedTheme);
+            updateTogglerUI(savedTheme);
+
+            themeToggler.addEventListener('click', () => {
+                const currentTheme = htmlElement.getAttribute('data-bs-theme');
+                const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+                htmlElement.setAttribute('data-bs-theme', newTheme);
+                localStorage.setItem('theme', newTheme);
+                updateTogglerUI(newTheme);
+            });
+        </script>
     </body>
 </html>

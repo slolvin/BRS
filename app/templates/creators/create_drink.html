@@ -1,22 +1,87 @@
 {% extends 'base.html' %}
 {% block title %}Add new drink{% endblock %}
 {% block content %}
-    <div class="container">
-        <form action="{{ url_for('.add_drink') }}" method=post enctype="multipart/form-data">
-            <div class="input-group mb-3">
-                <input class="form-control" type="text" name="name" placeholder="Name"
-                       value="{{ request.form['name'] }}">
-                <select class="form-select" id="type" name="type" aria-label="Type">
-                    <option value="Water">Water</option>
-                    <option value="Beer">Beer</option>
-                    <option value="Vodka">Vodka</option>
-                    <option value="Wiskey">Wiskey</option>
-                    <option value="Cocktail">Cocktail</option>
-                </select>
-                <input class="form-control" type="text" name="description" placeholder="Description"
-                       value="{{ request.form['description'] }}">
+    <div class="container py-5">
+        <div class="row justify-content-center">
+            <!-- Ограничиваем максимальную ширину формы, чтобы она не растягивалась на весь экран ПК -->
+            <div class="col-12 col-lg-8">
+
+                <!-- Заголовок страницы -->
+                <div class="d-flex align-items-center gap-3 mb-4">
+                    <h1 class="h2 fw-bold text-white mb-0 text-uppercase tracking-wider">Добавить напиток</h1>
+                    <div class="flex-grow-1 border-bottom border-secondary border-opacity-10"></div>
+                    <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 rounded-pill px-3 py-2 fs-7">
+                        <i class="bi bi-plus-circle-fill me-1"></i> Новая позиция
+                    </span>
+                </div>
+
+                <!-- Карточка с формой в нашей фирменной стилистике -->
+                <div class="card border-0 rounded-4 shadow-sm bg-body-tertiary p-4 p-md-5">
+                    <form action="{{ url_for('.add_drink') }}" method="post" enctype="multipart/form-data" class="row g-4">
+
+                        <!-- 1. Название напитка -->
+                        <div class="col-12 col-md-7">
+                            <label for="name" class="form-label small text-secondary fw-medium text-uppercase tracking-wider fs-8">Название</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-dark bg-opacity-50 border-secondary border-opacity-25 text-secondary">
+                                    <i class="bi bi-type"></i>
+                                </span>
+                                <input class="form-control bg-dark bg-opacity-20 border-secondary border-opacity-25 text-white"
+                                       type="text" id="name" name="name" placeholder="Например: Negroni"
+                                       value="{{ request.form['name'] or '' }}" required>
+                            </div>
+                        </div>
+
+                        <!-- 2. Категория/Тип напитка -->
+                        <div class="col-12 col-md-5">
+                            <label for="type" class="form-label small text-secondary fw-medium text-uppercase tracking-wider fs-8">Категория</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-dark bg-opacity-50 border-secondary border-opacity-25 text-secondary">
+                                    <i class="bi bi-funnel"></i>
+                                </span>
+                                <select class="form-select bg-dark bg-opacity-20 border-secondary border-opacity-25 text-white" id="type" name="type" aria-label="Type">
+                                    <option value="Water">Water</option>
+                                    <option value="Beer">Beer</option>
+                                    <option value="Vodka">Vodka</option>
+                                    <option value="Wiskey">Wiskey</option>
+                                    <option value="Cocktail" selected>Cocktail</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- 3. ЗАГЛУШКА: Загрузка изображения -->
+                        <div class="col-12">
+                            <label for="image" class="form-label small text-secondary fw-medium text-uppercase tracking-wider fs-8">Фотография напитка</label>
+                            <div class="input-group">
+                                <input type="file" class="form-control bg-dark bg-opacity-20 border-secondary border-opacity-25 text-white"
+                                       id="image" name="image" accept="image/*">
+                                <label class="input-group-text bg-dark bg-opacity-50 border-secondary border-opacity-25 text-secondary" for="image">
+                                    <i class="bi bi-image"></i>
+                                </label>
+                            </div>
+                            <div class="form-text text-muted small mt-1 fs-8">Рекомендуется формат JPEG или PNG, до 5 МБ.</div>
+                        </div>
+
+                        <!-- 4. Описание напитка (сделали textarea для удобства ввода) -->
+                        <div class="col-12">
+                            <label for="description" class="form-label small text-secondary fw-medium text-uppercase tracking-wider fs-8">Описание и состав</label>
+                            <textarea class="form-control bg-dark bg-opacity-20 border-secondary border-opacity-25 text-white"
+                                      id="description" name="description" rows="4"
+                                      placeholder="Расскажите об ингредиентах, вкусе или подаче напитка...">{{ request.form['description'] or '' }}</textarea>
+                        </div>
+
+                        <!-- 5. Кнопки управления -->
+                        <div class="col-12 pt-3 border-top border-secondary border-opacity-10 d-flex flex-column-reverse flex-sm-row justify-content-end gap-2">
+                            <a href="javascript:history.back()" class="btn btn-outline-secondary px-4">Отмена</a>
+                            <button class="btn btn-primary px-5 fw-medium" type="submit">
+                                <i class="bi bi-check-lg me-1"></i> Сохранить напиток
+                            </button>
+                        </div>
+
+                    </form>
+                </div>
+
             </div>
-            <button class="btn btn-primary" type="submit">Submit</button>
-        </form>
+        </div>
     </div>
 {% endblock %}

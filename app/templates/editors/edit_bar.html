@@ -3,63 +3,116 @@
 {% block title %}Edit bar{% endblock %}
 
 {% block content %}
-    <div class="container">
-		<div class="main-body">
-			<div class="row">
-				<div class="col-lg-4">
-					<div class="card">
-						<div class="card-body">
-							<div class="d-flex flex-column align-items-center text-center">
-								<div class="mt-3">
-									<p class="text-muted font-size-sm">Bar name: {{ editing_bar['name'] }}</p>
-									<p class="text-muted font-size-sm">Bar admin name: {{ editing_bar.get_user_name() }}</p>
-									<p class="text-muted font-size-sm">Bar address {{ editing_bar['address'] }}</p>
-									<p class="text-muted font-size-sm">Bar address {{ editing_bar['city'] }}</p>
-								</div>
+    <div class="container py-5">
+		<!-- Заголовок панели управления -->
+		<div class="d-flex align-items-center gap-3 mb-5">
+			<h1 class="h2 fw-bold text-white mb-0 text-uppercase tracking-wider">Панель управления баром</h1>
+			<div class="flex-grow-1 border-bottom border-secondary border-opacity-10"></div>
+			<span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 rounded-pill px-3 py-2 fs-7">
+				<i class="bi bi-sliders me-1"></i> Режим администратора
+			</span>
+		</div>
+
+		<div class="row g-4">
+
+			<!-- ЛЕВАЯ КОЛОНКА: Визуальное превью и статус -->
+			<div class="col-12 col-lg-4">
+				<div class="card border-0 rounded-4 shadow-sm bg-body-tertiary overflow-hidden h-100">
+					<!-- Заглушка изображения бара -->
+					<div class="position-relative" style="height: 180px; background: linear-gradient(45deg, #1f232b, #2d323f);">
+						<div class="position-absolute top-50 start-50 translate-middle text-center text-secondary opacity-50">
+							<i class="bi bi-image fs-1 d-block mb-1"></i>
+							<span class="fs-8 text-uppercase tracking-wider">Логотип / Фото бара</span>
+						</div>
+					</div>
+
+					<!-- Информация под фото -->
+					<div class="card-body p-4 text-center">
+						<h4 class="fw-bold text-white mb-1">{{ editing_bar['name'] }}</h4>
+						<p class="text-secondary small mb-3"><i class="bi bi-geo-alt-fill text-danger me-1"></i> {{ editing_bar['city'] }}</p>
+
+						<div class="border-top border-secondary border-opacity-10 pt-3 text-start">
+							<div class="mb-2">
+								<span class="text-secondary d-block fs-8 text-uppercase tracking-wider fw-medium">Управляющий</span>
+								<span class="text-white small"><i class="bi bi-person me-1 text-primary"></i> {{ editing_bar.get_user_name() }}</span>
 							</div>
-							<hr class="my-4">
+							<div>
+								<span class="text-secondary d-block fs-8 text-uppercase tracking-wider fw-medium">Полный адрес</span>
+								<span class="text-white small">{{ editing_bar['address'] }}</span>
+							</div>
 						</div>
 					</div>
 				</div>
-				<div class="col-lg-8">
-					<div class="card">
-						<form class="mx-1 mx-md-4" action="{{ url_for('.edit_bar', id=editing_bar.id) }}" method=post>
-							<div class="card-body">
-								<div class="row mb-3">
-									<div class="col-sm-3">
-										<h6 class="mb-0"> Bar Name</h6>
-									</div>
-									<div class="col-sm-9 text-secondary">
-										<input name="name" type="text" class="form-control" value="{{ editing_bar.name }}">
-									</div>
-								</div>
-								<div class="row mb-3">
-									<div class="col-sm-3">
-										<h6 class="mb-0">Admin ID</h6>
-									</div>
-									<div class="col-sm-9 text-secondary">
-										<input name="admin_id" type="text" class="form-control" value="{{ editing_bar.admin_id }}">
-									</div>
-								</div>
-								<div class="row mb-3">
-									<div class="col-sm-3">
-										<h6 class="mb-0">Address</h6>
-									</div>
-									<div class="col-sm-9 text-secondary">
-										<input name="address" type="text" class="form-control" value="{{ editing_bar.address }}">
-									</div>
-								</div>
-								<div class="row">
-									<div class="col-sm-3"></div>
-									<div class="col-sm-9 text-secondary">
-										<input type="submit" class="btn btn-primary px-4" value="Save Changes">
-									</div>
-									<div class="col-sm-9 text-secondary">
-										<a class="btn btn-secondary px-4" href="/">Decline</a>
-									</div>
-								</div>
+			</div>
+
+			<!-- ПРАВАЯ КОЛОНКА: Форма редактирования -->
+			<div class="col-12 col-lg-8">
+				<div class="card border-0 rounded-4 shadow-sm bg-body-tertiary p-4 p-md-5">
+					<h3 class="h5 fw-bold text-white mb-4 text-uppercase tracking-wide">Основная информация</h3>
+
+					<!-- Добавлен параметр enctype для будущей загрузки файлов -->
+					<form action="{{ url_for('.edit_bar', id=editing_bar.id) }}" method="post" enctype="multipart/form-data" class="row g-4">
+
+						<!-- Название -->
+						<div class="col-12 col-md-7">
+							<label for="name" class="form-label small text-secondary fw-medium text-uppercase tracking-wider fs-8">Название бара</label>
+							<input name="name" type="text" id="name" class="form-control bg-dark bg-opacity-20 border-secondary border-opacity-25 text-white" value="{{ editing_bar.name }}" required>
+						</div>
+
+						<!-- Admin ID -->
+						<div class="col-12 col-md-5">
+							<label for="admin_id" class="form-label small text-secondary fw-medium text-uppercase tracking-wider fs-8">ID Администратора</label>
+							<input name="admin_id" type="text" id="admin_id" class="form-control bg-dark bg-opacity-20 border-secondary border-opacity-25 text-white" value="{{ editing_bar.admin_id }}" required>
+						</div>
+
+						<!-- Адрес -->
+						<div class="col-12">
+							<label for="address" class="form-label small text-secondary fw-medium text-uppercase tracking-wider fs-8">Адрес</label>
+							<input name="address" type="text" id="address" class="form-control bg-dark bg-opacity-20 border-secondary border-opacity-25 text-white" value="{{ editing_bar.address }}" required>
+						</div>
+
+						<!-- ЗАГЛУШКА: Загрузка изображения бара -->
+						<div class="col-12">
+							<label for="bar_image" class="form-label small text-secondary fw-medium text-uppercase tracking-wider fs-8">Обновить фотографию заведения</label>
+							<div class="input-group">
+								<input type="file" class="form-control bg-dark bg-opacity-20 border-secondary border-opacity-25 text-white" id="bar_image" name="bar_image" accept="image/*">
+								<label class="input-group-text bg-dark bg-opacity-50 border-secondary border-opacity-25 text-secondary" for="bar_image">
+									<i class="bi bi-cloud-arrow-up"></i>
+								</label>
 							</div>
-						</form>
+						</div>
+
+						<!-- Кнопки управления (в одну линию через flex-row) -->
+						<div class="col-12 pt-3 border-top border-secondary border-opacity-10 d-flex justify-content-end gap-2">
+							<a class="btn btn-outline-secondary px-4" href="/">Отмена</a>
+							<button type="submit" class="btn btn-primary px-4 fw-medium">
+								<i class="bi bi-check-lg me-1"></i> Сохранить изменения
+							</button>
+						</div>
+					</form>
+				</div>
+			</div>
+
+		</div>
+
+		<!-- НИЖНИЙ БЛОК: Заглушка управления картой напитков -->
+		<div class="row mt-4">
+			<div class="col-12">
+				<div class="card border-0 rounded-4 shadow-sm bg-body-tertiary p-4">
+					<div class="d-flex flex-column flex-md-row align-items-start align-items-md-center justify-content-between gap-3">
+
+						<div>
+							<h3 class="h5 fw-bold text-white mb-1 text-uppercase tracking-wide">Ассортимент и меню</h3>
+							<p class="text-secondary small mb-0">Управляйте напитками, которые привязаны к вашей карте заведения.</p>
+						</div>
+
+						<!-- Яркая экшен-кнопка для перехода к добавлению напитка -->
+						<!-- Во Flask можно сразу передать id бара как query-параметр, чтобы бэкенд знал, куда привязать напиток -->
+						<a href="{{ url_for('main.add_drink', bar_id=editing_bar.id) }}" class="btn btn-success px-4 py-2 fw-medium d-flex align-items-center gap-2 shadow-sm">
+							<i class="bi bi-plus-lg fs-5"></i>
+							<span>Добавить напиток в меню</span>
+						</a>
+
 					</div>
 				</div>
 			</div>

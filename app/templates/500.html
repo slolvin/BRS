@@ -1,4 +1,26 @@
 {% extends 'base.html' %}
-{% block title %}Internal server error{% endblock %}
+{% block title %}500 — Ошибка сервера{% endblock %}
+    <div class="container min-vh-100 d-flex align-items-center justify-content-center py-5">
+        <div class="text-center" style="max-width: 480px;">
+
+            <!-- Нейтральный тревожный акцент -->
+            <div class="display-1 fw-bold text-secondary tracking-tighter mb-2">500</div>
+            <div class="text-warning fs-1 lh-1 mb-4">
+                <i class="bi bi-exclamation-triangle-fill"></i>
+            </div>
+
+            <!-- Описание ошибки -->
+            <h1 class="h3 fw-bold text-white text-uppercase tracking-wider mb-3">Шейкер взорвался</h1>
+            <p class="text-secondary small mb-5 lh-base">
+                На бэкенде что-то пошло не так во время смешивания ингредиентов. Наши разработчики уже убирают осколки стекла. Попробуйте обновить страницу позже.
+            </p>
+
+            <!-- Кнопка действия -->
+            <button onclick="window.location.reload();" class="btn btn-primary px-5 py-3 fw-medium text-uppercase tracking-wide shadow-sm rounded-pill">
+                <i class="bi bi-arrow-clockwise me-2"></i> Обновить страницу
+            </button>
+
+        </div>
+    </div>
 {% block content %}
 {% endblock %}

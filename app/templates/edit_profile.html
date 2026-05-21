@@ -3,65 +3,182 @@
 {% block title %}BRS - Edit Profile{% endblock %}
 
 {% block content %}
-    <div class="container">
-		<div class="main-body">
-			<div class="row">
-				<div class="col-lg-4">
-					<div class="card">
-						<div class="card-body">
-							<div class="d-flex flex-column align-items-center text-center">
-								<img src="{{ current_user.gravatar_url(size=100) }}" alt="Admin" class="img-rounded profile-thumbnail">
-								<div class="mt-3">
-									<h4>{{ current_user.name }}</h4>
-									<p class="text-muted font-size-sm">Location: {{ current_user.location }}</p>
-									<p class="text-muted font-size-sm">Role: {{ current_user.role }}</p>
-									<button class="btn btn-primary">Follow</button>
-									<button class="btn btn-outline-primary">Message</button>
-								</div>
-							</div>
-							<hr class="my-4">
-						</div>
+	<div class="container py-5">
+		<!-- Заголовок личного кабинета -->
+		<div class="d-flex align-items-center gap-3 mb-5">
+			<h1 class="h2 fw-bold text-white mb-0 text-uppercase tracking-wider">Личный кабинет</h1>
+			<div class="flex-grow-1 border-bottom border-secondary border-opacity-10"></div>
+			<span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 rounded-pill px-3 py-2 fs-7">
+				<i class="bi bi-person-gear me-1"></i> Профиль
+			</span>
+		</div>
+
+		<div class="row g-4">
+
+			<!-- ЛЕВАЯ КОЛОНКА: Карточка пользователя -->
+			<div class="col-12 col-lg-4">
+				<div class="card border-0 rounded-4 shadow-sm bg-body-tertiary p-4 h-100 text-center">
+
+					<!-- Аватар пользователя (Gravatar) со скруглением -->
+					<div class="position-relative d-inline-block mx-auto mb-3">
+						<img src="{{ current_user.gravatar_url(size=120) }}" alt="{{ current_user.name }}"
+							 class="rounded-circle shadow border border-secondary border-opacity-25 p-1"
+							 style="width: 120px; height: 120px; object-fit: cover;">
 					</div>
+
+					<!-- Имя и Роль -->
+					<h4 class="fw-bold text-white mb-1">{{ current_user.name }}</h4>
+					<div class="mb-3">
+						<span class="badge bg-secondary rounded-pill px-2.5 py-1 fs-8 text-uppercase tracking-wider fw-semibold">
+							<i class="bi bi-shield-lock me-1"></i> {{ current_user.role or 'User' }}
+						</span>
+					</div>
+
+					<!-- Локация / Гео -->
+					<p class="text-secondary small mb-4 d-flex align-items-center justify-content-center gap-1">
+						<i class="bi bi-geo-alt text-danger"></i>
+						<span>{{ current_user.location or 'Локация не указана' }}</span>
+					</p>
+
+					<!-- Кнопки быстрых действий (Follow / Message) -->
+					<div class="d-flex gap-2 justify-content-center pt-2 border-top border-secondary border-opacity-10 w-100">
+						<button class="btn btn-primary w-50 py-2 fs-7 fw-medium text-uppercase tracking-wide">
+							<i class="bi bi-person-plus me-1"></i> Follow
+						</button>
+						<button class="btn btn-outline-secondary w-50 py-2 fs-7 fw-medium text-uppercase tracking-wide">
+							<i class="bi bi-chat-left-text me-1"></i> Message
+						</button>
+					</div>
+
 				</div>
-				<div class="col-lg-8">
-					<div class="card">
-						<form class="mx-1 mx-md-4" action="{{ url_for('.edit_profile') }}" method=post>
-							<div class="card-body">
-								<div class="row mb-3">
-									<div class="col-sm-3">
-										<h6 class="mb-0"> Full Name</h6>
-									</div>
-									<div class="col-sm-9 text-secondary">
-										<input name="name" type="text" class="form-control" value="{{ current_user.name }}">
-									</div>
+			</div>
+
+			<!-- ПРАВАЯ КОЛОНКА: Настройки и редактирование профиля -->
+			<div class="col-12 col-lg-8">
+				<div class="card border-0 rounded-4 shadow-sm bg-body-tertiary p-4 p-md-5 h-100">
+					<h3 class="h5 fw-bold text-white mb-4 text-uppercase tracking-wide">Редактировать личные данные</h3>
+
+					<form action="{{ url_for('.edit_profile') }}" method="post" class="row g-4">
+
+						<!-- Имя пользователя -->
+						<div class="col-12 col-md-6">
+							<label for="name" class="form-label small text-secondary fw-medium text-uppercase tracking-wider fs-8">Полное имя</label>
+							<div class="input-group">
+								<span class="input-group-text bg-dark bg-opacity-50 border-secondary border-opacity-25 text-secondary">
+									<i class="bi bi-person"></i>
+								</span>
+								<input name="name" type="text" id="name" class="form-control bg-dark bg-opacity-20 border-secondary border-opacity-25 text-white" value="{{ current_user.name }}" required>
+							</div>
+						</div>
+
+						<!-- Email -->
+						<div class="col-12 col-md-6">
+							<label for="email" class="form-label small text-secondary fw-medium text-uppercase tracking-wider fs-8">Электронная почта</label>
+							<div class="input-group">
+								<span class="input-group-text bg-dark bg-opacity-50 border-secondary border-opacity-25 text-secondary">
+									<i class="bi bi-envelope"></i>
+								</span>
+								<input name="email" type="email" id="email" class="form-control bg-dark bg-opacity-20 border-secondary border-opacity-25 text-white" value="{{ current_user.email }}" required>
+							</div>
+						</div>
+
+						<!-- Локация -->
+						<div class="col-12">
+							<label for="location" class="form-label small text-secondary fw-medium text-uppercase tracking-wider fs-8">Город / Местоположение</label>
+							<div class="input-group">
+								<span class="input-group-text bg-dark bg-opacity-50 border-secondary border-opacity-25 text-secondary">
+									<i class="bi bi-geo"></i>
+								</span>
+								<input name="location" type="text" id="location" class="form-control bg-dark bg-opacity-20 border-secondary border-opacity-25 text-white" value="{{ current_user.location or '' }}" placeholder="Например: Москва, Россия">
+							</div>
+						</div>
+
+						<!-- Кнопка отправки изменений -->
+						<div class="col-12 pt-3 border-top border-secondary border-opacity-10 d-flex justify-content-end">
+							<button type="submit" class="btn btn-primary px-5 py-2 fw-medium shadow-sm">
+								<i class="bi bi-save me-1"></i> Сохранить изменения
+							</button>
+						</div>
+
+					</form>
+				</div>
+			</div>
+
+		</div>
+
+		<!-- НИЖНИЙ БЛОК: Заглушка истории оценок пользователя -->
+		<div class="row mt-4">
+			<div class="col-12">
+				<div class="card border-0 rounded-4 shadow-sm bg-body-tertiary p-4 p-md-5">
+
+					<!-- Заголовок секции истории -->
+					<div class="d-flex align-items-center justify-content-between mb-4">
+						<div>
+							<h3 class="h5 fw-bold text-white mb-1 text-uppercase tracking-wide">История вашей активности</h3>
+							<p class="text-secondary small mb-0">Последние оценки, которые вы выставили напиткам и заведениям.</p>
+						</div>
+						<span class="badge bg-body-secondary border border-secondary border-opacity-25 text-secondary-emphasis rounded-pill px-3 py-1.5 fs-8">
+							Заглушка истории
+						</span>
+					</div>
+
+					<!-- Список-заглушка последних действий -->
+					<div class="list-group list-group-flush border-top border-secondary border-opacity-10">
+
+						<!-- Лог 1 -->
+						<div class="list-group-item bg-transparent border-secondary border-opacity-10 px-0 py-3 d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2">
+							<div class="d-flex align-items-center gap-3">
+								<div class="bg-warning bg-opacity-10 text-warning rounded-3 p-2 fs-5 lh-1 border border-warning border-opacity-10">
+									<i class="bi bi-star-fill"></i>
 								</div>
-								<div class="row mb-3">
-									<div class="col-sm-3">
-										<h6 class="mb-0">Email</h6>
-									</div>
-									<div class="col-sm-9 text-secondary">
-										<input name="email" type="text" class="form-control" value="{{ current_user.email }}">
-									</div>
-								</div>
-								<div class="row mb-3">
-									<div class="col-sm-3">
-										<h6 class="mb-0">Location</h6>
-									</div>
-									<div class="col-sm-9 text-secondary">
-										<input name="location" type="text" class="form-control" value="{{ current_user.location }}">
-									</div>
-								</div>
-								<div class="row">
-									<div class="col-sm-3"></div>
-									<div class="col-sm-9 text-secondary">
-										<input type="submit" class="btn btn-primary px-4" value="Save Changes">
-									</div>
+								<div>
+									<span class="text-white small fw-medium d-block">Вы поставили оценку напитку <span class="text-primary">«Aperol Spritz»</span></span>
+									<span class="text-muted fs-8">Бар: Neon & Wine</span>
 								</div>
 							</div>
-						</form>
+							<div class="d-flex align-items-center gap-2 ms-5 ms-sm-0">
+								<span class="badge bg-dark border border-secondary border-opacity-25 text-warning fw-semibold px-2 py-1">★ 5.0</span>
+								<span class="text-secondary fs-8">10 минут назад</span>
+							</div>
+						</div>
+
+						<!-- Лог 2 -->
+						<div class="list-group-item bg-transparent border-secondary border-opacity-10 px-0 py-3 d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2">
+							<div class="d-flex align-items-center gap-3">
+								<div class="bg-primary bg-opacity-10 text-primary rounded-3 p-2 fs-5 lh-1 border border-primary border-opacity-10">
+									<i class="bi bi-chat-right-heart-fill"></i>
+								</div>
+								<div>
+									<span class="text-white small fw-medium d-block">Вы добавили заведение <span class="text-primary">«Craft & Draft»</span> в избранное</span>
+									<span class="text-muted fs-8">Категория: Крафтовый бар</span>
+								</div>
+							</div>
+							<div class="d-flex align-items-center gap-2 ms-5 ms-sm-0">
+								<span class="text-secondary fs-8">Вчера, 22:40</span>
+							</div>
+						</div>
+
+						<!-- Лог 3 -->
+						<div class="list-group-item bg-transparent border-bottom-0 px-0 py-3 d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2">
+							<div class="d-flex align-items-center gap-3">
+								<div class="bg-success bg-opacity-10 text-success rounded-3 p-2 fs-5 lh-1 border border-success border-opacity-10">
+									<i class="bi bi-patch-check-fill"></i>
+								</div>
+								<div>
+									<span class="text-white small fw-medium d-block">Вы зарегистрировались на платформе BRS</span>
+									<span class="text-muted fs-8">Добро пожаловать в клуб экспертов!</span>
+								</div>
+							</div>
+							<div class="d-flex align-items-center gap-2 ms-5 ms-sm-0">
+								<span class="text-secondary fs-8">2 дня назад</span>
+							</div>
+						</div>
+
 					</div>
+
 				</div>
 			</div>
 		</div>
+
 	</div>
 {% endblock %}
