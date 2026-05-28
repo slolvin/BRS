@@ -1,0 +1,53 @@
+<div class="card h-100 w-100 shadow border-0 rounded-4 overflow-hidden bg-dark bg-opacity-20 mx-auto" style="max-width: 340px;">
+    <!-- Изображение напитка с фиксированной высотой -->
+    <div class="position-relative" style="height: 200px;">
+        <img src="{{ drink['image'] }}" class="w-100 h-100" alt="{{ drink['name'] }}" style="object-fit: cover;">
+
+        <!-- Абсолютное позиционирование типа напитка поверх фото -->
+        <span class="position-absolute top-0 end-0 m-3 badge bg-dark bg-opacity-75 border border-secondary border-opacity-25 rounded-pill px-2.5 py-1.5 fs-8 text-secondary">
+            {{ drink['type'] }}
+        </span>
+    </div>
+
+    <!-- Тело карточки с контентом -->
+    <div class="card-body p-4 d-flex flex-column">
+        <!-- Название напитка -->
+        <h5 class="card-title fw-bold text-white mb-2">{{ drink['name'] }}</h5>
+
+        <!-- Описание напитка (занимает всё свободное место) -->
+        <p class="card-text text-secondary small mb-4 flex-grow-1 lh-base">
+            {{ drink['description'] }}
+        </p>
+
+        <!-- Текущий рейтинг (вынесли внутрь body перед формой оценки) -->
+        <div class="mb-3 pt-3 border-top border-secondary border-opacity-10">
+            <span class="text-secondary small d-block mb-1 fw-medium text-uppercase tracking-wider fs-8">Текущая оценка</span>
+            {% include "includes/rate_drink.html" %}
+        </div>
+    </div>
+    <!-- ПОДВАЛ КАРТОЧКИ: Кнопки управления для админа -->
+    <div class="card-footer bg-transparent border-top border-secondary border-opacity-10 p-4 pt-0">
+        <div class="row g-2">
+
+            <!-- Заглушка кнопки редактирования -->
+            <div class="col-6">
+                <a class="btn btn-outline-secondary w-100 py-2 fs-7 fw-medium text-uppercase tracking-wide disabled"
+                   href="#" role="button" aria-disabled="true" title="Редактирование (Скоро)">
+                    <i class="bi bi-pencil me-1"></i> Edit
+                </a>
+            </div>
+
+            <!-- Кнопка удаления (Оформлена безопасной POST-формой) -->
+            <div class="col-6">
+                <!-- Flask-маршрут main.delete_drink принимает ID напитка -->
+                <form action="{{ url_for('main.delete_drink', drink_id=drink['id']) }}" method="post"
+                      onsubmit="return confirm('Вы уверены, что хотите навсегда удалить этот напиток из системы?');">
+                    <button type="submit" class="btn btn-outline-danger w-100 py-2 fs-7 fw-medium text-uppercase tracking-wide">
+                        <i class="bi bi-trash3 me-1"></i> Delete
+                    </button>
+                </form>
+            </div>
+
+        </div>
+    </div>
+</div>

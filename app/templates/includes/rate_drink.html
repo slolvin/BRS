@@ -1,29 +1,31 @@
 <div class="d-flex align-items-center gap-2">
-    <!-- Логика расчёта звёзд (остаётся прежней) -->
-    {% set full_stars = drink['score'] | int %}
-    {% set half_star = (drink['score'] - full_stars) >= 0.5 %}
+    <!-- БЕЗОПАСНЫЙ РАСЧЕТ: если score равен None, мы принудительно берем 0 -->
+    {% set current_score = drink['score'] if drink['score'] is not none else 0 %}
+
+    {% set full_stars = current_score | int %}
+    {% set half_star = (current_score - full_stars) >= 0.5 %}
     {% set empty_stars = 5 - full_stars - (1 if half_star else 0) %}
 
-    <!-- Контейнер для звёздочек (всегда в одну линию) -->
+    <!-- Контейнер для звёздочек -->
     <div class="d-flex text-warning fs-6 lh-1">
         <!-- Целые звёзды -->
         {% for _ in range(full_stars) %}
-            <i class="bi bi-star-fill me-0.5"></i>
+            <i class="bi bi-star-fill me-1"></i>
         {% endfor %}
 
         <!-- Половинка звезды -->
         {% if half_star %}
-            <i class="bi bi-star-half me-0.5"></i>
+            <i class="bi bi-star-half me-1"></i>
         {% endif %}
 
         <!-- Пустые звёзды -->
         {% for _ in range(empty_stars) %}
-            <i class="bi bi-star text-muted opacity-50 me-0.5"></i>
+            <i class="bi bi-star text-muted opacity-50 me-1"></i>
         {% endfor %}
     </div>
 
     <!-- Текстовое значение оценки -->
     <span class="badge bg-body-tertiary border border-secondary border-opacity-25 text-secondary-emphasis small fw-semibold px-2 py-1 rounded">
-        {{ "%.1f"|format(drink['score']) }}
+        {{ "%.1f"|format(current_score) }}
     </span>
 </div>

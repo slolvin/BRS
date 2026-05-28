@@ -164,21 +164,33 @@ class Bar(db.Model):
     admin_id = db.Column(db.Integer, db.ForeignKey('managers.manager_id'), nullable=False)
     address = db.Column(db.Text())
     city = db.Column(db.Text())
-    drinks = db.relationship('Drink', backref='bar', lazy=True)
     rate = db.Column(db.Numeric(5, 2))
+    drinks = db.relationship('Drink', backref='bar', lazy='joined', cascade="all, delete-orphan")
 
     def __repr__(self):
-        return '<Bar %r>' % self.name
+        return f'<Bar {self.name!r}>'
 
     def get_user_name(self):
-        manager = User.query.get_or_404(self.admin_id)
-        return manager.name
+        if self.manager:
+            return self.manager.name
+
+        from app.models import User  # Локальный импорт, если падает из-за циклического импорта
+        user = User.query.get(self.admin_id)
+        if user:
+            return user.name
+
+        return f"Неизвестный менеджер (ID: {self.admin_id})"
 
     def get_bar_rate(self):
-        if len(self.drinks) != 0:
-            self.rate = sum(item.score for item in self.drinks)/len(self.drinks)
+        # 1. Собираем только напитки с выставленной оценкой
+        rated_drinks = [item for item in self.drinks if item.score is not None]
+        # 2. Если такие напитки есть — безопасно считаем среднее
+        if len(rated_drinks) > 0:
+            self.rate = sum(item.score for item in rated_drinks) / len(rated_drinks)
+        # 3. Если напитков нет или ни у одного нет оценки — рейтинг строго 0
         else:
             self.rate = 0
+
         return self.rate
 
     def to_json(self):
@@ -212,15 +224,16 @@ class Drink(db.Model):
     bar_id = db.Column(db.Integer, db.ForeignKey('bars.id'), nullable=True)
 
     def __repr__(self):
-        return '<Drink %r>' % self.username
+        return f'<Drink {self.name!r}>'
 
     def to_json(self):
         json_post = {
+            'id': self.id,
             'name': self.name,
             'type': self.type,
             'description': self.description,
-            'score': self.score,
-            'bar': self.bar_id,
+            'score': float(self.score)  if self.score else None,
+            'bar_id': self.bar_id,
         }
         return json_post
 
@@ -228,12 +241,12 @@ class Drink(db.Model):
     def from_json(json_post):
         # body = json_post.get('body')
         name = json_post.get('name')
-        type = json_post.get('type')
+        drink_type = json_post.get('type')
         description = json_post.get('description')
         bar_id = json_post.get('bar_id')
         # if body is None or body == '':
         #     raise ValidationError('Bar does not have a body')
-        return Drink(name=name, type=type, descripotion=description, bar_id=bar_id)
+        return Drink(name=name, type=drink_type, description=description, bar_id=bar_id)
 
 
 class AnonymousUser(AnonymousUserMixin):

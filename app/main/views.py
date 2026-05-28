@@ -125,16 +125,26 @@ def get_bar_drinks(id):
 
 @main.route('/add_drink/', methods=['GET', 'POST'])
 def add_drink():
+    bar_id = request.args.get('bar_id', type=int)
+
     if request.method == 'POST':
         drink = Drink()
         drink.name = request.form['name']
         drink.type = request.form['type']
         drink.description = request.form['description']
+
+        if bar_id:
+            drink.bar_id = bar_id
+
         db.session.add(drink)
         db.session.commit()
+
         flash('The drink has been created.')
-        redirect(url_for('main.get_drinks_list'))
-    return render_template('/creators/create_drink.html')
+        if bar_id:
+            return redirect(url_for('main.get_bar_drinks', id=bar_id))
+        return redirect(url_for('main.get_drinks_list'))
+
+    return render_template('/creators/create_drink.html', bar_id=bar_id)
 
 
 @main.route('/rate/<int:drink_id>', methods=['POST'])
@@ -148,3 +158,16 @@ def rate_drink(drink_id):
     # db.session.add(bar)
     # db.session.commit()
     return redirect(url_for('main.get_drinks_list'))
+
+
+@main.route('/delete_drink/<int:drink_id>', methods=['POST'])
+@login_required
+def delete_drink(drink_id):
+    drink = Drink.query.get_or_404(drink_id)
+
+    db.session.delete(drink)
+    db.session.commit()
+
+    flash('Напиток был успешно удален из системы.')
+
+    return redirect(request.referrer or url_for('main.get_drinks_list'))

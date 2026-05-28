@@ -95,25 +95,58 @@
 
 		</div>
 
-		<!-- НИЖНИЙ БЛОК: Заглушка управления картой напитков -->
-		<div class="row mt-4">
+		<div class="row mt-5">
 			<div class="col-12">
-				<div class="card border-0 rounded-4 shadow-sm bg-body-tertiary p-4">
-					<div class="d-flex flex-column flex-md-row align-items-start align-items-md-center justify-content-between gap-3">
+				<div class="card border-0 rounded-4 shadow-sm bg-body-tertiary p-4 p-md-5">
 
+					<!-- Шапка секции меню -->
+					<div class="d-flex flex-column flex-md-row align-items-start align-items-md-center justify-content-between gap-3 mb-4 pb-4 border-bottom border-secondary border-opacity-10">
 						<div>
 							<h3 class="h5 fw-bold text-white mb-1 text-uppercase tracking-wide">Ассортимент и меню</h3>
-							<p class="text-secondary small mb-0">Управляйте напитками, которые привязаны к вашей карте заведения.</p>
+							<p class="text-secondary small mb-0">Управляйте позициями карты напитков, редактируйте информацию и отслеживайте их оценки.</p>
 						</div>
 
-						<!-- Яркая экшен-кнопка для перехода к добавлению напитка -->
-						<!-- Во Flask можно сразу передать id бара как query-параметр, чтобы бэкенд знал, куда привязать напиток -->
-						<a href="{{ url_for('main.add_drink', bar_id=editing_bar.id) }}" class="btn btn-success px-4 py-2 fw-medium d-flex align-items-center gap-2 shadow-sm">
+						<!-- Кнопка добавления нового напитка -->
+						<a href="{{ url_for('main.add_drink', bar_id=editing_bar.id) }}" class="btn btn-success px-4 py-2 fw-medium d-flex align-items-center gap-2 shadow-sm rounded-3">
 							<i class="bi bi-plus-lg fs-5"></i>
-							<span>Добавить напиток в меню</span>
+							<span>Добавить напиток</span>
 						</a>
-
 					</div>
+
+					<!-- ДИНАМИЧЕСКИЙ ВЫВОД КАРТОЧЕК НАПИТКОВ -->
+					<!-- Проверяем, есть ли вообще напитки у этого бара -->
+					{% if editing_bar.drinks and editing_bar.drinks|length > 0 %}
+
+						<!-- Сетка для карточек (3 колонки внутри панели админки, чтобы они не зажимались) -->
+						<div class="row row-cols-1 row-cols-sm-2 row-cols-xl-3 g-4">
+							{% for drink in editing_bar.drinks %}
+								<div class="col d-flex">
+
+									<!-- Подключаем нашу интерактивную карточку, которую верстали ранее -->
+									<!-- Она содержит фото, название, тип, описание, текущий рейтинг и форму изменения оценки -->
+									{% include "includes/drink_card_admin.html" %}
+								</div>
+							{% endfor %}
+						</div>
+
+					{% else %}
+
+						<!-- КРАСИВАЯ ЗАГЛУШКА: Если меню заведения пока полностью пустое -->
+						<div class="text-center py-5 my-3 bg-dark bg-opacity-10 rounded-4 border border-secondary border-opacity-10">
+							<div class="text-secondary opacity-50 display-5 mb-3">
+								<i class="bi bi-cup-straw"></i>
+							</div>
+							<h4 class="h6 fw-bold text-white text-uppercase tracking-wide mb-2">В меню пока нет позиций</h4>
+							<p class="text-secondary small mb-4 mx-auto" style="max-width: 360px;">
+								Добавьте первый коктейль, пиво или крепкий алкоголь, чтобы пользователи смогли оценивать ваш ассортимент.
+							</p>
+							<a href="{{ url_for('main.add_drink', bar_id=editing_bar.id) }}" class="btn btn-outline-primary btn-sm px-3 py-2 fw-medium text-uppercase tracking-wide">
+								<i class="bi bi-plus me-1"></i> Создать позицию
+							</a>
+						</div>
+
+					{% endif %}
+
 				</div>
 			</div>
 		</div>

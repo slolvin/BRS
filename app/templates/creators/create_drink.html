@@ -17,7 +17,7 @@
 
                 <!-- Карточка с формой в нашей фирменной стилистике -->
                 <div class="card border-0 rounded-4 shadow-sm bg-body-tertiary p-4 p-md-5">
-                    <form action="{{ url_for('.add_drink') }}" method="post" enctype="multipart/form-data" class="row g-4">
+                    <form action="{{ url_for('.add_drink', bar_id=bar_id) }}" method="post" enctype="multipart/form-data" class="row g-4">
 
                         <!-- 1. Название напитка -->
                         <div class="col-12 col-md-7">
