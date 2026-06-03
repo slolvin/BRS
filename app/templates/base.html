@@ -133,6 +133,9 @@
 
         {% endblock %}
         {{ bootstrap.load_js() }}
+        {% block scripts %}
+
+        {% endblock %}
         <script>
             const themeToggler = document.getElementById('themeToggler');
             const themeIcon = document.getElementById('themeIcon');

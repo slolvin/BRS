@@ -12,11 +12,11 @@ class Config:
 
     # FILES SETTING #
     SESSION_TYPE = 'filesystem'
-    ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
+    UPLOAD_FOLDER = '/app/static/drinks'
+    ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 
     # PAGINATION SETTING #
     DRINKS_PER_PAGE = 3
-    UPLOAD_FOLDER = 'static/icons/'
     ICONS_FOLDER = 'static/icons/'
 
     @staticmethod

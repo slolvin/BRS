@@ -4,24 +4,16 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="eb508b55-b16e-4136-8abd-996021fa5540" name="Changes" comment="Bootstrap 5.3 for most of the pages">
-      <change afterPath="$PROJECT_DIR$/app/templates/includes/drink_card.html" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/templates/includes/drink_card_admin.html" afterDir="false" />
+    <list default="true" id="eb508b55-b16e-4136-8abd-996021fa5540" name="Changes" comment="Fix dependency, clean part of code, add admin bar menu">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ToDo.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/ToDo.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/commands" beforeDir="false" afterPath="$PROJECT_DIR$/docs/commands" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/main/views.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/main/views.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/models.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/models.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/templates/403.html" beforeDir="false" afterPath="$PROJECT_DIR$/app/templates/403.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/templates/404.html" beforeDir="false" afterPath="$PROJECT_DIR$/app/templates/404.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/templates/500.html" beforeDir="false" afterPath="$PROJECT_DIR$/app/templates/500.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/templates/base.html" beforeDir="false" afterPath="$PROJECT_DIR$/app/templates/base.html" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/templates/creators/create_drink.html" beforeDir="false" afterPath="$PROJECT_DIR$/app/templates/creators/create_drink.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/templates/drinks.html" beforeDir="false" afterPath="$PROJECT_DIR$/app/templates/drinks.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/templates/editors/edit_bar.html" beforeDir="false" afterPath="$PROJECT_DIR$/app/templates/editors/edit_bar.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/templates/includes/rate_drink.html" beforeDir="false" afterPath="$PROJECT_DIR$/app/templates/includes/rate_drink.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/templates/includes/drink_card.html" beforeDir="false" afterPath="$PROJECT_DIR$/app/templates/includes/drink_card.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/templates/includes/drink_card_admin.html" beforeDir="false" afterPath="$PROJECT_DIR$/app/templates/includes/drink_card_admin.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config.py" beforeDir="false" afterPath="$PROJECT_DIR$/config.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/docs/api_new.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/api_new.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/requirements/requirements.txt" beforeDir="false" afterPath="$PROJECT_DIR$/requirements/requirements.txt" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -63,22 +55,22 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;DefaultHtmlFileTemplate&quot;: &quot;HTML File&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
-    &quot;last_opened_file_path&quot;: &quot;/Users/haris/PycharmProjects/BRS/app/templates/includes&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;org.jetbrains.plugins.github.ui.GithubSettingsConfigurable&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "DefaultHtmlFileTemplate": "HTML File",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "git-widget-placeholder": "master",
+    "last_opened_file_path": "/Users/haris/PycharmProjects/BRS/app/static/drinks",
+    "settings.editor.selected.configurable": "org.jetbrains.plugins.github.ui.GithubSettingsConfigurable"
   }
-}</component>
+}]]></component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/app/static/drinks" />
       <recent name="$PROJECT_DIR$/app/templates/includes" />
       <recent name="$PROJECT_DIR$/app/static/icons" />
       <recent name="$PROJECT_DIR$/app/templates" />
       <recent name="$PROJECT_DIR$/app/templates/auth" />
-      <recent name="$PROJECT_DIR$/app" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$/docs" />
@@ -288,7 +280,15 @@
       <option name="project" value="LOCAL" />
       <updated>1779347520155</updated>
     </task>
-    <option name="localTasksCounter" value="24" />
+    <task id="LOCAL-00024" summary="Fix dependency, clean part of code, add admin bar menu">
+      <option name="closed" value="true" />
+      <created>1779998707296</created>
+      <option name="number" value="00024" />
+      <option name="presentableId" value="LOCAL-00024" />
+      <option name="project" value="LOCAL" />
+      <updated>1779998707296</updated>
+    </task>
+    <option name="localTasksCounter" value="25" />
     <servers />
   </component>
   <component name="UnknownFeatures">
@@ -329,6 +329,7 @@
     <MESSAGE value="Add API instruction and ToDo" />
     <MESSAGE value="Redizine for most of html pages" />
     <MESSAGE value="Bootstrap 5.3 for most of the pages" />
-    <option name="LAST_COMMIT_MESSAGE" value="Bootstrap 5.3 for most of the pages" />
+    <MESSAGE value="Fix dependency, clean part of code, add admin bar menu" />
+    <option name="LAST_COMMIT_MESSAGE" value="Fix dependency, clean part of code, add admin bar menu" />
   </component>
 </project>

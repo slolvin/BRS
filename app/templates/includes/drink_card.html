@@ -1,10 +1,18 @@
 <div class="card h-100 w-100 shadow border-0 rounded-4 overflow-hidden bg-dark bg-opacity-20 mx-auto" style="max-width: 340px;">
     <!-- Изображение напитка с фиксированной высотой -->
     <div class="position-relative" style="height: 200px;">
-        <img src="{{ drink['image'] }}" class="w-100 h-100" alt="{{ drink['name'] }}" style="object-fit: cover;">
+        <!-- Проверяем, есть ли имя файла в базе, иначе ставим заглушку -->
+        {% if drink['image_path'] %}
+            <img src="{{ url_for('static', filename='drinks/' + drink['image_path']) }}" class="w-100 h-100" alt="{{ drink['name'] }}" style="object-fit: cover;">
+        {% else %}
+            <!-- Твоя заглушка, если у напитка нет фото (например, градиент или дефолтное изображение) -->
+            <div class="w-100 h-100 bg-dark bg-opacity-50 d-flex align-items-center justify-content-center text-secondary border-bottom border-secondary border-opacity-10">
+                <i class="bi bi-glass-cocktail fs-1"></i>
+            </div>
+        {% endif %}
 
-        <!-- Абсолютное позиционирование типа напитка поверх фото -->
-        <span class="position-absolute top-0 end-0 m-3 badge bg-dark bg-opacity-75 border border-secondary border-opacity-25 rounded-pill px-2.5 py-1.5 fs-8 text-secondary">
+        <!-- Абсолютное позиционирование типа напитка поверх фото (заменил px-2.5 на px-3, так как в Bootstrap нет дробных классов) -->
+        <span class="position-absolute top-0 end-0 m-3 badge bg-dark bg-opacity-75 border border-secondary border-opacity-25 rounded-pill px-3 py-1.5 fs-8 text-secondary">
             {{ drink['type'] }}
         </span>
     </div>

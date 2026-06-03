@@ -51,15 +51,34 @@
 
                         <!-- 3. ЗАГЛУШКА: Загрузка изображения -->
                         <div class="col-12">
-                            <label for="image" class="form-label small text-secondary fw-medium text-uppercase tracking-wider fs-8">Фотография напитка</label>
-                            <div class="input-group">
-                                <input type="file" class="form-control bg-dark bg-opacity-20 border-secondary border-opacity-25 text-white"
-                                       id="image" name="image" accept="image/*">
-                                <label class="input-group-text bg-dark bg-opacity-50 border-secondary border-opacity-25 text-secondary" for="image">
-                                    <i class="bi bi-image"></i>
-                                </label>
+                            <label class="form-label small text-secondary fw-medium text-uppercase tracking-wider fs-8">Фотография напитка</label>
+
+                            <div class="position-relative border border-dashed border-secondary border-opacity-25 rounded-3 bg-dark bg-opacity-10 p-4 text-center transition-all" id="drop-zone" style="cursor: pointer;">
+                                <!-- Скрытый настоящий инпут -->
+                                <input type="file" class="position-absolute top-0 start-0 w-100 h-100 opacity-0"
+                                       id="image" name="image" accept="image/*" style="cursor: pointer;">
+
+                                <!-- Содержимое по умолчанию -->
+                                <div id="drop-zone-prompt" class="py-2">
+                                    <i class="bi bi-cloud-arrow-up text-primary fs-3 d-block mb-2"></i>
+                                    <span class="text-white d-block small fw-medium">Перетащите фото сюда или кликните для выбора</span>
+                                    <span class="form-text text-muted small fs-8">JPEG, PNG, GIF до 5 МБ</span>
+                                </div>
+
+                                <!-- Контейнер для превью (появляется после выбора файла) -->
+                                <div id="preview-container" class="d-none align-items-center justify-content-between bg-dark bg-opacity-20 rounded p-2 border border-secondary border-opacity-10">
+                                    <div class="d-flex align-items-center gap-3 overflow-hidden">
+                                        <img id="image-preview" src="#" alt="Preview" class="rounded object-fit-cover" style="width: 50px; height: 50px;">
+                                        <div class="text-start overflow-hidden">
+                                            <p id="file-name" class="text-white small mb-0 text-truncate fw-medium" style="max-width: 200px;"></p>
+                                            <span id="file-size" class="text-muted fs-8"></span>
+                                        </div>
+                                    </div>
+                                    <button type="button" id="remove-image" class="btn btn-sm btn-outline-danger border-0 px-2 py-1">
+                                        <i class="bi bi-trash3"></i>
+                                    </button>
+                                </div>
                             </div>
-                            <div class="form-text text-muted small mt-1 fs-8">Рекомендуется формат JPEG или PNG, до 5 МБ.</div>
                         </div>
 
                         <!-- 4. Описание напитка (сделали textarea для удобства ввода) -->
@@ -84,4 +103,52 @@
             </div>
         </div>
     </div>
+{% endblock %}
+{% block scripts %}
+<!-- Маленький скрипт для оживления превью (вставь в конец файла или в блок скриптов) -->
+    <script>
+        const fileInput = document.getElementById('image');
+        const dropZone = document.getElementById('drop-zone');
+        const promptZone = document.getElementById('drop-zone-prompt');
+        const previewContainer = document.getElementById('preview-container');
+        const imagePreview = document.getElementById('image-preview');
+        const fileName = document.getElementById('file-name');
+        const fileSize = document.getElementById('file-size');
+        const removeBtn = document.getElementById('remove-image');
+
+        // Подсветка зоны при перетаскивании
+        ['dragenter', 'dragover'].forEach(eventName => {
+            fileInput.addEventListener(eventName, () => dropZone.classList.add('border-primary', 'bg-opacity-20'), false);
+        });
+        ['dragleave', 'drop'].forEach(eventName => {
+            fileInput.addEventListener(eventName, () => dropZone.classList.remove('border-primary', 'bg-opacity-20'), false);
+        });
+
+        // Обработка выбора файла
+        fileInput.addEventListener('change', function() {
+            const file = this.files[0];
+            if (file) {
+                const reader = new FileReader();
+                fileName.textContent = file.name;
+                fileSize.textContent = (file.size / (1024 * 1024)).toFixed(2) + ' MB';
+
+                reader.onload = function(e) {
+                    imagePreview.src = e.target.result;
+                    promptZone.classList.add('d-none');
+                    previewContainer.classList.remove('d-none');
+                    previewContainer.classList.add('d-flex');
+                }
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Сброс файла
+        removeBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            fileInput.value = '';
+            promptZone.classList.remove('d-none');
+            previewContainer.classList.add('d-none');
+            previewContainer.classList.remove('d-flex');
+        });
+    </script>
 {% endblock %}

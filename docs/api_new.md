@@ -185,5 +185,5 @@ Response (401 Unauthorized): { "authenticated": false, "message": "Token expired
 ## 🛠 Предстоящие задачи (API Roadmap)
 - [ ] Добавить метод для загрузки аватара пользователя (`POST /user/avatar`)
 - [ ] Добавить поддержку `multipart/form-data` для загрузки изображений напитков (`POST /drinks/image`)
-- [ ] Реализовать метод удаления напитка (`DELETE /drinks/<int:drink_id>`) администратором
+- ✅ Реализовать метод удаления напитка (`DELETE /drinks/<int:drink_id>`) администратором
 - [ ] Настроить CORS (`Flask-CORS`) для предотвращения блокировок со стороны браузеров и внешних Swift-клиентов

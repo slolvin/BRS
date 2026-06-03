@@ -220,7 +220,7 @@ class Drink(db.Model):
     type = db.Column(db.String(64))
     description = db.Column(db.Text())
     score = db.Column(db.Numeric(5, 2))
-    image = db.Column(db.String(128))
+    image_path = db.Column(db.String(255), nullable=True)
     bar_id = db.Column(db.Integer, db.ForeignKey('bars.id'), nullable=True)
 
     def __repr__(self):

@@ -5,6 +5,12 @@ from .forms import EditProfileAdminForm
 from .. import db
 from ..models import User, Role, Permission, Bar, Drink
 from config import Config
+import os
+from werkzeug.utils import secure_filename
+
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in Config.ALLOWED_EXTENSIONS
 
 
 @main.route('/user/<username>')
@@ -132,6 +138,23 @@ def add_drink():
         drink.name = request.form['name']
         drink.type = request.form['type']
         drink.description = request.form['description']
+
+        if 'image' in request.files:
+            file = request.files['image']
+            if file and file.filename != '' and allowed_file(file.filename):
+                filename = secure_filename(file.filename)
+                os.makedirs(Config.UPLOAD_FOLDER, exist_ok=True)
+                file_path = os.path.join(Config.UPLOAD_FOLDER, filename)
+                file.save(file_path)
+                drink.image_path = filename
+                if os.path.exists(file_path) and os.path.getsize(file_path) == 0:
+                    file.seek(0)
+                    with open(file_path, 'wb') as f:
+                        f.write(file.read())
+
+                drink.image_path = filename
+            else:
+                flash('Недопустимый формат файла.')
 
         if bar_id:
             drink.bar_id = bar_id
