@@ -1,0 +1,153 @@
+{% extends 'base.html' %}
+
+{% block title %}Edit drink - {{ drink['name'] }}{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-12 col-lg-8">
+
+            <!-- Заголовок страницы -->
+            <div class="d-flex align-items-center gap-3 mb-4">
+                <h1 class="h2 fw-bold text-white mb-0 text-uppercase tracking-wider">Редактировать</h1>
+                <div class="flex-grow-1 border-bottom border-secondary border-opacity-10"></div>
+                <span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25 rounded-pill px-3 py-2 fs-7">
+                    <i class="bi bi-pencil-square me-1"></i> Изменение позиции
+                </span>
+            </div>
+
+            <!-- Карточка с формой -->
+            <div class="card border-0 rounded-4 shadow-sm bg-body-tertiary p-4 p-md-5">
+                <form action="{{ url_for('.edit_drink', drink_id=drink['id']) }}" method="post" enctype="multipart/form-data" class="row g-4">
+
+                    <!-- 1. Название напитка -->
+                    <div class="col-12 col-md-7">
+                        <label for="name" class="form-label small text-secondary fw-medium text-uppercase tracking-wider fs-8">Название</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-dark bg-opacity-50 border-secondary border-opacity-25 text-secondary">
+                                <i class="bi bi-type"></i>
+                            </span>
+                            <input class="form-control bg-dark bg-opacity-20 border-secondary border-opacity-25 text-white"
+                                   type="text" id="name" name="name" placeholder="Например: Negroni"
+                                   value="{{ request.form['name'] or drink['name'] }}" required>
+                        </div>
+                    </div>
+
+                    <!-- 2. Категория/Тип напитка -->
+                    <div class="col-12 col-md-5">
+                        <label for="type" class="form-label small text-secondary fw-medium text-uppercase tracking-wider fs-8">Категория</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-dark bg-opacity-50 border-secondary border-opacity-25 text-secondary">
+                                <i class="bi bi-funnel"></i>
+                            </span>
+                            <select class="form-select bg-dark bg-opacity-20 border-secondary border-opacity-25 text-white" id="type" name="type">
+                                {% for t in ['Water', 'Beer', 'Vodka', 'Wiskey', 'Cocktail'] %}
+                                    <option value="{{ t }}" {% if drink['type'] == t %}selected{% endif %}>{{ t }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- 3. Интерактивная загрузка изображения с предзагруженным текущим фото -->
+                    <div class="col-12">
+                        <label class="form-label small text-secondary fw-medium text-uppercase tracking-wider fs-8">Фотография напитка</label>
+                        
+                        <div class="position-relative border border-dashed border-secondary border-opacity-25 rounded-3 bg-dark bg-opacity-20 p-4 text-center" id="drop-zone" style="cursor: pointer;">
+                            <input type="file" class="position-absolute top-0 start-0 w-100 h-100 opacity-0" 
+                                   id="image" name="image" accept="image/*" style="cursor: pointer;">
+                            
+                            <!-- Содержимое по умолчанию скрываем, если картинка уже есть -->
+                            <div id="drop-zone-prompt" class="py-2 {% if drink['image_path'] %}d-none{% endif %}">
+                                <i class="bi bi-cloud-arrow-up text-primary fs-3 d-block mb-2"></i>
+                                <span class="text-white d-block small fw-medium">Перетащите новое фото сюда или кликните для выбора</span>
+                                <span class="form-text text-muted small fs-8">JPEG, PNG, GIF до 5 МБ</span>
+                            </div>
+
+                            <!-- Контейнер для превью (показывает текущее фото из базы) -->
+                            <div id="preview-container" class="{% if drink['image_path'] %}d-flex{% else %}d-none{% endif %} align-items-center justify-content-between bg-dark bg-opacity-40 rounded-3 p-2 border border-secondary border-opacity-25">
+                                <div class="d-flex align-items-center gap-3 overflow-hidden">
+                                    <img id="image-preview" 
+                                         src="{{ url_for('static', filename='drinks/' + drink['image_path']) if drink['image_path'] else '#' }}" 
+                                         alt="Preview" class="rounded object-fit-cover" style="width: 50px; height: 50px;">
+                                    <div class="text-start overflow-hidden">
+                                        <p id="file-name" class="text-white small mb-0 text-truncate fw-medium" style="max-width: 250px;">
+                                            {{ drink['image_path'] or 'Файл не выбран' }}
+                                        </p>
+                                        <span id="file-size" class="text-muted fs-8">Текущее изображение</span>
+                                    </div>
+                                </div>
+                                <button type="button" id="remove-image" class="btn btn-sm btn-outline-danger border-0 px-2 py-1">
+                                    <i class="bi bi-trash3"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 4. Описание напитка -->
+                    <div class="col-12">
+                        <label for="description" class="form-label small text-secondary fw-medium text-uppercase tracking-wider fs-8">Описание и состав</label>
+                        <textarea class="form-control bg-dark bg-opacity-20 border-secondary border-opacity-25 text-white"
+                                  id="description" name="description" rows="4"
+                                  placeholder="Расскажите об ingredиентах...">{{ request.form['description'] or drink['description'] }}</textarea>
+                    </div>
+
+                    <!-- 5. Кнопки управления -->
+                    <div class="col-12 pt-3 border-top border-secondary border-opacity-10 d-flex flex-column-reverse flex-sm-row justify-content-end gap-2">
+                        <a href="javascript:history.back()" class="btn btn-outline-secondary px-4">Отмена</a>
+                        <button class="btn btn-warning px-5 fw-medium text-dark" type="submit">
+                            <i class="bi bi-check-lg me-1"></i> Сохранить изменения
+                        </button>
+                    </div>
+
+                </form>
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const fileInput = document.getElementById('image');
+    const dropZone = document.getElementById('drop-zone');
+    const promptZone = document.getElementById('drop-zone-prompt');
+    const previewContainer = document.getElementById('preview-container');
+    const imagePreview = document.getElementById('image-preview');
+    const fileName = document.getElementById('file-name');
+    const fileSize = document.getElementById('file-size');
+    const removeBtn = document.getElementById('remove-image');
+
+    ['dragenter', 'dragover'].forEach(eventName => {
+        fileInput.addEventListener(eventName, () => dropZone.classList.add('border-primary', 'bg-opacity-30'), false);
+    });
+    ['dragleave', 'drop'].forEach(eventName => {
+        fileInput.addEventListener(eventName, () => dropZone.classList.remove('border-primary', 'bg-opacity-30'), false);
+    });
+
+    fileInput.addEventListener('change', function() {
+        const file = this.files[0];
+        if (file) {
+            const reader = new FileReader();
+            fileName.textContent = file.name;
+            fileSize.textContent = (file.size / (1024 * 1024)).toFixed(2) + ' MB';
+            
+            reader.onload = function(e) {
+                imagePreview.src = e.target.result;
+                promptZone.classList.add('d-none');
+                previewContainer.classList.remove('d-none');
+                previewContainer.classList.add('d-flex');
+            }
+            reader.readAsDataURL(file);
+        }
+    });
+
+    removeBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        fileInput.value = '';
+        promptZone.classList.remove('d-none');
+        previewContainer.classList.add('d-none');
+        previewContainer.classList.remove('d-flex');
+    });
+</script>
+{% endblock %}

@@ -29,15 +29,25 @@ def unconfirmed():
 @auth.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        user = User.query.filter_by(email=request.form['email']).first()
-        if user is not None and user.verify_password(request.form['password']):
-            ## Add remember me checkbox ##
-            login_user(user)
+        email = request.form.get('email')
+        password = request.form.get('password')
+        # Получаем значение чекбокса (True, если галочка стоит)
+        remember = True if request.form.get('remember_me') else False
+
+        # Благодаря полиморфизму 'with_polymorphic', вернется нужный объект (User или Manager)
+        user = User.query.filter_by(email=email).first()
+
+        if user is not None and user.verify_password(password):
+            # Передаем параметр remember для сохранения сессии при закрытии браузера
+            login_user(user, remember=remember)
+
             next_view = request.args.get('next')
             if next_view is None or not next_view.startswith('/'):
                 next_view = url_for('main.index')
             return redirect(next_view)
+
         flash('Invalid username or password.')
+
     return render_template('auth/login2.html')
 
 

@@ -143,6 +143,39 @@
   }
 ]
 ```
+### `PUT /drinks/<int:drink_id>`
+**Статус:** ✅ Готово (Реализовано обновление данных и перезапись файлов)
+Полное или частичное редактирование существующего напитка. При загрузке нового изображения старый файл автоматически удаляется из Docker-хранилища.
+
+**Content-Type:** `multipart/form-data`
+
+**Request Body:**
+- `name` (string) — новое название
+- `type` (string) — новая категория
+- `description` (string) — новое описание
+- `image` (file, optional) — новый файл взамен старого
+
+**Response (200 OK):**
+```json
+{
+  "id": 43,
+  "message": "The drink has been updated.",
+  "image_path": "new_photo.jpg"
+}
+```
+
+### `DELETE /drinks/<int:drink_id>`
+**Статус:** ✅ Готово (Синхронизировано с каскадным удалением файлов)
+Полное удаление напитка из системы. Метод автоматически стирает связанный файл изображения из локального каталога `static/drinks`, предотвращая накопление мусора в контейнере.
+
+**Response (200 OK):**
+```json
+{
+  "id": 43,
+  "message": "Drink and its image file deleted successfully."
+}
+```
+
 ### `POST /api/v1/drinks/<int:drink_id>/rate` ЗАГЛУШКА
 Authorization: Bearer <token>
 Body: { "score": 5 }
@@ -183,7 +216,8 @@ Response (401 Unauthorized): { "authenticated": false, "message": "Token expired
 ---
 
 ## 🛠 Предстоящие задачи (API Roadmap)
-- [ ] Добавить метод для загрузки аватара пользователя (`POST /user/avatar`)
-- [ ] Добавить поддержку `multipart/form-data` для загрузки изображений напитков (`POST /drinks/image`)
-- ✅ Реализовать метод удаления напитка (`DELETE /drinks/<int:drink_id>`) администратором
-- [ ] Настроить CORS (`Flask-CORS`) для предотвращения блокировок со стороны браузеров и внешних Swift-клиентов
+    [ ] Добавить метод для загрузки аватара пользователя (`POST /user/avatar`)
+    ✅ Добавить поддержку `multipart/form-data` для загрузки изображений напитков (`POST /drinks/image`)
+    ✅ Реализовать метод удаления напитка (`DELETE /drinks/<int:drink_id>`) администратором
+    ✅ Добавить метод редактирования напитка с заменой старого медиафайла (`PUT /drinks/<int:drink_id>`)
+    [ ] Настроить CORS (`Flask-CORS`) для предотвращения блокировок со стороны браузеров и внешних Swift-клиентов

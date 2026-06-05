@@ -6,11 +6,13 @@ from flask import current_app, request, url_for
 from app.exeptions import ValidationError
 from . import db, login_manager
 from hashlib import md5
+from sqlalchemy.orm import with_polymorphic
 
 
 @login_manager.user_loader
 def load_user(user_id):
-    return User.query.get(int(user_id))
+    poly_user = with_polymorphic(User, '*')
+    return db.session.query(poly_user).filter_by(id=int(user_id)).first()
 
 
 class Permission:
@@ -73,7 +75,7 @@ class User(UserMixin, db.Model):
     __tablename__ = 'users'
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(64), unique=True, index=True)
-    password_hash = db.Column(db.String(256))
+    password_hash = db.Column(db.String(512))
     email = db.Column(db.String(64), unique=True, index=True)
     role_id = db.Column(db.Integer, db.ForeignKey('roles.id'))
     type = db.Column(db.String(64))
@@ -107,14 +109,16 @@ class User(UserMixin, db.Model):
     def __init__(self, **kwargs):
         super(User, self).__init__(**kwargs)
 
-        if self.role is None:
-            if self.email == current_app.config['APP_ADMIN']:
-                self.role = Role.query.filter_by(permissions=0xff).first()
-        if self.role is None:
-            self.role = Role.query.filter_by(default=True).first()
+        # Проверяем, что это создание нового пользователя, а не загрузка из БД
+        if self.id is None:
+            if self.role_id is None:
+                if self.email == current_app.config.get('APP_ADMIN'):
+                    self.role = Role.query.filter_by(permissions=0xff).first()
+                if self.role is None:
+                    self.role = Role.query.filter_by(default=True).first()
 
-        if self.email is not None and self.avatar_hash is None:
-            self.avatar_hash = self.gravatar_hash()
+            if self.email is not None and self.avatar_hash is None:
+                self.avatar_hash = self.gravatar_hash()
 
     @property
     def password(self):
@@ -143,7 +147,8 @@ class User(UserMixin, db.Model):
 
     __mapper_args__ = {
         'polymorphic_identity': 'user',
-        'polymorphic_on': 'type'
+        'polymorphic_on': type,
+        'with_polymorphic': '*'
     }
 
 

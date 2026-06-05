@@ -170,6 +170,52 @@ def add_drink():
     return render_template('/creators/create_drink.html', bar_id=bar_id)
 
 
+@main.route('/drink/<int:drink_id>/edit/', methods=['GET', 'POST'])
+def edit_drink(drink_id):
+    # Получаем существующий напиток или отдаем 404, если ID неверный
+    drink = Drink.query.get_or_404(drink_id)
+
+    if request.method == 'POST':
+        drink.name = request.form['name']
+        drink.type = request.form['type']
+        drink.description = request.form['description']
+
+        # Обработка обновления изображения
+        if 'image' in request.files:
+            file = request.files['image']
+            if file and file.filename != '' and allowed_file(file.filename):
+                filename = secure_filename(file.filename)
+
+                # Полный путь к новому файлу
+                new_file_path = os.path.join(Config.UPLOAD_FOLDER, filename)
+
+                # Если у напитка уже было фото, удаляем старый файл с диска
+                if drink.image_path:
+                    old_file_path = os.path.join(Config.UPLOAD_FOLDER, drink.image_path)
+                    if os.path.exists(old_file_path):
+                        try:
+                            os.remove(old_file_path)
+                        except Exception as e:
+                            print(f"Ошибка удаления старого файла: {e}", flush=True)
+
+                # Сохраняем новую картинку
+                os.makedirs(Config.UPLOAD_FOLDER, exist_ok=True)
+                file.save(new_file_path)
+
+                # Записываем новое имя в БД
+                drink.image_path = filename
+
+        db.session.commit()
+        flash('The drink has been updated.')
+
+        # Перенаправляем обратно в бар, если он привязан, иначе в общий список
+        if drink.bar_id:
+            return redirect(url_for('main.get_bar_drinks', id=drink.bar_id))
+        return redirect(url_for('main.get_drinks_list'))
+
+    return render_template('/creators/edit_drink.html', drink=drink)
+
+
 @main.route('/rate/<int:drink_id>', methods=['POST'])
 def rate_drink(drink_id):
     drink = Drink.query.get_or_404(drink_id)

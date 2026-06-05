@@ -31,7 +31,7 @@
                       </div>
 
                       <form action="{{ url_for('auth.login') }}" method="post" class="row g-4">
-
+                          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                           <!-- 1. Поле ввода Email -->
                           <div class="col-12">
                               <label for="typeEmail" class="form-label small text-secondary fw-medium text-uppercase tracking-wider fs-8">Электронная почта</label>
@@ -57,6 +57,9 @@
                                          placeholder="••••••••" required autocomplete="current-password">
                               </div>
                           </div>
+                          <label>
+                              <input type="checkbox" name="remember_me"> Remember me
+                          </label>
 
                           <!-- 3. Кнопка отправки формы -->
                           <div class="col-12 pt-2">
