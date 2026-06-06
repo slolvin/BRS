@@ -6,6 +6,18 @@ from .decorators import permission_required
 from .errors import forbidden
 
 
+@api.route('/bars/map')
+def get_bars_for_map():
+    all_bars = Bar.query.all()
+
+    # Фильтруем бары: берем только те, у которых адрес собрался корректно
+    valid_bars = [bar.to_json() for bar in all_bars if bar.get_full_address() is not None]
+
+    return jsonify({
+        'bars': valid_bars
+    })
+
+
 @api.route('/bars/')
 def get_bars():
     page = request.args.get('page', 1, type=int)

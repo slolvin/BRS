@@ -161,5 +161,22 @@
                 updateTogglerUI(newTheme);
             });
         </script>
+        <script>
+            document.addEventListener("DOMContentLoaded", function() {
+                // Находим все POST-формы на странице
+                const forms = document.querySelectorAll('form[method="post"], form[method="POST"]');
+
+                forms.forEach(form => {
+                    // Проверяем, нет ли там уже csrf_token, чтобы не дублировать
+                    if (!form.querySelector('input[name="csrf_token"]')) {
+                        const input = document.createElement('input');
+                        input.type = 'hidden';
+                        input.name = 'csrf_token';
+                        input.value = "{{ csrf_token() }}"; // Flask сам подставит строку токена
+                        form.insertBefore(input, form.firstChild);
+                    }
+                });
+            });
+        </script>
     </body>
 </html>

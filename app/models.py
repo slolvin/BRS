@@ -6,6 +6,7 @@ from flask import current_app, request, url_for
 from app.exeptions import ValidationError
 from . import db, login_manager
 from hashlib import md5
+import re
 from sqlalchemy.orm import with_polymorphic
 
 
@@ -147,7 +148,7 @@ class User(UserMixin, db.Model):
 
     __mapper_args__ = {
         'polymorphic_identity': 'user',
-        'polymorphic_on': type,
+        'polymorphic_on': 'type',
         'with_polymorphic': '*'
     }
 
@@ -155,7 +156,6 @@ class User(UserMixin, db.Model):
 class Manager(User):
     __tablename__ = 'managers'
     manager_id = db.Column(db.Integer, db.ForeignKey('users.id'), primary_key=True)
-    bars = db.relationship('Bar', backref='manager', lazy=True)
 
     __mapper_args__ = {
         'polymorphic_identity': 'manager'
@@ -166,7 +166,8 @@ class Bar(db.Model):
     __tablename__ = 'bars'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(64), unique=True)
-    admin_id = db.Column(db.Integer, db.ForeignKey('managers.manager_id'), nullable=False)
+    admin_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    manager = db.relationship('User', backref='bars', lazy='joined', foreign_keys=[admin_id])
     address = db.Column(db.Text())
     city = db.Column(db.Text())
     rate = db.Column(db.Numeric(5, 2))
@@ -175,14 +176,23 @@ class Bar(db.Model):
     def __repr__(self):
         return f'<Bar {self.name!r}>'
 
-    def get_user_name(self):
-        if self.manager:
-            return self.manager.name
+    def get_full_address(self):
+        if not self.address:
+            return None
+        clean_address = re.sub(r'[\s,]+\d+$', '', self.address.strip())
+        city_str = f"{self.city.strip()}, " if self.city else "Самара, "
+        return f"{city_str}{clean_address}, Россия"
 
-        from app.models import User  # Локальный импорт, если падает из-за циклического импорта
+    def get_user_name(self):
+        # Если связь сработала, берем имя из подгруженного объекта User/Manager
+        if self.manager:
+            # Убедись, что в User поле называется username (или name, оставь как в твоей модели)
+            return getattr(self.manager, 'username', getattr(self.manager, 'name', 'Менеджер'))
+
+        # Резервный ручной запрос, если связь пустая
         user = User.query.get(self.admin_id)
         if user:
-            return user.name
+            return getattr(user, 'username', getattr(user, 'name', 'Менеджер'))
 
         return f"Неизвестный менеджер (ID: {self.admin_id})"
 
@@ -199,12 +209,12 @@ class Bar(db.Model):
         return self.rate
 
     def to_json(self):
-        json_post = {
+        return {
+            'id': self.id,  # Убедись, что эта строчка ЕСТЬ и ключ называется именно 'id'
             'name': self.name,
-            'address': self.address,
-            'city': self.city,
+            'full_address': self.get_full_address(),
+            'rate': float(self.rate) if self.rate else 0.0
         }
-        return json_post
 
     @staticmethod
     def from_json(json_post):
