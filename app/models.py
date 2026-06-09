@@ -264,6 +264,18 @@ class Drink(db.Model):
         return Drink(name=name, type=drink_type, description=description, bar_id=bar_id)
 
 
+
+class DrinkRating(db.Model):
+    __tablename__ = 'drink_ratings'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    drink_id = db.Column(db.Integer, db.ForeignKey('drinks.id'), nullable=False)
+    value = db.Column(db.Integer, nullable=False) # Сама оценка, например от 1 до 5
+
+    # Уникальный индекс, чтобы один пользователь не мог оценить один и тот же напиток дважды
+    __table_args__ = (db.UniqueConstraint('user_id', 'drink_id', name='_user_drink_uc'),)
+
+
 class AnonymousUser(AnonymousUserMixin):
     def can(self, permissions):
         return False

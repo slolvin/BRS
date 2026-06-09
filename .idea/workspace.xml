@@ -4,14 +4,12 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="eb508b55-b16e-4136-8abd-996021fa5540" name="Changes" comment="Login/logout broke, I just want to sleep">
+    <list default="true" id="eb508b55-b16e-4136-8abd-996021fa5540" name="Changes" comment="Add base API. Fix user model and authentication">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/__init__.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/api/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/api/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/api/authentication.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/api/authentication.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/api/bars.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/api/bars.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/api/user.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/api/users.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/api/drinks.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/api/drinks.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/models.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/models.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/templates/base.html" beforeDir="false" afterPath="$PROJECT_DIR$/app/templates/base.html" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/docs/ToDo.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/ToDo.md" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -311,7 +309,15 @@
       <option name="project" value="LOCAL" />
       <updated>1780698391492</updated>
     </task>
-    <option name="localTasksCounter" value="28" />
+    <task id="LOCAL-00028" summary="Add base API. Fix user model and authentication">
+      <option name="closed" value="true" />
+      <created>1780776910150</created>
+      <option name="number" value="00028" />
+      <option name="presentableId" value="LOCAL-00028" />
+      <option name="project" value="LOCAL" />
+      <updated>1780776910150</updated>
+    </task>
+    <option name="localTasksCounter" value="29" />
     <servers />
   </component>
   <component name="UnknownFeatures">
@@ -329,7 +335,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Move to SQLAlchemy and DB improovment" />
     <MESSAGE value="Before fixing strucure" />
     <MESSAGE value="Work after creating new structure" />
     <MESSAGE value="User registration and login without email verification. ToDo:Rework login/register pages" />
@@ -354,6 +359,7 @@
     <MESSAGE value="Fix dependency, clean part of code, add admin bar menu" />
     <MESSAGE value="Add drink image upload" />
     <MESSAGE value="Login/logout broke, I just want to sleep" />
-    <option name="LAST_COMMIT_MESSAGE" value="Login/logout broke, I just want to sleep" />
+    <MESSAGE value="Add base API. Fix user model and authentication" />
+    <option name="LAST_COMMIT_MESSAGE" value="Add base API. Fix user model and authentication" />
   </component>
 </project>
