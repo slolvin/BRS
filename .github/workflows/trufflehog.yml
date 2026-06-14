@@ -8,7 +8,7 @@ jobs:
         with:
           fetch-depth: 0 # Сканирует всю историю коммитов
       - name: TruffleHog OSS
-        uses: trufflesecurity/trufflehog-main-action@v3.95.5
+        uses: trufflesecurity/trufflehog@v3.95.5
         with:
           path: ./
           base: ${{ github.event.repository.default_branch }}
