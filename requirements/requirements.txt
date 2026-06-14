@@ -9,7 +9,7 @@ python-dotenv==1.1.1
 # DB and migrations
 SQLAlchemy==2.0.29
 Flask-SQLAlchemy==3.1.1
-Flask-Migrate==4.0.7
+Flask-Migrate==4.1.0
 alembic==1.13.1
 psycopg2-binary==2.9.10
 # Auth and forms
