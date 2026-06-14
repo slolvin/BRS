@@ -20,7 +20,7 @@ Flask-HTTPAuth==3.2.3
 # Bootstrap 5
 Bootstrap-Flask==2.3.3
 dominate==2.9.1
-Flask-Moment==0.5.1
+Flask-Moment==1.0.6
 # Text, Markdown, HTML
 Markdown==3.6
 bleach==6.4.0
