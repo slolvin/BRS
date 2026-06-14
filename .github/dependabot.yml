@@ -5,12 +5,11 @@
 
 version: 2
 updates:
-  - package-ecosystem: "pip" # See documentation for possible values
-    directory: "/requirements" # Location of package manifests
+  - package-ecosystem: "pip"
+    directory: "/requirements"
     schedule:
-      interval: "weekly"
-       # Проверка базовых образов в Dockerfile
+      interval: "monthly"
   - package-ecosystem: "docker"
-    directory: "/" # Где лежит Dockerfile
+    directory: "/"
     schedule:
-      interval: "weekly"
+      interval: "monthly"

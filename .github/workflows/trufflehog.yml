@@ -1,5 +1,6 @@
 name: Secret Scanning (TruffleHog)
-on: [push, pull_request]
+on: 
+  workflow_dispatch:
 
 jobs:
   trufflehog:
