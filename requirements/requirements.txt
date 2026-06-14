@@ -4,7 +4,7 @@ Werkzeug==3.0.3
 Jinja2==3.1.4
 itsdangerous==2.1.2
 click==8.1.7
-blinker==1.7.0
+blinker==1.9.0
 python-dotenv==1.1.1
 # DB and migrations
 SQLAlchemy==2.0.29
