@@ -3,7 +3,7 @@ from flask_login import login_required, current_user
 from . import main
 from .forms import EditProfileAdminForm
 from .. import db
-from ..models import User, Role, Permission, Bar, Drink
+from ..models import User, Role, Permission, Bar, Drink, ActionLog, DrinkRating
 from config import Config
 import os
 from werkzeug.utils import secure_filename
@@ -17,21 +17,49 @@ def allowed_file(filename):
 @login_required
 def user(username):
     this_user = User.query.filter_by(username=username).first_or_404()
-    return render_template('user.html', user=this_user)
+
+    # Получаем последние 10 действий именно ЭТОГО пользователя
+    user_logs = this_user.actions.order_by(ActionLog.timestamp.desc()).limit(10).all()
+
+    # Получаем ВСЕ любимые бары ЭТОГО пользователя
+    favorite_bars = this_user.favorite_bars.all()
+
+    return render_template(
+        'user.html',
+        user=this_user,
+        user_logs=user_logs,
+        favorite_bars=favorite_bars
+    )
 
 
 @main.route('/edit_profile', methods=['GET', 'POST'])
 @login_required
 def edit_profile():
+    # ИСПРАВЛЕНО: берем логи и любимые бары прямо из текущего залогиненного пользователя
+    user_logs = current_user.actions.order_by(ActionLog.timestamp.desc()).limit(10).all()
+    favorite_bars = current_user.favorite_bars.all()
+
     if request.method == 'POST':
         current_user.name = request.form['name']
         current_user.location = request.form['location']
         current_user.email = request.form['email']
+
+        # Добавляем лог действия
+        current_user.log_action(
+            action_type='edit_profile',
+            description='Вы обновили данные своего профиля'
+        )
+
         db.session.add(current_user._get_current_object())
         db.session.commit()
         flash('Your profile has been updated.')
         return redirect(url_for('.user', username=current_user.username))
-    return render_template('edit_profile.html')
+
+    # Возвращаем шаблон редактирования, передавая туда все необходимые списки
+    return render_template('edit_profile.html',
+                           user=current_user,
+                           user_logs=user_logs,
+                           favorite_bars=favorite_bars)
 
 
 # @main.route('/', methods=['GET', 'POST'])
@@ -216,16 +244,44 @@ def edit_drink(drink_id):
     return render_template('/creators/edit_drink.html', drink=drink)
 
 
-@main.route('/rate/<int:drink_id>', methods=['POST'])
+@main.route('/drink/<int:drink_id>/rate', methods=['POST'])
+@login_required
 def rate_drink(drink_id):
     drink = Drink.query.get_or_404(drink_id)
-    drink.score = int(request.form['rate'])
-    db.session.add(drink)
+
+    try:
+        rating_value = int(request.form.get('value'))
+        if rating_value < 1 or rating_value > 5:
+            raise ValueError
+    except (ValueError, TypeError):
+        flash('Некорректное значение оценки.', 'danger')
+        return redirect(request.referrer or url_for('.index'))
+
+    existing_rating = DrinkRating.query.filter_by(user_id=current_user.id, drink_id=drink.id).first()
+
+    if existing_rating:
+        existing_rating.value = rating_value
+        current_user.log_action(
+            action_type='rate_drink',
+            description=f'Вы изменили оценку напитку «{drink.name}» на {rating_value}★'
+        )
+        flash(f'Оценка напитка {drink.name} обновлена.', 'success')
+    else:
+        new_rating = DrinkRating(user_id=current_user.id, drink_id=drink.id, value=rating_value)
+        db.session.add(new_rating)
+        current_user.log_action(
+            action_type='rate_drink',
+            description=f'Вы поставили оценку напитку «{drink.name}» ({rating_value}★)'
+        )
+        flash(f'Вы оценили напиток {drink.name} на {rating_value}★!', 'success')
+
+    # ВАЖНО: Применяем изменения в сессии, чтобы update_rating увидел новую или обновленную оценку
+    db.session.flush()
+
+    # ВЫЗОВ МЕТОДА: Пересчитываем средний балл
+    drink.update_rating()
+
     db.session.commit()
-    # bar = Drink.query.get_or_404(drink.bar_id)
-    # bar.rate = bar.get_bar_rate()
-    # db.session.add(bar)
-    # db.session.commit()
     return redirect(url_for('main.get_drinks_list'))
 
 
@@ -240,3 +296,36 @@ def delete_drink(drink_id):
     flash('Напиток был успешно удален из системы.')
 
     return redirect(request.referrer or url_for('main.get_drinks_list'))
+
+
+@main.route('/favorite/toggle/<int:bar_id>', methods=['POST'])
+@login_required
+def toggle_favorite(bar_id):
+    # Находим бар в базе данных
+    bar = Bar.query.get_or_404(bar_id)
+
+    # Проверяем, есть ли уже этот бар в любимых (работаем как с Query благодаря lazy='dynamic')
+    is_favorite = current_user.favorite_bars.filter_by(id=bar.id).first() is not None
+
+    if is_favorite:
+        # Если уже в любимых — удаляем
+        current_user.favorite_bars.remove(bar)
+        current_user.log_action(
+            action_type='favorite_remove',
+            description=f'Вы удалили заведение «{bar.name}» из избранного'
+        )
+        flash(f'Заведение {bar.name} удалено из избранного.', 'info')
+    else:
+        # Если еще нет — добавляем
+        current_user.favorite_bars.append(bar)
+        current_user.log_action(
+            action_type='favorite_add',
+            description=f'Вы добавили заведение «{bar.name}» в избранное'
+        )
+        flash(f'Заведение {bar.name} добавлено в избранное!', 'success')
+
+    # Сохраняем все изменения (и связь, и лог) одной транзакцией
+    db.session.commit()
+
+    # Возвращаем пользователя туда, откуда он пришел (или на главную)
+    return redirect(request.referrer or url_for('.index'))

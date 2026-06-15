@@ -71,6 +71,12 @@ class Role(db.Model):
             db.session.add(role)
         db.session.commit()
 
+user_favorite_bars = db.Table(
+    'user_favorite_bars',
+    db.Column('user_id', db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'), primary_key=True),
+    db.Column('bar_id', db.Integer, db.ForeignKey('bars.id', ondelete='CASCADE'), primary_key=True)
+)
+
 
 class User(UserMixin, db.Model):
     __tablename__ = 'users'
@@ -94,6 +100,18 @@ class User(UserMixin, db.Model):
             'last_seen': self.last_seen,
         }
         return json_user
+
+    favorite_bars = db.relationship(
+        'Bar',
+        secondary=user_favorite_bars,
+        lazy='dynamic',
+        backref=db.backref('favorited_by', lazy='dynamic')
+    )
+
+    def log_action(self, action_type, description=None):
+        """Метод для быстрой записи действий в журнал"""
+        log = ActionLog(user_id=self.id, action_type=action_type, description=description)
+        db.session.add(log)
 
     def gravatar_hash(self):
         return hashlib.md5(self.email.lower().encode('utf-8')).hexdigest()
@@ -238,6 +256,22 @@ class Drink(db.Model):
     image_path = db.Column(db.String(255), nullable=True)
     bar_id = db.Column(db.Integer, db.ForeignKey('bars.id'), nullable=True)
 
+    # НОВОЕ ПОЛЕ: Хранит средний балл (например, 4.50)
+    rating = db.Column(db.Numeric(5, 2), default=0.0)
+
+    # НОВАЯ СВЯЗЬ: Позволяет получать все оценки этого напитка через drink.ratings.all()
+    ratings = db.relationship('DrinkRating', backref='drink', lazy='dynamic', cascade='all, delete-orphan')
+
+    # МЕТОД ДЛЯ АВТОМАТИЧЕСКОГО ПЕРЕСЧЕТА
+    def update_rating(self):
+        """Пересчитывает средний рейтинг напитка на основе всех оценок пользователей"""
+        all_ratings = self.ratings.all()
+        if not all_ratings:
+            self.rating = 0.0
+        else:
+            total = sum(r.value for r in all_ratings)
+            self.rating = round(total / len(all_ratings), 2)
+
     def __repr__(self):
         return f'<Drink {self.name!r}>'
 
@@ -264,6 +298,17 @@ class Drink(db.Model):
         return Drink(name=name, type=drink_type, description=description, bar_id=bar_id)
 
 
+class ActionLog(db.Model):
+    __tablename__ = 'action_logs'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
+    action_type = db.Column(db.String(64), nullable=False)  # 'register', 'favorite_add', 'rate'
+    description = db.Column(db.String(256))
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+
+    # Связь с пользователем
+    user = db.relationship('User', backref=db.backref('actions', lazy='dynamic'))
 
 class DrinkRating(db.Model):
     __tablename__ = 'drink_ratings'

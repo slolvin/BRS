@@ -74,24 +74,47 @@
     </div>
 
     <!-- 3. КНОПКИ ДЕЙСТВИЯ (ПОДВАЛ КАРТОЧКИ) -->
-    <div class="card-footer bg-transparent border-top border-secondary border-opacity-10 p-4 pt-0">
-        <div class="row g-2">
-            <!-- Кнопка Редактирования (только для администрации) -->
-            <div class="col-5">
-                <a class="btn btn-outline-secondary w-100 py-2 fs-7 fw-medium text-uppercase tracking-wide"
-                   href="{{ url_for('.edit_bar', id=bar['id']) }}">
-                   <i class="bi bi-pencil me-1"></i> Edit
-                </a>
-            </div>
-            <!-- Кнопка перехода к Меню -->
-            <div class="col-7">
-                <a class="btn btn-primary w-100 py-2 fs-7 fw-medium text-uppercase tracking-wide d-flex align-items-center justify-content-center gap-1 shadow-sm"
-                   href="{{ url_for('.get_bar_drinks', id=bar['id']) }}">
-                   <span>Menu</span>
-                   <i class="bi bi-arrow-right-short fs-5 lh-1"></i>
-                </a>
+        <div class="card-footer bg-transparent border-top border-secondary border-opacity-10 p-4 pt-0">
+            <div class="row g-2">
+                <!-- Кнопка Избранное (Сердечко) -->
+                <div class="col-2">
+                    {% if current_user.is_authenticated %}
+                        <form action="{{ url_for('.toggle_favorite', bar_id=bar.id) }}" method="POST" class="h-100">
+                            {% if bar in current_user.favorite_bars.all() %}
+                                <button type="submit" class="btn btn-danger w-100 h-100 py-2 d-flex align-items-center justify-content-center shadow-sm" title="Убрать из любимых">
+                                    <i class="bi bi-heart-fill"></i>
+                                </button>
+                            {% else %}
+                                <button type="submit" class="btn btn-outline-danger w-100 h-100 py-2 d-flex align-items-center justify-content-center" title="Добавить в любимые">
+                                    <i class="bi bi-heart"></i>
+                                </button>
+                            {% endif %}
+                        </form>
+                    {% else %}
+                        <!-- Если пользователь не залогинен, отправляем его на авторизацию -->
+                        <a href="{{ url_for('auth.login') }}" class="btn btn-outline-danger w-100 h-100 py-2 d-flex align-items-center justify-content-center" title="Войдите, чтобы добавить в любимые">
+                            <i class="bi bi-heart"></i>
+                        </a>
+                    {% endif %}
+                </div>
+
+                <!-- Кнопка Редактирования (теперь занимает col-4 вместо col-5) -->
+                <div class="col-4">
+                    <a class="btn btn-outline-secondary w-100 py-2 fs-7 fw-medium text-uppercase tracking-wide h-100 d-flex align-items-center justify-content-center"
+                       href="{{ url_for('.edit_bar', id=bar.id) }}">
+                       <i class="bi bi-pencil me-1"></i> Edit
+                    </a>
+                </div>
+
+                <!-- Кнопка перехода к Меню (теперь занимает col-6 вместо col-7) -->
+                <div class="col-6">
+                    <a class="btn btn-primary w-100 py-2 fs-7 fw-medium text-uppercase tracking-wide d-flex align-items-center justify-content-center gap-1 shadow-sm h-100"
+                       href="{{ url_for('.get_bar_drinks', id=bar.id) }}">
+                       <span>Menu</span>
+                       <i class="bi bi-arrow-right-short fs-5 lh-1"></i>
+                    </a>
+                </div>
             </div>
         </div>
-    </div>
 
 </div>

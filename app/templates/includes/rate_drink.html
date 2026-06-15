@@ -1,24 +1,21 @@
 <div class="d-flex align-items-center gap-2">
-    <!-- БЕЗОПАСНЫЙ РАСЧЕТ: если score равен None, мы принудительно берем 0 -->
-    {% set current_score = drink['score'] if drink['score'] is not none else 0 %}
+    <!-- ПРИНУДИТЕЛЬНО ПРИВОДИМ К FLOAT, чтобы избежать конфликта типов Decimal/Float/Int -->
+    {% set current_score = (drink['rating'] | float) if drink['rating'] is not none else 0.0 %}
 
     {% set full_stars = current_score | int %}
-    {% set half_star = (current_score - full_stars) >= 0.5 %}
+    {% set half_star = (current_score - full_stars) >= 0.49 %}
     {% set empty_stars = 5 - full_stars - (1 if half_star else 0) %}
 
     <!-- Контейнер для звёздочек -->
     <div class="d-flex text-warning fs-6 lh-1">
-        <!-- Целые звёзды -->
         {% for _ in range(full_stars) %}
             <i class="bi bi-star-fill me-1"></i>
         {% endfor %}
 
-        <!-- Половинка звезды -->
         {% if half_star %}
             <i class="bi bi-star-half me-1"></i>
         {% endif %}
 
-        <!-- Пустые звёзды -->
         {% for _ in range(empty_stars) %}
             <i class="bi bi-star text-muted opacity-50 me-1"></i>
         {% endfor %}
