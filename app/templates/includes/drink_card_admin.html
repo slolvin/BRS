@@ -35,6 +35,30 @@
     </div>
     <!-- ПОДВАЛ КАРТОЧКИ: Кнопки управления для админа -->
     <div class="card-footer bg-transparent border-top border-secondary border-opacity-10 p-4 pt-0">
+        <form action="{{ url_for('main.rate_drink', drink_id=drink['id']) }}" method="post" class="w-100">
+            <span class="text-secondary small d-block mb-2 fw-medium text-uppercase tracking-wider fs-8">Оценить напиток</span>
+
+            <div class="input-group">
+                <!-- Красивый селектор со звездочкой внутри -->
+                <span class="input-group-text bg-body-tertiary border-secondary border-opacity-25 text-warning">
+                    <i class="bi bi-star-fill"></i>
+                </span>
+                <select class="form-select bg-body-tertiary border-secondary border-opacity-25" id="rate" name="value" aria-label="Рейтинг напитка">
+                    <option value="5" selected>5 — Отлично</option>
+                    <option value="4">4 — Хорошо</option>
+                    <option value="3">3 — Нормально</option>
+                    <option value="2">2 — Плохо</option>
+                    <option value="1">1 — Ужасно</option>
+                </select>
+
+                <!-- Стильная кнопка отправки -->
+                <button class="btn btn-primary px-3" type="submit" title="Отправить оценку">
+                    <i class="bi bi-check-lg"></i>
+                </button>
+            </div>
+        </form>
+    </div>
+    <div class="card-footer bg-transparent border-top border-secondary border-opacity-10 p-4 pt-0">
         <div class="row g-2">
 
             <div class="col-6">

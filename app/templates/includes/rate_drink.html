@@ -1,6 +1,6 @@
 <div class="d-flex align-items-center gap-2">
-    <!-- ПРИНУДИТЕЛЬНО ПРИВОДИМ К FLOAT, чтобы избежать конфликта типов Decimal/Float/Int -->
-    {% set current_score = (drink['rating'] | float) if drink['rating'] is not none else 0.0 %}
+    <!-- Принудительно приводим к float -->
+    {% set current_score = (drink.rating | float) if drink.rating is not none else 0.0 %}
 
     {% set full_stars = current_score | int %}
     {% set half_star = (current_score - full_stars) >= 0.49 %}

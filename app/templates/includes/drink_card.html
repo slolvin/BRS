@@ -1,50 +1,49 @@
 <div class="card h-100 w-100 shadow border-0 rounded-4 overflow-hidden bg-dark bg-opacity-20 mx-auto" style="max-width: 340px;">
     <!-- Изображение напитка с фиксированной высотой -->
     <div class="position-relative" style="height: 200px;">
-        <!-- Проверяем, есть ли имя файла в базе, иначе ставим заглушку -->
-        {% if drink['image_path'] %}
-            <img src="{{ url_for('static', filename='drinks/' + drink['image_path']) }}" class="w-100 h-100" alt="{{ drink['name'] }}" style="object-fit: cover;">
+        {% if drink.image_path %}
+            <img src="{{ url_for('static', filename='drinks/' + drink.image_path) }}" class="w-100 h-100" alt="{{ drink.name }}" style="object-fit: cover;">
         {% else %}
-            <!-- Твоя заглушка, если у напитка нет фото (например, градиент или дефолтное изображение) -->
             <div class="w-100 h-100 bg-dark bg-opacity-50 d-flex align-items-center justify-content-center text-secondary border-bottom border-secondary border-opacity-10">
                 <i class="bi bi-glass-cocktail fs-1"></i>
             </div>
         {% endif %}
 
-        <!-- Абсолютное позиционирование типа напитка поверх фото (заменил px-2.5 на px-3, так как в Bootstrap нет дробных классов) -->
         <span class="position-absolute top-0 end-0 m-3 badge bg-dark bg-opacity-75 border border-secondary border-opacity-25 rounded-pill px-3 py-1.5 fs-8 text-secondary">
-            {{ drink['type'] }}
+            {{ drink.type }}
         </span>
     </div>
 
     <!-- Тело карточки с контентом -->
     <div class="card-body p-4 d-flex flex-column">
-        <!-- Название напитка -->
-        <h5 class="card-title fw-bold text-white mb-2">{{ drink['name'] }}</h5>
+        <h5 class="card-title fw-bold text-white mb-2">{{ drink.name }}</h5>
 
-        <!-- Описание напитка (занимает всё свободное место) -->
         <p class="card-text text-secondary small mb-4 flex-grow-1 lh-base">
-            {{ drink['description'] }}
+            {{ drink.description }}
         </p>
 
-        <!-- Текущий рейтинг (вынесли внутрь body перед формой оценки) -->
+        <!-- Текущий рейтинг (Только отображение, без JS и кнопок) -->
         <div class="mb-3 pt-3 border-top border-secondary border-opacity-10">
             <span class="text-secondary small d-block mb-1 fw-medium text-uppercase tracking-wider fs-8">Текущая оценка</span>
             {% include "includes/rate_drink.html" %}
         </div>
     </div>
 
-    <!-- Подвал карточки с компактной формой оценки -->
+    <!-- Подвал карточки с чистой HTML-формой оценки -->
     <div class="card-footer bg-transparent border-top border-secondary border-opacity-10 p-4 pt-0">
-        <form action="{{ url_for('main.rate_drink', drink_id=drink['id']) }}" method="post" class="w-100">
+        <form action="{{ url_for('main.rate_drink', drink_id=drink.id) }}" method="POST" class="w-100">
+            <!-- CSRF-токен для Flask -->
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+
             <span class="text-secondary small d-block mb-2 fw-medium text-uppercase tracking-wider fs-8">Оценить напиток</span>
 
             <div class="input-group">
-                <!-- Красивый селектор со звездочкой внутри -->
                 <span class="input-group-text bg-body-tertiary border-secondary border-opacity-25 text-warning">
                     <i class="bi bi-star-fill"></i>
                 </span>
-                <select class="form-select bg-body-tertiary border-secondary border-opacity-25" id="rate" name="value" aria-label="Рейтинг напитка">
+
+                <!-- Атрибут name="value" обязателен для вашего request.form.get('value') -->
+                <select class="form-select bg-body-tertiary border-secondary border-opacity-25" name="value" aria-label="Рейтинг напитка" required>
                     <option value="5" selected>5 — Отлично</option>
                     <option value="4">4 — Хорошо</option>
                     <option value="3">3 — Нормально</option>
@@ -52,7 +51,7 @@
                     <option value="1">1 — Ужасно</option>
                 </select>
 
-                <!-- Стильная кнопка отправки -->
+                <!-- Стандартный сабмит формы силами браузера -->
                 <button class="btn btn-primary px-3" type="submit" title="Отправить оценку">
                     <i class="bi bi-check-lg"></i>
                 </button>

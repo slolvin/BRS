@@ -62,18 +62,6 @@ def edit_profile():
                            favorite_bars=favorite_bars)
 
 
-# @main.route('/', methods=['GET', 'POST'])
-# def index():
-#     redirect(url_for('get_bars_list'))
-#     # form = NameForm()
-    # if form.validate_on_submit():
-    #     # ...
-    #     return redirect(url_for('.index'))
-    # return render_template('index.html',
-    #                        form=form, name=session.get('name'),
-    #                        know=session.get('know', False),
-    #                        current_time=datetime.utcnow())
-
 @main.route('/edit-profile/<int:id>', methods=['GET', 'POST'])
 @login_required
 # @admin_required
@@ -155,7 +143,6 @@ def get_drinks_list():
 def get_bar_drinks(id):
     bar = Bar.query.get_or_404(id)
     return render_template('/includes/bar_drinks.html', bar=bar)
-
 
 @main.route('/add_drink/', methods=['GET', 'POST'])
 def add_drink():
