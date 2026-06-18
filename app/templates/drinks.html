@@ -4,19 +4,73 @@
 {% block title %}All drinks{% endblock %}
 
 {% block content %}
+    <div class="container mb-3">
+        <h1 style="color: white">Drinks</h1>
+    </div>
+
+    <!-- Блок фильтрации напитков -->
+    <div class="container mb-4">
+        <form action="{{ url_for('.get_drinks_list') }}" method="GET" class="row g-3 align-items-end bg-body-tertiary p-3 rounded-4 shadow-sm m-0">
+
+            <!-- Фильтр по типу -->
+            <div class="col-12 col-md-4">
+                <label for="drink_type" class="form-label small text-secondary fw-medium">Тип напитка</label>
+                <select class="form-select" id="drink_type" name="type">
+                    {% set any_type_selected = 'selected' if request.args.get('type') == 'any' or not request.args.get('type') else '' %}
+                    <option value="any" {{ any_type_selected }}>Все типы</option>
+
+                    {% for option in options %}
+                        {% set option_selected = 'selected' if request.args.get('type') == option|string else '' %}
+                        <option value="{{ option }}" {{ option_selected }}>{{ option }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Фильтр по оценке -->
+            <div class="col-12 col-md-4">
+                <label for="drink_rating" class="form-label small text-secondary fw-medium">Минимальная оценка</label>
+                <select class="form-select" id="drink_rating" name="rating">
+                    {% set any_rating_selected = 'selected' if request.args.get('rating') == 'any' or not request.args.get('rating') else '' %}
+                    <option value="any" {{ any_rating_selected }}>Любая</option>
+
+                    {% set r45_selected = 'selected' if request.args.get('rating') == '4.5' else '' %}
+                    <option value="4.5" {{ r45_selected }}>★ 4.5 и выше</option>
+
+                    {% set r40_selected = 'selected' if request.args.get('rating') == '4.0' else '' %}
+                    <option value="4.0" {{ r40_selected }}>★ 4.0 и выше</option>
+
+                    {% set r35_selected = 'selected' if request.args.get('rating') == '3.5' else '' %}
+                    <option value="3.5" {{ r35_selected }}>★ 3.5 и выше</option>
+                </select>
+            </div>
+
+            <!-- Кнопка применить -->
+            <div class="col-12 col-md-2 d-grid">
+                <button class="btn btn-primary" type="submit">
+                    <i class="bi bi-funnel-fill me-1"></i> Filter
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Сетка с напитками -->
     <div class="container">
         <div class="row row-cols-1 row-cols-md-3 g-4">
             {% for drink in drinks %}
             <div class="col d-flex">
-                <!-- Карточка напитка с мягкой границей и тёмным фоном -->
                 {% include "includes/drink_card_admin.html" %}
             </div>
             {% endfor %}
         </div>
     </div>
-    {% if pagination %}
-        <div class="row row-cols-1 pagination">
-            {{ macros.pagination_widget(pagination, '.get_drinks_list', id=drinks[0].id) }}
+
+    <!-- Пагинация -->
+    {% if pagination and drinks|length > 0 %}
+        <div class="container mt-4">
+            <div class="row row-cols-1 pagination">
+                <!-- Передаем filter_args, очищенный от списков и параметра page -->
+                {{ macros.pagination_widget(pagination, '.get_drinks_list', **filter_args) }}
+            </div>
         </div>
     {% endif %}
 {% endblock %}

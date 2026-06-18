@@ -1,5 +1,6 @@
 from flask import render_template, redirect, url_for, abort, flash, request, current_app, make_response
 from flask_login import login_required, current_user
+from sqlalchemy import func
 from . import main
 from .forms import EditProfileAdminForm
 from .. import db
@@ -87,14 +88,40 @@ def index():
     return redirect(url_for('.get_bars_list'))
 
 
-@main.route('/bars/', methods=['GET', 'POST'])
+@main.route('/bars/', methods=['GET'])  # Перевели полностью на GET
 def get_bars_list():
-    options = ['Water', 'Beer', 'Vodka', 'Wiskey', 'Cocktail']
-    bars = Bar.query.order_by(Bar.rate.asc()).distinct().all()
-    if request.method == 'POST':
-        drink = request.form['type']
-        bars = Bar.query.join(Drink).filter(Drink.type == drink).order_by(Drink.score).all()
-        return render_template('bars.html', options=options, bars=bars)
+    # Список опций оставляем ваш (или можете автоматизировать из БД)
+    options = [r[0] for r in db.session.query(Drink.type).distinct().all() if r and r[0]]
+
+    # 1. Забираем параметры фильтрации из URL (дефолтное значение 'any')
+    drink_type = request.args.get('type', 'any')
+    rating_val = request.args.get('rating', 'any')
+    distance_val = request.args.get('distance', 'any')  # Заглушка на будущее
+    open_now = request.args.get('open_now') == 'true'  # Заглушка на будущее
+
+    # 2. Инициализируем базовый запрос к барам
+    query = Bar.query
+
+    # 3. Фильтр 1: По типу напитка (делаем JOIN, если выбран конкретный тип)
+    if drink_type != 'any':
+        # Подключаем таблицу напитков и фильтруем по типу
+        query = query.join(Drink).filter(Drink.type == drink_type)
+        # Сортируем от худшего к лучшему по оценке напитка, как было у вас в POST
+        query = query.order_by(Drink.score.asc())
+    else:
+        # Если тип не выбран, сортируем просто по рейтингу бара
+        query = query.order_by(Bar.rate.asc())
+
+    # 4. Фильтр 2: По рейтингу бара (★ 4.5 и выше и т.д.)
+    if rating_val != 'any':
+        try:
+            query = query.filter(Bar.rate >= float(rating_val))
+        except ValueError:
+            pass
+
+    # 5. Выполняем и убираем дубликаты баров (из-за связи один-ко-многим при JOIN)
+    bars = query.distinct().all()
+
     return render_template('bars.html', options=options, bars=bars)
 
 
@@ -131,11 +158,74 @@ def edit_bar(id):
 @main.route('/drinks/', methods=['GET'])
 def get_drinks_list():
     page = request.args.get('page', 1, type=int)
-    pagination = Drink.query.order_by(Drink.score).paginate(
-        page=page, per_page=Config.DRINKS_PER_PAGE,
-        error_out=False)
-    drinks = pagination.items
-    return render_template('drinks.html', drinks=drinks, pagination=pagination)
+    selected_type = request.args.get('type', 'any')
+    selected_rating = request.args.get('rating', 'any')
+
+    # 1. Формируем плоский словарь параметров для безопасной пагинации
+    # Это полностью решает проблему ошибки в url_for(..., **kwargs)
+    filter_args = {k: v for k, v in request.args.items() if k != 'page'}
+
+    # 2. Начинаем запрос с подсчетом средней оценки для каждого напитка из DrinkRating
+    # Группируем по Drink.id, чтобы посчитать среднее (func.avg)
+    query = db.session.query(
+        Drink,
+        func.coalesce(func.avg(DrinkRating.value), 0.0).label('average_rating')
+    ).outerjoin(DrinkRating).group_by(Drink.id)
+
+    # 3. Фильтр по типу напитка
+    if selected_type != 'any':
+        query = query.filter(Drink.type == selected_type)
+
+    # 4. Фильтр по средней оценке из связанной таблицы DrinkRating
+    if selected_rating != 'any':
+        try:
+            rating_limit = float(selected_rating)
+            # Фильтруем сгруппированный результат через HAVING
+            query = query.having(func.coalesce(func.avg(DrinkRating.value), 0.0) >= rating_limit)
+        except ValueError:
+            pass
+
+    # 5. Сортируем от высшей оценки к низшей
+    query = query.order_by(func.avg(DrinkRating.value).desc())
+
+    # 6. Применяем пагинацию SQLAlchemy
+    pagination = query.paginate(
+        page=page,
+        per_page=Config.DRINKS_PER_PAGE,
+        error_out=False
+    )
+
+    # ВАЖНО: Из-за кастомного query со средним баллом, pagination.items теперь содержит кортежи: (Объект_Drink, средний_балл)
+    # Чтобы не ломать ваши шаблоны, мы динамически запишем средний балл прямо в поле объекта!
+    drinks = []
+    for drink_obj, avg_rating in pagination.items:
+        drink_obj.rating = avg_rating  # Записываем актуальный балл для includes/rate_drink.html
+        drinks.append(drink_obj)
+
+    # 7. Безопасное получение уникальных типов (исправлена проблема с кортежами)
+    # query().all() возвращает список кортежей с одним элементом, берем row[0]
+    options = [row[0] for row in db.session.query(Drink.type).distinct().all() if row[0]]
+
+    return render_template(
+        'drinks.html',
+        drinks=drinks,
+        pagination=pagination,
+        options=options,
+        filter_args=filter_args  # Передаем очищенный словарь в HTML
+    )
+
+
+@main.route('/delete_bar/<int:bar_id>', methods=['POST'])
+@login_required
+def delete_bar(bar_id):
+    bar = Bar.query.get_or_404(bar_id)
+
+    db.session.delete(bar)
+    db.session.commit()
+
+    flash('Бар был успешно удален из системы.')
+
+    return redirect(request.referrer or url_for('main.get_bars_list'))
 
 
 @main.route('/bar/<int:id>', methods=['GET'])
