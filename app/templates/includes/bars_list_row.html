@@ -1,0 +1,97 @@
+<div class="card w-100 shadow border-0 rounded-4 overflow-hidden bg-dark bg-opacity-20 mb-2">
+    <div class="row g-0 align-items-center">
+
+        <!-- 1. ИЗОБРАЖЕНИЕ БАРА -->
+        <div class="col-12 col-md-3 col-xl-2" style="height: 120px; background: linear-gradient(45deg, #1f232b, #2d323f);">
+            <img class="w-100 h-100" src="/static/icons/placeholder.png" alt="{{ bar['name'] }}" style="object-fit: cover;">
+        </div>
+
+        <!-- 2. ОСНОВНАЯ ИНФОРМАЦИЯ -->
+        <div class="col-12 col-md-5 col-xl-6 p-3 px-md-4">
+            <!-- Название и Управляющий -->
+            <div class="d-flex flex-wrap align-items-baseline gap-2 mb-1">
+                <h5 class="card-title fw-bold text-white mb-0 text-uppercase tracking-wide">{{ bar['name'] }}</h5>
+                <span class="text-white-50 small fs-8">
+                    (Управляющий: {{ bar.get_user_name() }} <span class="text-muted">ID: {{ bar['admin_id'] }}</span>)
+                </span>
+            </div>
+
+            <!-- Геолокация -->
+            <div class="mb-0">
+                <a href="https://www.google.com/maps/search/?api=1&query=1200%20{{ bar['address'] }}"
+                   class="text-primary text-decoration-none small d-inline-flex align-items-start gap-1 hover-link"
+                   target="_blank" title="Открыть карту">
+                    <i class="bi bi-geo-alt-fill text-danger mt-0.5"></i>
+                    <span class="lh-sm">{{ bar['address'] }}</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- 3. РЕЙТИНГ -->
+        <div class="col-6 col-md-2 p-3 text-md-center border-top border-md-0 border-secondary border-opacity-10">
+            {% set current_rate = bar['rate'] if bar['rate'] is not none else bar.get_bar_rate() %}
+            {% set full_stars = current_rate | int %}
+            {% set half_star = (current_rate - full_stars) >= 0.5 %}
+            {% set empty_stars = 5 - full_stars - (1 if half_star else 0) %}
+
+            <div class="d-flex flex-md-column align-items-center justify-content-md-center gap-2">
+                <div class="d-flex text-warning fs-6 lh-1">
+                    {% for _ in range(full_stars) %}
+                        <i class="bi bi-star-fill me-0.5"></i>
+                    {% endfor %}
+                    {% if half_star %}
+                        <i class="bi bi-star-half me-0.5"></i>
+                    {% endif %}
+                    {% for _ in range(empty_stars) %}
+                        <i class="bi bi-star text-muted opacity-50 me-0.5"></i>
+                    {% endfor %}
+                </div>
+                <span class="badge bg-body-tertiary border border-secondary border-opacity-25 text-secondary-emphasis small fw-semibold px-2 py-1 rounded">
+                    {{ "%.1f"|format(current_rate) }}
+                </span>
+            </div>
+        </div>
+
+        <!-- 4. КНОПКИ ДЕЙСТВИЯ -->
+        <div class="col-6 col-md-2 p-3 border-top border-md-0 border-secondary border-opacity-10">
+            <div class="d-flex justify-content-end align-items-center gap-2">
+
+                <!-- Кнопка Избранное -->
+                <div>
+                    {% if current_user.is_authenticated %}
+                        <form action="{{ url_for('.toggle_favorite', bar_id=bar.id) }}" method="POST" class="m-0">
+                            {% if bar in current_user.favorite_bars.all() %}
+                                <button type="submit" class="btn btn-danger btn-sm p-2 d-flex align-items-center justify-content-center shadow-sm" style="width: 38px; height: 38px;" title="Убрать из любимых">
+                                    <i class="bi bi-heart-fill"></i>
+                                </button>
+                            {% else %}
+                                <button type="submit" class="btn btn-outline-danger btn-sm p-2 d-flex align-items-center justify-content-center" style="width: 38px; height: 38px;" title="Добавить в любимые">
+                                    <i class="bi bi-heart"></i>
+                                </button>
+                            {% endif %}
+                        </form>
+                    {% else %}
+                        <a href="{{ url_for('auth.login') }}" class="btn btn-outline-danger btn-sm p-2 d-flex align-items-center justify-content-center" style="width: 38px; height: 38px;" title="Войдите, чтобы добавить в любимые">
+                            <i class="bi bi-heart"></i>
+                        </a>
+                    {% endif %}
+                </div>
+
+                <!-- Кнопка Редактирования -->
+                <a class="btn btn-outline-secondary btn-sm p-2 d-flex align-items-center justify-content-center" style="width: 38px; height: 38px;"
+                   href="{{ url_for('.edit_bar', id=bar.id) }}" title="Edit">
+                   <i class="bi bi-pencil"></i>
+                </a>
+
+                <!-- Кнопка перехода к Меню -->
+                <a class="btn btn-primary btn-sm px-3 h-100 d-flex align-items-center justify-content-center gap-1 shadow-sm" style="height: 38px;"
+                   href="{{ url_for('.get_bar_drinks', id=bar.id) }}">
+                   <span>Menu</span>
+                   <i class="bi bi-arrow-right-short fs-5 lh-1"></i>
+                </a>
+
+            </div>
+        </div>
+
+    </div>
+</div>

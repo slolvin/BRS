@@ -7,6 +7,7 @@ from .. import db
 from ..models import User, Role, Permission, Bar, Drink, ActionLog, DrinkRating
 from config import Config
 import os
+import random
 from werkzeug.utils import secure_filename
 
 
@@ -88,41 +89,73 @@ def index():
     return redirect(url_for('.get_bars_list'))
 
 
-@main.route('/bars/', methods=['GET'])  # Перевели полностью на GET
+@main.route('/metrics/')
+def metrics():
+    # Пока отдаем пустую заглушку, как мы сверстали
+    return render_template('metrics.html')
+
+
+@main.route('/bars/', methods=['GET'])
 def get_bars_list():
-    # Список опций оставляем ваш (или можете автоматизировать из БД)
+    # 1. Получаем список уникальных непустых типов напитков
     options = [r[0] for r in db.session.query(Drink.type).distinct().all() if r and r[0]]
 
-    # 1. Забираем параметры фильтрации из URL (дефолтное значение 'any')
+    # 2. Получаем список уникальных непустых городов, которые ЕСТЬ у баров в БД
+    # Это исключит ситуацию, когда выберется город, в котором нет ни одного заведения
+    cities = [r[0] for r in db.session.query(Bar.city).distinct().all() if r and r[0]]
+
+    # 3. Определяем город по умолчанию (если параметр 'city' еще не передан в URL)
+    default_city = 'any'
+    if 'city' not in request.args:
+        if current_user.is_authenticated and current_user.location:
+            # Проверяем, есть ли город пользователя среди городов, где вообще есть бары
+            if current_user.location in cities:
+                default_city = current_user.location
+            else:
+                # Если у юзера редкий город, где баров нет, берем случайный из доступных
+                default_city = random.choice(cities) if cities else 'any'
+        else:
+            # Юзер не залогинен или у него нет города — берем случайный из базы баров
+            default_city = random.choice(cities) if cities else 'any'
+
+    # 4. Считываем параметры фильтрации из URL (если 'city' нет, подставляем наш default_city)
+    city_val = request.args.get('city', default_city)
     drink_type = request.args.get('type', 'any')
     rating_val = request.args.get('rating', 'any')
-    distance_val = request.args.get('distance', 'any')  # Заглушка на будущее
-    open_now = request.args.get('open_now') == 'true'  # Заглушка на будущее
+    distance_val = request.args.get('distance', 'any')
+    open_now = request.args.get('open_now') == 'true'
 
-    # 2. Инициализируем базовый запрос к барам
+    # 5. Инициализируем базовый запрос к барам
     query = Bar.query
 
-    # 3. Фильтр 1: По типу напитка (делаем JOIN, если выбран конкретный тип)
+    # 6. Фильтр по городу
+    if city_val != 'any':
+        query = query.filter(Bar.city == city_val)
+
+    # 7. Фильтр по типу напитка и сортировка
     if drink_type != 'any':
-        # Подключаем таблицу напитков и фильтруем по типу
         query = query.join(Drink).filter(Drink.type == drink_type)
-        # Сортируем от худшего к лучшему по оценке напитка, как было у вас в POST
         query = query.order_by(Drink.score.asc())
     else:
-        # Если тип не выбран, сортируем просто по рейтингу бара
         query = query.order_by(Bar.rate.asc())
 
-    # 4. Фильтр 2: По рейтингу бара (★ 4.5 и выше и т.д.)
+    # 8. Фильтр по рейтингу бара
     if rating_val != 'any':
         try:
             query = query.filter(Bar.rate >= float(rating_val))
         except ValueError:
             pass
 
-    # 5. Выполняем и убираем дубликаты баров (из-за связи один-ко-многим при JOIN)
+    # 9. Выполняем и убираем дубликаты баров
     bars = query.distinct().all()
 
-    return render_template('bars.html', options=options, bars=bars)
+    return render_template(
+        'bars.html',
+        options=options,
+        cities=cities,
+        bars=bars,
+        current_city=city_val  # Передаем вычисленный город, чтобы подсветить его в select
+    )
 
 
 @main.route('/add_bar/', methods=['GET', 'POST'])
@@ -321,10 +354,53 @@ def edit_drink(drink_id):
     return render_template('/creators/edit_drink.html', drink=drink)
 
 
+@main.route('/drink/<int:drink_id>/toggle-favorite', methods=['POST'])
+@login_required
+def toggle_drink_favorite(drink_id):
+    drink = Drink.query.get_or_404(drink_id)
+
+    if drink in current_user.favorite_drinks.all():
+        current_user.favorite_drinks.remove(drink)
+        flash(f'Напиток «{drink.name}» удален из избранного.', 'info')
+    else:
+        current_user.favorite_drinks.append(drink)
+        flash(f'Напиток «{drink.name}» добавлен в избранное!', 'success')
+
+    db.session.commit()
+    return redirect(request.referrer or url_for('.get_drinks_list'))
+
+
+@main.route('/drink/<int:drink_id>/toggle-drunk', methods=['POST'])
+@login_required
+def toggle_drink_drunk(drink_id):
+    drink = Drink.query.get_or_404(drink_id)
+
+    if drink in current_user.drunk_drinks.all():
+        current_user.drunk_drinks.remove(drink)
+        flash(f'Напиток «{drink.name}» удален из списка выпитых.', 'info')
+        # Опционально: если убираем из выпитых, можно удалять и оценку пользователя,
+        # так как оценивать невыпитое нельзя по вашей логике
+        existing_rating = DrinkRating.query.filter_by(user_id=current_user.id, drink_id=drink.id).first()
+        if existing_rating:
+            db.session.delete(existing_rating)
+            db.session.flush()
+            drink.update_rating()
+    else:
+        current_user.drunk_drinks.append(drink)
+        flash(f'Напиток «{drink.name}» добавлен в список выпитых!', 'success')
+
+    db.session.commit()
+    return redirect(request.referrer or url_for('.get_drinks_list'))
+
+
 @main.route('/drink/<int:drink_id>/rate', methods=['POST'])
 @login_required
 def rate_drink(drink_id):
     drink = Drink.query.get_or_404(drink_id)
+    # ВАЖНОЕ ОБНОВЛЕНИЕ: Проверка на то, выпит ли напиток
+    if drink not in current_user.drunk_drinks.all():
+        flash('Вы не можете оценивать напиток, пока не добавите его в «Выпитые».', 'danger')
+        return redirect(request.referrer or url_for('.get_drinks_list'))
 
     try:
         rating_value = int(request.form.get('value'))

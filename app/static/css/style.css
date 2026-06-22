@@ -1,0 +1,48 @@
+/* Контейнер для звезд, развернутый справа налево для корректной работы CSS-селекторов */
+.rating-stars {
+    display: flex;
+    flex-direction: row-reverse;
+    justify-content: flex-end;
+    gap: 4px;
+}
+
+/* Полностью скрываем стандартные радиокнопки */
+.rating-stars input[type="radio"] {
+    display: none;
+}
+
+/* Обычный вид незакрашенной звезды */
+.rating-stars label {
+    font-size: 1.5rem;
+    color: #6c757d; /* text-muted */
+    cursor: pointer;
+    transition: color 0.15s ease-in-out;
+}
+
+/* Иконка пустой звезды по умолчанию */
+.rating-stars label::before {
+    content: "\f586"; /* Код иконки bi-star в Bootstrap Icons */
+    font-family: "bootstrap-icons";
+}
+
+/* Подсветка выбранной звезды и всех звезд перед ней (слева направо) */
+.rating-stars input[type="radio"]:checked ~ label::before,
+.rating-stars input[type="radio"]:checked ~ label {
+    color: #ffc107; /* warning-color */
+    content: "\f588"; /* Код иконки bi-star-fill в Bootstrap Icons */
+}
+
+/* Эффект наведения: подсвечиваем звезду под курсором и все предыдущие */
+.rating-stars label:hover,
+.rating-stars label:hover ~ label,
+.rating-stars input[type="radio"]:checked ~ label:hover,
+.rating-stars input[type="radio"]:checked ~ label:hover ~ label,
+.rating-stars label:hover ~ input[type="radio"]:checked ~ label {
+    color: #ffca2c;
+    content: "\f588";
+}
+
+
+.hover-danger:hover {
+    color: #dc3545 !important; /* Bootstrap danger color */
+}
