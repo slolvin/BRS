@@ -78,6 +78,16 @@ user_favorite_bars = db.Table(
 )
 
 
+favorite_drinks = db.Table('favorite_drinks',
+    db.Column('user_id', db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'), primary_key=True),
+    db.Column('drink_id', db.Integer, db.ForeignKey('drinks.id', ondelete='CASCADE'), primary_key=True)
+)
+
+drunk_drinks = db.Table('drunk_drinks',
+    db.Column('user_id', db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'), primary_key=True),
+    db.Column('drink_id', db.Integer, db.ForeignKey('drinks.id', ondelete='CASCADE'), primary_key=True)
+)
+
 class User(UserMixin, db.Model):
     __tablename__ = 'users'
     id = db.Column(db.Integer, primary_key=True)
@@ -92,6 +102,17 @@ class User(UserMixin, db.Model):
     member_since = db.Column(db.DateTime(), default=datetime.utcnow)
     last_seen = db.Column(db.DateTime(), default=datetime.utcnow)
     avatar_hash = db.Column(db.String(32))
+    # Отношение для избранных напитков
+    favorite_drinks = db.relationship('Drink',
+                                      secondary=favorite_drinks,
+                                      lazy='dynamic',
+                                      backref=db.backref('favorited_by', lazy='dynamic'))
+
+    # Отношение для выпитых напитков
+    drunk_drinks = db.relationship('Drink',
+                                   secondary=drunk_drinks,
+                                   lazy='dynamic',
+                                   backref=db.backref('drunk_by', lazy='dynamic'))
 
     def to_json(self):
         json_user = {

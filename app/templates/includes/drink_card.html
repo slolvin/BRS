@@ -1,5 +1,6 @@
 <div class="card h-100 w-100 shadow border-0 rounded-4 overflow-hidden bg-dark bg-opacity-20 mx-auto" style="max-width: 340px;">
-    <!-- Изображение напитка с фиксированной высотой -->
+
+    <!-- 1. ИЗОБРАЖЕНИЕ НАПИТКА И ИНДИКАТОРЫ -->
     <div class="position-relative" style="height: 200px;">
         {% if drink.image_path %}
             <img src="{{ url_for('static', filename='drinks/' + drink.image_path) }}" class="w-100 h-100" alt="{{ drink.name }}" style="object-fit: cover;">
@@ -9,53 +10,110 @@
             </div>
         {% endif %}
 
-        <span class="position-absolute top-0 end-0 m-3 badge bg-dark bg-opacity-75 border border-secondary border-opacity-25 rounded-pill px-3 py-1.5 fs-8 text-secondary">
+        <!-- Тип напитка слева сверху -->
+        <span class="position-absolute top-0 start-0 m-3 badge bg-dark bg-opacity-75 border border-secondary border-opacity-25 rounded-pill px-3 py-1.5 fs-8 text-secondary">
             {{ drink.type }}
         </span>
+
+        <!-- Кнопка «Добавить в избранное» (Сердечко) поверх картинки справа сверху -->
+        {% if current_user.is_authenticated %}
+            <form class="position-absolute top-0 end-0 m-3" action="{{ url_for('main.toggle_drink_favorite', drink_id=drink.id) }}" method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                <button class="btn {% if drink in current_user.favorite_drinks.all() %}btn-danger{% else %}btn-dark bg-opacity-75 text-white{% endif %} border border-secondary border-opacity-25 rounded-circle d-flex align-items-center justify-content-center hover-lift"
+                        type="submit" style="width: 38px; height: 38px;" title="В избранное">
+                    <i class="bi {% if drink in current_user.favorite_drinks.all() %}bi-heart-fill{% else %}bi-heart{% endif %} fs-6"></i>
+                </button>
+            </form>
+        {% else %}
+            <a href="{{ url_for('auth.login') }}" class="position-absolute top-0 end-0 m-3 btn btn-dark bg-opacity-75 text-white border border-secondary border-opacity-25 rounded-circle d-flex align-items-center justify-content-center"
+               style="width: 38px; height: 38px;" title="Войдите, чтобы добавить в избранное">
+                <i class="bi bi-heart fs-6"></i>
+            </a>
+        {% endif %}
     </div>
 
-    <!-- Тело карточки с контентом -->
+    <!-- 2. ТЕЛО КАРТОЧКИ -->
     <div class="card-body p-4 d-flex flex-column">
         <h5 class="card-title fw-bold text-white mb-2">{{ drink.name }}</h5>
 
-        <p class="card-text text-secondary small mb-4 flex-grow-1 lh-base">
+        <p class="card-text text-secondary small mb-3 flex-grow-1 lh-base">
             {{ drink.description }}
         </p>
 
-        <!-- Текущий рейтинг (Только отображение, без JS и кнопок) -->
-        <div class="mb-3 pt-3 border-top border-secondary border-opacity-10">
+        <!-- Кнопка «Выпито» (Индикатор статуса) -->
+        <div class="mb-3">
+            {% if current_user.is_authenticated %}
+                <form action="{{ url_for('main.toggle_drink_drunk', drink_id=drink.id) }}" method="POST" class="w-100">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                    {% if drink in current_user.drunk_drinks.all() %}
+                        <button type="submit" class="btn btn-success w-100 py-2 fs-7 fw-medium text-uppercase tracking-wide d-flex align-items-center justify-content-center gap-2 rounded-3 shadow-sm" title="Убрать из выпитых">
+                            <i class="bi bi-check-circle-fill"></i> Выпито
+                        </button>
+                    {% else %}
+                        <button type="submit" class="btn btn-outline-success w-100 py-2 fs-7 fw-medium text-uppercase tracking-wide d-flex align-items-center justify-content-center gap-2 rounded-3" title="Отметить как выпитое">
+                            <i class="bi bi-circle"></i> Отметить выпитым
+                        </button>
+                    {% endif %}
+                </form>
+            {% else %}
+                <a href="{{ url_for('auth.login') }}" class="btn btn-outline-success w-100 py-2 fs-7 fw-medium text-uppercase tracking-wide d-flex align-items-center justify-content-center gap-2 rounded-3">
+                    <i class="bi bi-circle"></i> Войдите, чтобы отметить
+                </a>
+            {% endif %}
+        </div>
+
+        <!-- Текущий рейтинг -->
+        <div class="mb-1 pt-3 border-top border-secondary border-opacity-10">
             <span class="text-secondary small d-block mb-1 fw-medium text-uppercase tracking-wider fs-8">Текущая оценка</span>
             {% include "includes/rate_drink.html" %}
         </div>
     </div>
 
-    <!-- Подвал карточки с чистой HTML-формой оценки -->
+    <!-- 3. ПОДВАЛ КАРТОЧКИ (УСЛОВНАЯ ФОРМА ОЦЕНКИ) -->
     <div class="card-footer bg-transparent border-top border-secondary border-opacity-10 p-4 pt-0">
+    {% if current_user.is_authenticated and drink in current_user.drunk_drinks.all() %}
         <form action="{{ url_for('main.rate_drink', drink_id=drink.id) }}" method="POST" class="w-100">
-            <!-- CSRF-токен для Flask -->
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
 
             <span class="text-secondary small d-block mb-2 fw-medium text-uppercase tracking-wider fs-8">Оценить напиток</span>
 
-            <div class="input-group">
-                <span class="input-group-text bg-body-tertiary border-secondary border-opacity-25 text-warning">
-                    <i class="bi bi-star-fill"></i>
-                </span>
+            <!-- Получаем уже существующую оценку пользователя для этого напитка -->
+            {% set user_rating = drink.ratings.filter_by(user_id=current_user.id).first() %}
+            {% set current_val = user_rating.value if user_rating else 0 %}
 
-                <!-- Атрибут name="value" обязателен для вашего request.form.get('value') -->
-                <select class="form-select bg-body-tertiary border-secondary border-opacity-25" name="value" aria-label="Рейтинг напитка" required>
-                    <option value="5" selected>5 — Отлично</option>
-                    <option value="4">4 — Хорошо</option>
-                    <option value="3">3 — Нормально</option>
-                    <option value="2">2 — Плохо</option>
-                    <option value="1">1 — Ужасно</option>
-                </select>
+            <!-- Центрируем контейнер со звездами в блоке -->
+            <div class="d-flex align-items-center justify-content-center bg-body-tertiary bg-opacity-25 border border-secondary border-opacity-10 rounded-3 p-2 py-3">
+                <!-- Контейнер со звездами. Атрибут onchange="this.form.submit()" отправляет форму мгновенно при клике -->
+                <div class="rating-stars">
+                    <input type="radio" id="star5-{{ drink.id }}" name="value" value="5" {% if current_val == 5 %}checked{% endif %} onchange="this.form.submit()" required />
+                    <label for="star5-{{ drink.id }}" title="5 — Отлично"></label>
 
-                <!-- Стандартный сабмит формы силами браузера -->
-                <button class="btn btn-primary px-3" type="submit" title="Отправить оценку">
-                    <i class="bi bi-check-lg"></i>
-                </button>
+                    <input type="radio" id="star4-{{ drink.id }}" name="value" value="4" {% if current_val == 4 %}checked{% endif %} onchange="this.form.submit()" />
+                    <label for="star4-{{ drink.id }}" title="4 — Хорошо"></label>
+
+                    <input type="radio" id="star3-{{ drink.id }}" name="value" value="3" {% if current_val == 3 %}checked{% endif %} onchange="this.form.submit()" />
+                    <label for="star3-{{ drink.id }}" title="3 — Нормально"></label>
+
+                    <input type="radio" id="star2-{{ drink.id }}" name="value" value="2" {% if current_val == 2 %}checked{% endif %} onchange="this.form.submit()" />
+                    <label for="star2-{{ drink.id }}" title="2 — Плохо"></label>
+
+                    <input type="radio" id="star1-{{ drink.id }}" name="value" value="1" {% if current_val == 1 %}checked{% endif %} onchange="this.form.submit()" />
+                    <label for="star1-{{ drink.id }}" title="1 — Ужасно"></label>
+                </div>
             </div>
         </form>
+    {% else %}
+        <!-- Заглушка-подсказка -->
+        <div class="pt-3 text-center">
+            <span class="text-muted small lh-sm d-block border border-secondary border-opacity-15 rounded-3 p-2 bg-body-tertiary bg-opacity-25">
+                <i class="bi bi-info-circle me-1"></i>
+                {% if not current_user.is_authenticated %}
+                    <a href="{{ url_for('auth.login') }}" class="text-decoration-none">Войдите</a>, чтобы оставлять оценки.
+                {% else %}
+                    Оценка доступна только после добавления в «Выпитые».
+                {% endif %}
+            </span>
+        </div>
+    {% endif %}
     </div>
 </div>
