@@ -4,55 +4,30 @@
 
 {% block content %}
     <div class="container-fluid mb-3">
-        <h1 style="color: white">Bars</h1>
-        <!-- Переключатель вида (Cards / List) без JS -->
-        <div class="btn-group" role="group" aria-label="View toggle">
-            <!-- Кнопка Карточки (в самом верху bars.html) -->
-            <a href="{{ url_for('.get_bars_list', type=request.args.get('type', 'any'), city=current_city, view='cards') }}"
-               class="btn btn-outline-light {% if request.args.get('view', 'cards') == 'cards' %}active{% endif %}">
-                <i class="bi bi-grid-3x3-gap-fill"></i>
-            </a>
-
-            <!-- Кнопка Список -->
-            <a href="{{ url_for('.get_bars_list', type=request.args.get('type', 'any'), city=current_city, view='list') }}"
-               class="btn btn-outline-light {% if request.args.get('view') == 'list' %}active{% endif %}">
-                <i class="bi bi-list-ul"></i>
-            </a>
-        </div>
+        <h1 style="color: white" class="mb-0">Bars</h1>
     </div>
 
     <div class="container-fluid px-0 w-100 mb-4">
-        <!-- Метод GET идеален для фильтров, убран enctype за ненадобностью -->
         <form action="{{ url_for('.get_bars_list') }}" method="GET" class="row g-3 align-items-end bg-body-tertiary p-3 rounded-4 shadow-sm w-100 m-0">
-            <!-- Скрытое поле для сохранения текущего вида при отправке формы фильтра -->
-            <input type="hidden" name="view" value="{{ request.args.get('view', 'cards') }}">
+
             <!-- Фильтр по городу -->
-            <div class="col-12 col-md-3">
+            <div class="col-12 col-md-2">
                 <label for="city" class="form-label small text-secondary fw-medium">Город</label>
                 <select class="form-select" id="city" name="city">
-                    <!-- Сравниваем с current_city, переданным из Flask -->
                     <option value="any" {% if current_city == 'any' %}selected{% endif %}>Все города</option>
                     {% for city in cities %}
                         <option value="{{ city }}" {% if current_city == city %}selected{% endif %}>{{ city }}</option>
                     {% endfor %}
                 </select>
             </div>
+
             <!-- Фильтр по типу напитка -->
-            <div class="col-12 col-md-3">
+            <div class="col-12 col-md-2">
                 <label for="type" class="form-label small text-secondary fw-medium">Тип напитка</label>
                 <select class="form-select" id="type" name="type">
-                    {% if request.args.get('type') == 'any' or not request.args.get('type') %}
-                        <option value="any" selected>Все типы</option>
-                    {% else %}
-                        <option value="any">Все типы</option>
-                    {% endif %}
-
+                    <option value="any" {% if request.args.get('type', 'any') == 'any' %}selected{% endif %}>Все типы</option>
                     {% for option in options %}
-                        {% if request.args.get('type') == option %}
-                            <option value="{{ option }}" selected>{{ option }}</option>
-                        {% else %}
-                            <option value="{{ option }}">{{ option }}</option>
-                        {% endif %}
+                        <option value="{{ option }}" {% if request.args.get('type') == option %}selected{% endif %}>{{ option }}</option>
                     {% endfor %}
                 </select>
             </div>
@@ -61,29 +36,10 @@
             <div class="col-12 col-md-2">
                 <label for="distance" class="form-label small text-secondary fw-medium">Расстояние</label>
                 <select class="form-select" id="distance" name="distance">
-                    {% if request.args.get('distance') == 'any' or not request.args.get('distance') %}
-                        <option value="any" selected>Любое</option>
-                    {% else %}
-                        <option value="any">Любое</option>
-                    {% endif %}
-
-                    {% if request.args.get('distance') == '500m' %}
-                        <option value="500m" selected>Ближе 500 м</option>
-                    {% else %}
-                        <option value="500m">Ближе 500 м</option>
-                    {% endif %}
-
-                    {% if request.args.get('distance') == '1km' %}
-                        <option value="1km" selected>В пределах 1 км</option>
-                    {% else %}
-                        <option value="1km">В пределах 1 км</option>
-                    {% endif %}
-
-                    {% if request.args.get('distance') == '5km' %}
-                        <option value="5km" selected>До 5 км</option>
-                    {% else %}
-                        <option value="5km">До 5 км</option>
-                    {% endif %}
+                    <option value="any" {% if request.args.get('distance', 'any') == 'any' %}selected{% endif %}>Любое</option>
+                    <option value="500m" {% if request.args.get('distance') == '500m' %}selected{% endif %}>Ближе 500 м</option>
+                    <option value="1km" {% if request.args.get('distance') == '1km' %}selected{% endif %}>В пределах 1 км</option>
+                    <option value="5km" {% if request.args.get('distance') == '5km' %}selected{% endif %}>До 5 км</option>
                 </select>
             </div>
 
@@ -91,58 +47,53 @@
             <div class="col-12 col-md-2">
                 <label for="rating" class="form-label small text-secondary fw-medium">Рейтинг</label>
                 <select class="form-select" id="rating" name="rating">
-                    {% if request.args.get('rating') == 'any' or not request.args.get('rating') %}
-                        <option value="any" selected>Любой</option>
-                    {% else %}
-                        <option value="any">Любой</option>
-                    {% endif %}
-
-                    {% if request.args.get('rating') == '4.5' %}
-                        <option value="4.5" selected>★ 4.5 и выше</option>
-                    {% else %}
-                        <option value="4.5">★ 4.5 и выше</option>
-                    {% endif %}
-
-                    {% if request.args.get('rating') == '4.0' %}
-                        <option value="4.0" selected>★ 4.0 и выше</option>
-                    {% else %}
-                        <option value="4.0">★ 4.0 и выше</option>
-                    {% endif %}
-
-                    {% if request.args.get('rating') == '3.5' %}
-                        <option value="3.5" selected>★ 3.5 и выше</option>
-                    {% else %}
-                        <option value="3.5">★ 3.5 и выше</option>
-                    {% endif %}
+                    <option value="any" {% if request.args.get('rating', 'any') == 'any' %}selected{% endif %}>Любой</option>
+                    <option value="4.5" {% if request.args.get('rating') == '4.5' %}selected{% endif %}>★ 4.5 и выше</option>
+                    <option value="4.0" {% if request.args.get('rating') == '4.0' %}selected{% endif %}>★ 4.0 и выше</option>
+                    <option value="3.5" {% if request.args.get('rating') == '3.5' %}selected{% endif %}>★ 3.5 и выше</option>
                 </select>
             </div>
 
-            <!-- Фильтр "Открыто сейчас" -->
-            <div class="col-6 col-md-2 mb-2 mb-md-0 d-flex align-items-center">
-                <div class="form-check">
-                    <!-- Рассчитываем наличие атрибута заранее в строке -->
-                    {% set is_checked = 'checked' if request.args.get('open_now') == 'true' else '' %}
+            <!-- ИНТЕГРИРОВАННЫЙ ПЕРЕКЛЮЧАТЕЛЬ ВИДА (БЕЗ JS) -->
+            <div class="col-12 col-sm-6 col-md-2">
+                <label class="form-label small text-secondary fw-medium d-block">Отображение</label>
+                {% set current_view = request.args.get('view', 'cards') %}
+                <div class="btn-group w-100" role="group" aria-label="View toggle group">
+                    <!-- Радиокнопка: Карточки -->
+                    <input type="radio" class="btn-check" name="view" id="view_cards" value="cards" {% if current_view == 'cards' %}checked{% endif %}>
+                    <label class="btn btn-outline-secondary d-flex align-items-center justify-content-center py-2" for="view_cards" title="Сетка карточек">
+                        <i class="bi bi-grid-3x3-gap-fill"></i>
+                    </label>
 
-                    <input class="form-check-input" type="checkbox" id="filter_open_now" name="open_now" value="true" {{ is_checked }}>
-                    <label class="form-check-label small" for="filter_open_now">
-                        Открыто сейчас
+                    <!-- Радиокнопка: Список -->
+                    <input type="radio" class="btn-check" name="view" id="view_list" value="list" {% if current_view == 'list' %}checked{% endif %}>
+                    <label class="btn btn-outline-secondary d-flex align-items-center justify-content-center py-2" for="view_list" title="Список строк">
+                        <i class="bi bi-list-ul"></i>
                     </label>
                 </div>
             </div>
 
-            <!-- Кнопка отправки -->
-            <div class="col-6 col-md-1 d-grid">
-                <button class="btn btn-primary" type="submit">
-                    <i class="bi bi-funnel-fill d-md-none me-1"></i> Filter
+            <!-- Фильтр "Открыто сейчас" и Кнопка Filter в одной колонке для компактности -->
+            <div class="col-12 col-sm-6 col-md-2 d-flex align-items-center justify-content-between gap-2">
+                <div class="form-check my-auto">
+                    {% set is_checked = 'checked' if request.args.get('open_now') == 'true' else '' %}
+                    <input class="form-check-input" type="checkbox" id="filter_open_now" name="open_now" value="true" {{ is_checked }}>
+                    <label class="form-check-label small lh-sm text-nowrap" for="filter_open_now">
+                        Открыто сейчас
+                    </label>
+                </div>
+
+                <button class="btn btn-primary px-3 py-2" type="submit">
+                    <i class="bi bi-funnel-fill"></i> <span class="d-none d-sm-inline d-md-none d-lg-inline">Filter</span>
                 </button>
             </div>
+
         </form>
     </div>
 
-    <!-- Контентная зона с условием отображения -->
+    <!-- Контентная зона -->
     <div class="container-fluid mt-4">
         {% if request.args.get('view') == 'list' %}
-            <!-- Отображение списком (вертикальная стопка строк) -->
             <div class="row g-3">
                 {% for bar in bars %}
                     <div class="col-12">
@@ -151,7 +102,6 @@
                 {% endfor %}
             </div>
         {% else %}
-            <!-- Отображение сеткой карточек (по умолчанию) -->
             <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-xl-4 g-4 justify-content-center">
                 {% for bar in bars %}
                     <div class="col d-flex">

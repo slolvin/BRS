@@ -1,84 +1,104 @@
 <div class="card h-100 w-100 shadow border-0 rounded-4 overflow-hidden bg-dark bg-opacity-20 mx-auto" style="max-width: 340px;">
-    <!-- Изображение напитка с фиксированной высотой -->
+
+    <!-- 1. ИЗОБРАЖЕНИЕ НАПИТКА И ИНДИКАТОРЫ -->
     <div class="position-relative" style="height: 200px;">
-        <!-- Проверяем, есть ли имя файла в базе, иначе ставим заглушку -->
-        {% if drink['image_path'] %}
-            <img src="{{ url_for('static', filename='drinks/' + drink['image_path']) }}" class="w-100 h-100" alt="{{ drink['name'] }}" style="object-fit: cover;">
+        {% if drink.image_path %}
+            <img src="{{ url_for('static', filename='drinks/' + drink.image_path) }}" class="w-100 h-100" alt="{{ drink.name }}" style="object-fit: cover;">
         {% else %}
-            <!-- Твоя заглушка, если у напитка нет фото (например, градиент или дефолтное изображение) -->
             <div class="w-100 h-100 bg-dark bg-opacity-50 d-flex align-items-center justify-content-center text-secondary border-bottom border-secondary border-opacity-10">
                 <i class="bi bi-glass-cocktail fs-1"></i>
             </div>
         {% endif %}
 
-        <!-- Абсолютное позиционирование типа напитка поверх фото (заменил px-2.5 на px-3, так как в Bootstrap нет дробных классов) -->
+        <!-- Тип напитка поверх фото -->
         <span class="position-absolute top-0 end-0 m-3 badge bg-dark bg-opacity-75 border border-secondary border-opacity-25 rounded-pill px-3 py-1.5 fs-8 text-secondary">
-            {{ drink['type'] }}
+            {{ drink.type }}
+        </span>
+
+        <!-- Сервисный бейдж с ID для админа слева сверху -->
+        <span class="position-absolute top-0 start-0 m-3 badge bg-secondary bg-opacity-50 border border-secondary border-opacity-25 rounded-3 px-2 py-1 fs-9 text-white-50">
+            ID: {{ drink.id }}
         </span>
     </div>
 
-    <!-- Тело карточки с контентом -->
+    <!-- 2. ТЕЛО КАРТОЧКИ -->
     <div class="card-body p-4 d-flex flex-column">
-        <!-- Название напитка -->
-        <h5 class="card-title fw-bold text-white mb-2">{{ drink['name'] }}</h5>
+        <h5 class="card-title fw-bold text-white mb-2">{{ drink.name }}</h5>
 
-        <!-- Описание напитка (занимает всё свободное место) -->
-        <p class="card-text text-secondary small mb-4 flex-grow-1 lh-base">
-            {{ drink['description'] }}
+        <p class="card-text text-secondary small mb-3 flex-grow-1 lh-base">
+            {{ drink.description }}
         </p>
 
-        <!-- Текущий рейтинг (вынесли внутрь body перед формой оценки) -->
-        <div class="mb-3 pt-3 border-top border-secondary border-opacity-10">
-            <span class="text-secondary small d-block mb-1 fw-medium text-uppercase tracking-wider fs-8">Текущая оценка</span>
+        <!-- ТЕХНИЧЕСКИЕ ХАРАКТЕРИСТИКИ (Для контроля админом) -->
+        <div class="d-flex gap-2 mb-3 bg-body-tertiary bg-opacity-10 border border-secondary border-opacity-10 p-2 rounded-3 justify-content-around">
+            <div class="text-center">
+                <span class="text-muted d-block fs-9 text-uppercase tracking-wider">Объём</span>
+                <span class="text-white-50 small fw-medium"><i class="bi bi-droplet text-primary me-1"></i>{{ drink.volume or 0 }} мл</span>
+            </div>
+            <div class="vr border-secondary border-opacity-25"></div>
+            <div class="text-center">
+                <span class="text-muted d-block fs-9 text-uppercase tracking-wider">Крепость</span>
+                <span class="text-white-50 small fw-medium"><i class="bi bi-percent text-danger me-0.5"></i>{{ drink.abv or 0.0 }}%</span>
+            </div>
+        </div>
+
+        <!-- Текущий общий рейтинг в системе -->
+        <div class="mb-1 pt-3 border-top border-secondary border-opacity-10">
+            <span class="text-secondary small d-block mb-1 fw-medium text-uppercase tracking-wider fs-8">Текущая оценка пользователей</span>
             {% include "includes/rate_drink.html" %}
         </div>
     </div>
-    <!-- ПОДВАЛ КАРТОЧКИ: Кнопки управления для админа -->
+
+    <!-- 3. ПОДВАЛ КАРТОЧКИ: Форма оценки (Оставляем, если админ тоже может оценивать как юзер) -->
+    {% if current_user.is_authenticated and current_user.is_drink_drunk(drink.id) %}
     <div class="card-footer bg-transparent border-top border-secondary border-opacity-10 p-4 pt-0">
-        <form action="{{ url_for('main.rate_drink', drink_id=drink['id']) }}" method="post" class="w-100">
+        <form action="{{ url_for('main.rate_drink', drink_id=drink.id) }}" method="POST" class="w-100">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
             <span class="text-secondary small d-block mb-2 fw-medium text-uppercase tracking-wider fs-8">Оценить напиток</span>
 
-            <div class="input-group">
-                <!-- Красивый селектор со звездочкой внутри -->
-                <span class="input-group-text bg-body-tertiary border-secondary border-opacity-25 text-warning">
-                    <i class="bi bi-star-fill"></i>
-                </span>
-                <select class="form-select bg-body-tertiary border-secondary border-opacity-25" id="rate" name="value" aria-label="Рейтинг напитка">
-                    <option value="5" selected>5 — Отлично</option>
-                    <option value="4">4 — Хорошо</option>
-                    <option value="3">3 — Нормально</option>
-                    <option value="2">2 — Плохо</option>
-                    <option value="1">1 — Ужасно</option>
-                </select>
+            {% set user_rating = drink.ratings.filter_by(user_id=current_user.id).first() %}
+            {% set current_val = user_rating.value if user_rating else 0 %}
 
-                <!-- Стильная кнопка отправки -->
-                <button class="btn btn-primary px-3" type="submit" title="Отправить оценку">
-                    <i class="bi bi-check-lg"></i>
-                </button>
+            <div class="d-flex align-items-center justify-content-center bg-body-tertiary bg-opacity-25 border border-secondary border-opacity-10 rounded-3 p-2 py-3">
+                <div class="rating-stars">
+                    <input type="radio" id="admin-star5-{{ drink.id }}" name="value" value="5" {% if current_val == 5 %}checked{% endif %} onchange="this.form.submit()" required />
+                    <label for="admin-star5-{{ drink.id }}" title="5 — Отлично"></label>
+                    <input type="radio" id="admin-star4-{{ drink.id }}" name="value" value="4" {% if current_val == 4 %}checked{% endif %} onchange="this.form.submit()" />
+                    <label for="admin-star4-{{ drink.id }}" title="4 — Хорошо"></label>
+                    <input type="radio" id="admin-star3-{{ drink.id }}" name="value" value="3" {% if current_val == 3 %}checked{% endif %} onchange="this.form.submit()" />
+                    <label for="admin-star3-{{ drink.id }}" title="3 — Нормально"></label>
+                    <input type="radio" id="admin-star2-{{ drink.id }}" name="value" value="2" {% if current_val == 2 %}checked{% endif %} onchange="this.form.submit()" />
+                    <label for="admin-star2-{{ drink.id }}" title="2 — Плохо"></label>
+                    <input type="radio" id="admin-star1-{{ drink.id }}" name="value" value="1" {% if current_val == 1 %}checked{% endif %} onchange="this.form.submit()" />
+                    <label for="admin-star1-{{ drink.id }}" title="1 — Ужасно"></label>
+                </div>
             </div>
         </form>
     </div>
-    <div class="card-footer bg-transparent border-top border-secondary border-opacity-10 p-4 pt-0">
-        <div class="row g-2">
+    {% endif %}
 
+    <!-- 4. ПОДВАЛ КАРТОЧКИ: Действия модерации -->
+    <div class="card-footer bg-transparent border-top border-secondary border-opacity-10 p-4 pt-0">
+        <div class="row g-2 mt-1">
+            <!-- Кнопка редактирования -->
             <div class="col-6">
                 <a class="btn btn-outline-secondary w-100 py-2 fs-7 fw-medium text-uppercase tracking-wide"
-                   href="{{ url_for('main.edit_drink', drink_id=drink['id']) }}" role="button">
+                   href="{{ url_for('main.edit_drink', drink_id=drink.id) }}" role="button">
                     <i class="bi bi-pencil me-1"></i> Edit
                 </a>
             </div>
 
-            <!-- Кнопка удаления (Оформлена безопасной POST-формой) -->
+            <!-- Кнопка удаления -->
             <div class="col-6">
-                <!-- Flask-маршрут main.delete_drink принимает ID напитка -->
-                <form action="{{ url_for('main.delete_drink', drink_id=drink['id']) }}" method="post"
+                <form action="{{ url_for('main.delete_drink', drink_id=drink.id) }}" method="POST"
                       onsubmit="return confirm('Вы уверены, что хотите навсегда удалить этот напиток из системы?');">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                     <button type="submit" class="btn btn-outline-danger w-100 py-2 fs-7 fw-medium text-uppercase tracking-wide">
                         <i class="bi bi-trash3 me-1"></i> Delete
                     </button>
                 </form>
             </div>
-
         </div>
     </div>
+
 </div>

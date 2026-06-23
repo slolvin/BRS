@@ -83,10 +83,16 @@ favorite_drinks = db.Table('favorite_drinks',
     db.Column('drink_id', db.Integer, db.ForeignKey('drinks.id', ondelete='CASCADE'), primary_key=True)
 )
 
-drunk_drinks = db.Table('drunk_drinks',
-    db.Column('user_id', db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'), primary_key=True),
-    db.Column('drink_id', db.Integer, db.ForeignKey('drinks.id', ondelete='CASCADE'), primary_key=True)
-)
+class DrunkAction(db.Model):
+    """Модель лога выпитых напитков (каждый лог — один факт употребления)"""
+    __tablename__ = 'drunk_actions'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
+    drink_id = db.Column(db.Integer, db.ForeignKey('drinks.id', ondelete='CASCADE'), nullable=False)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow, index=True) # Дата и время
+
+    # Отношения для быстрого доступа из лога к объектам
+    drink = db.relationship('Drink', backref=db.backref('drink_logs', lazy='dynamic'))
 
 class User(UserMixin, db.Model):
     __tablename__ = 'users'
@@ -108,11 +114,12 @@ class User(UserMixin, db.Model):
                                       lazy='dynamic',
                                       backref=db.backref('favorited_by', lazy='dynamic'))
 
-    # Отношение для выпитых напитков
-    drunk_drinks = db.relationship('Drink',
-                                   secondary=drunk_drinks,
-                                   lazy='dynamic',
-                                   backref=db.backref('drunk_by', lazy='dynamic'))
+    # Новая история выпитого (один ко многим к таблице логов)
+    drunk_history = db.relationship('DrunkAction', backref='user', lazy='dynamic', cascade="all, delete-orphan")
+
+    def is_drink_drunk(self, drink_id):
+        """Метод проверки: пил ли пользователь этот напиток вообще хоть раз"""
+        return self.drunk_history.filter_by(drink_id=drink_id).first() is not None
 
     def to_json(self):
         json_user = {
@@ -279,6 +286,9 @@ class Drink(db.Model):
 
     # НОВОЕ ПОЛЕ: Хранит средний балл (например, 4.50)
     rating = db.Column(db.Numeric(5, 2), default=0.0)
+    # Новые поля для геймификации
+    volume = db.Column(db.Integer, default=0)  # Объём в мл (например: 500, 250, 50)
+    abv = db.Column(db.Numeric(4, 1), default=0.0)  # Крепость в % (например: 5.0, 12.5, 40.0)
 
     # НОВАЯ СВЯЗЬ: Позволяет получать все оценки этого напитка через drink.ratings.all()
     ratings = db.relationship('DrinkRating', backref='drink', lazy='dynamic', cascade='all, delete-orphan')

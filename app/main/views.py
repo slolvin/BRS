@@ -1,14 +1,16 @@
 from flask import render_template, redirect, url_for, abort, flash, request, current_app, make_response
 from flask_login import login_required, current_user
+from collections import Counter
 from sqlalchemy import func
 from . import main
 from .forms import EditProfileAdminForm
 from .. import db
-from ..models import User, Role, Permission, Bar, Drink, ActionLog, DrinkRating
+from ..models import User, Role, Permission, Bar, Drink, ActionLog, DrinkRating, DrunkAction
 from config import Config
 import os
 import random
 from werkzeug.utils import secure_filename
+from datetime import datetime, timedelta
 
 
 def allowed_file(filename):
@@ -19,18 +21,85 @@ def allowed_file(filename):
 @login_required
 def user(username):
     this_user = User.query.filter_by(username=username).first_or_404()
-
-    # Получаем последние 10 действий именно ЭТОГО пользователя
     user_logs = this_user.actions.order_by(ActionLog.timestamp.desc()).limit(10).all()
-
-    # Получаем ВСЕ любимые бары ЭТОГО пользователя
     favorite_bars = this_user.favorite_bars.all()
+
+    # === РАСЧЕТ СТАТИСТИКИ (Ваш прошлый код таблицы) ===
+    now = datetime.utcnow()
+    periods = {
+        'today': now.replace(hour=0, minute=0, second=0, microsecond=0),
+        'week': now - timedelta(days=7),
+        'month': now - timedelta(days=30),
+        'year': now - timedelta(days=365),
+        'all_time': datetime.min
+    }
+
+    stats = {}
+    all_drunk_drinks = []  # Список всех выпитых напитков для подсчета любимого
+
+    for period_name, start_date in periods.items():
+        logs_query = this_user.drunk_history.filter(DrunkAction.timestamp >= start_date)
+        count_glasses = logs_query.count()
+
+        total_volume_liters = 0.0
+        avg_abv = 0.0
+
+        if count_glasses > 0:
+            period_logs = logs_query.all()
+            total_ml = sum(log.drink.volume for log in period_logs if log.drink.volume)
+            total_volume_liters = total_ml / 1000.0
+            total_abv = sum(float(log.drink.abv) for log in period_logs if log.drink.abv)
+            avg_abv = total_abv / count_glasses
+
+            # Сохраняем напитки для расчёта любимого за всё время
+            if period_name == 'all_time':
+                all_drunk_drinks = [log.drink for log in period_logs]
+
+        stats[period_name] = {
+            'count': count_glasses,
+            'volume': round(total_volume_liters, 2),
+            'abv': round(avg_abv, 1)
+        }
+
+    # === ВЫЧИСЛЕНИЕ ЛЮБИМОГО НАПИТКА ===
+    fav_drink = None  # Передаем сам объект Drink вместо строки
+    if all_drunk_drinks:
+        # Считаем дубликаты объектов напитков
+        drink_counts = Counter(all_drunk_drinks)
+        # Забираем самый частый объект Drink
+        fav_drink = drink_counts.most_common(1)[0][0]
+
+    # === ЛОГИКА ОПРЕДЕЛЕНИЯ ЗВАНИЯ МЕСЯЦА (Заглушка) ===
+    month_volume = stats['month']['volume']
+    month_abv = stats['month']['abv']
+
+    if month_volume == 0:
+        monthly_badge = "Трезвенник"
+        badge_desc = "В этом месяце вы не отметили ни одного бокала."
+        badge_color = "secondary"
+    elif month_volume >= 5.0 and month_abv <= 6.0:
+        monthly_badge = "ПИВО"
+        badge_desc = "Упор на объём и классический солод. Легенда пабов!"
+        badge_color = "warning"
+    elif month_abv >= 30.0 and month_volume >= 1.0:
+        monthly_badge = "Пират"
+        badge_desc = "Предпочитаете чистый крепкий алкоголь. Йо-хо-хо!"
+        badge_color = "danger"
+    else:
+        monthly_badge = "Коктейльный Эстет"
+        badge_desc = "Умеренное потребление и разнообразие вкусов."
+        badge_color = "primary"
 
     return render_template(
         'user.html',
         user=this_user,
         user_logs=user_logs,
-        favorite_bars=favorite_bars
+        favorite_bars=favorite_bars,
+        stats=stats,
+        fav_drink=fav_drink,
+        monthly_badge=monthly_badge,
+        badge_desc=badge_desc,
+        badge_color=badge_color
     )
 
 
@@ -251,14 +320,18 @@ def get_drinks_list():
 @main.route('/delete_bar/<int:bar_id>', methods=['POST'])
 @login_required
 def delete_bar(bar_id):
+    # Получаем бар из базы или сразу отдаем 404, если его нет
     bar = Bar.query.get_or_404(bar_id)
 
+    # Удаляем заведение
     db.session.delete(bar)
     db.session.commit()
 
-    flash('Бар был успешно удален из системы.')
+    flash('Бар был успешно удален из системы.', 'success')
 
-    return redirect(request.referrer or url_for('main.get_bars_list'))
+    # ИСПРАВЛЕНО: Всегда жестко перенаправляем на общий список баров.
+    # Так как страница самого бара больше не существует, referrer использовать нельзя.
+    return redirect(url_for('main.get_bars_list'))
 
 
 @main.route('/bar/<int:id>', methods=['GET'])
@@ -267,40 +340,65 @@ def get_bar_drinks(id):
     bar = Bar.query.get_or_404(id)
     return render_template('/includes/bar_drinks.html', bar=bar)
 
+
 @main.route('/add_drink/', methods=['GET', 'POST'])
 def add_drink():
+    # Забираем ID бара из query-параметров URL (?bar_id=...)
     bar_id = request.args.get('bar_id', type=int)
 
     if request.method == 'POST':
         drink = Drink()
-        drink.name = request.form['name']
-        drink.type = request.form['type']
-        drink.description = request.form['description']
 
+        # Используем .get() с дефолтными значениями для безопасности
+        drink.name = request.form.get('name', '').strip()
+        drink.type = request.form.get('type', 'Cocktail')
+        drink.description = request.form.get('description', '')
+
+        # === НОВЫЙ БЛОК: Сбор объема и крепости ===
+        try:
+            drink.volume = int(request.form.get('volume', 0))
+        except (ValueError, TypeError):
+            drink.volume = 0
+
+        try:
+            # Преобразуем в float (SQLAlchemy Numeric сам приведет его к Decimal в БД)
+            drink.abv = float(request.form.get('abv', 0.0))
+        except (ValueError, TypeError):
+            drink.abv = 0.0
+        # =========================================
+
+        # Обработка загрузки изображения
         if 'image' in request.files:
             file = request.files['image']
             if file and file.filename != '' and allowed_file(file.filename):
                 filename = secure_filename(file.filename)
+
+                # Гарантируем, что папка для загрузки существует
                 os.makedirs(Config.UPLOAD_FOLDER, exist_ok=True)
                 file_path = os.path.join(Config.UPLOAD_FOLDER, filename)
+
+                # Сохраняем файл силами Werkzeug
                 file.save(file_path)
                 drink.image_path = filename
+
+                # Ваша подстраховка на случай, если файл сохранился пустым (0 байт)
                 if os.path.exists(file_path) and os.path.getsize(file_path) == 0:
                     file.seek(0)
                     with open(file_path, 'wb') as f:
                         f.write(file.read())
+            elif file and file.filename != '':
+                flash('Недопустимый формат файла.', 'danger')
 
-                drink.image_path = filename
-            else:
-                flash('Недопустимый формат файла.')
-
+        # Если напиток создается из контекста конкретного бара, привязываем его
         if bar_id:
             drink.bar_id = bar_id
 
+        # Сохраняем изменения в базу данных
         db.session.add(drink)
         db.session.commit()
 
-        flash('The drink has been created.')
+        flash('Напиток успешно добавлен!', 'success')
+
         if bar_id:
             return redirect(url_for('main.get_bar_drinks', id=bar_id))
         return redirect(url_for('main.get_drinks_list'))
@@ -314,9 +412,22 @@ def edit_drink(drink_id):
     drink = Drink.query.get_or_404(drink_id)
 
     if request.method == 'POST':
-        drink.name = request.form['name']
-        drink.type = request.form['type']
-        drink.description = request.form['description']
+        # Безопасный сбор строковых данных через .get()
+        drink.name = request.form.get('name', '').strip()
+        drink.type = request.form.get('type', 'Cocktail')
+        drink.description = request.form.get('description', '')
+
+        # === НОВЫЙ БЛОК: Обновление объема и крепости ===
+        try:
+            drink.volume = int(request.form.get('volume', 0))
+        except (ValueError, TypeError):
+            drink.volume = 0
+
+        try:
+            drink.abv = float(request.form.get('abv', 0.0))
+        except (ValueError, TypeError):
+            drink.abv = 0.0
+        # ===============================================
 
         # Обработка обновления изображения
         if 'image' in request.files:
@@ -342,9 +453,12 @@ def edit_drink(drink_id):
 
                 # Записываем новое имя в БД
                 drink.image_path = filename
+            elif file and file.filename != '':
+                flash('Недопустимый формат файла.', 'danger')
 
+        # Сохраняем все изменения в базу данных
         db.session.commit()
-        flash('The drink has been updated.')
+        flash('Напиток успешно обновлен!', 'success')
 
         # Перенаправляем обратно в бар, если он привязан, иначе в общий список
         if drink.bar_id:
@@ -370,25 +484,46 @@ def toggle_drink_favorite(drink_id):
     return redirect(request.referrer or url_for('.get_drinks_list'))
 
 
-@main.route('/drink/<int:drink_id>/toggle-drunk', methods=['POST'])
+def calculate_monthly_badge(user):
+    # Берем логи за последние 30 дней
+    month_ago = datetime.utcnow() - timedelta(days=30)
+    monthly_logs = user.drunk_history.filter(DrunkAction.timestamp >= month_ago).all()
+
+    if not monthly_logs:
+        return "Трезвенник"
+
+    total_beer_volume = 0
+    total_strong_volume = 0
+
+    for log in monthly_logs:
+        if log.drink.type.lower() == 'пиво':
+            total_beer_volume += log.drink.volume
+        elif float(log.drink.abv) >= 30.0:
+            total_strong_volume += log.drink.volume
+
+    # Логика выдачи ачивки
+    if total_beer_volume >= 5000:  # Выпито больше 5 литров пива
+        return "ПИВО"
+    elif total_strong_volume >= 1000:  # Выпито больше литра крепкого
+        return "Пират"
+
+    return "Любитель"
+
+
+@main.route('/drink/<int:drink_id>/add-drunk', methods=['POST'])
 @login_required
-def toggle_drink_drunk(drink_id):
+def add_drink_drunk(drink_id):
     drink = Drink.query.get_or_404(drink_id)
 
-    if drink in current_user.drunk_drinks.all():
-        current_user.drunk_drinks.remove(drink)
-        flash(f'Напиток «{drink.name}» удален из списка выпитых.', 'info')
-        # Опционально: если убираем из выпитых, можно удалять и оценку пользователя,
-        # так как оценивать невыпитое нельзя по вашей логике
-        existing_rating = DrinkRating.query.filter_by(user_id=current_user.id, drink_id=drink.id).first()
-        if existing_rating:
-            db.session.delete(existing_rating)
-            db.session.flush()
-            drink.update_rating()
-    else:
-        current_user.drunk_drinks.append(drink)
-        flash(f'Напиток «{drink.name}» добавлен в список выпитых!', 'success')
+    # Добавляем новую запись в историю (пользователь выпил еще один бокал)
+    new_action = DrunkAction(user_id=current_user.id, drink_id=drink.id)
+    db.session.add(new_action)
 
+    current_user.log_action(
+        action_type='drink_alcohol',
+        description=f'Вы отметили, что выпили «{drink.name}» ({drink.volume}мл, {drink.abv}%)'
+    )
+    flash(f'«{drink.name}» добавлен в вашу историю выпитого!', 'success')
     db.session.commit()
     return redirect(request.referrer or url_for('.get_drinks_list'))
 
@@ -398,7 +533,7 @@ def toggle_drink_drunk(drink_id):
 def rate_drink(drink_id):
     drink = Drink.query.get_or_404(drink_id)
     # ВАЖНОЕ ОБНОВЛЕНИЕ: Проверка на то, выпит ли напиток
-    if drink not in current_user.drunk_drinks.all():
+    if not current_user.is_drink_drunk(drink.id):
         flash('Вы не можете оценивать напиток, пока не добавите его в «Выпитые».', 'danger')
         return redirect(request.referrer or url_for('.get_drinks_list'))
 

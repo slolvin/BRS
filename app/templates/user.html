@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% block title %}{{ user['username'] }}{% endblock %}
+{% block title %}{{ user.username }}{% endblock %}
 
 {% block content %}
     <div class="container py-5">
@@ -9,326 +9,154 @@
 
                 <!-- Главная карточка профиля -->
                 <div class="card border-0 rounded-4 shadow-sm bg-body-tertiary p-4 p-md-5">
+
+                    <!-- Верхняя сервисная панель с кнопкой вызова сайдбара -->
+                    <div class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom border-secondary border-opacity-10">
+                        <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 rounded-pill px-3 py-1.5 fs-8 text-uppercase tracking-wider">
+                            @{{ user.username }}
+                        </span>
+
+                        <!-- Кнопка вызова боковой панели активности без JS -->
+                        <button class="btn btn-outline-primary btn-sm px-3 rounded-pill d-flex align-items-center gap-1.5"
+                                type="button" data-bs-toggle="offcanvas" data-bs-target="#profileSidebar" aria-controls="profileSidebar">
+                            <i class="bi bi-layout-sidebar-reverse fs-6"></i>
+                            <span>Меню активности</span>
+                        </button>
+                    </div>
+
                     <div class="row align-items-center g-4">
 
                         <!-- Блок с аватаром -->
                         <div class="col-12 col-md-3 text-center text-md-start">
-                            <img src="{{ user.gravatar_url(size=120) }}" alt="{{ user['username'] }}"
+                            <img src="{{ user.gravatar_url(size=120) }}" alt="{{ user.username }}"
                                  class="rounded-circle shadow border border-secondary border-opacity-25 p-1"
                                  style="width: 120px; height: 120px; object-fit: cover;">
                         </div>
 
                         <!-- Блок с основной информацией -->
                         <div class="col-12 col-md-9 text-center text-md-start">
-                            <!-- Юзернейм в виде технического тега -->
-                            <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 rounded-pill px-3 py-1.5 fs-8 text-uppercase tracking-wider mb-2">
-                                @{{ user['username'] }}
-                            </span>
-
                             <!-- Реальное имя (если есть) -->
                             <h2 class="h1 fw-bold text-white mb-2">
-                                {% if user['name'] %}{{ user['name'] }}{% else %}{{ user['username'] }}{% endif %}
+                                {% if user.name %}{{ user.name }}{% else %}{{ user.username }}{% endif %}
                             </h2>
 
                             <!-- Геолокация и Email администратора -->
                             <div class="d-flex flex-wrap justify-content-center justify-content-md-start gap-3 small text-secondary mb-0">
-                                {% if user['location'] %}
+                                {% if user.location %}
                                     <a href="http://maps.google.com/?q={{ user.location }}"
                                        class="text-primary text-decoration-none d-flex align-items-center gap-1 hover-link"
                                        target="_blank">
                                         <i class="bi bi-geo-alt-fill text-danger"></i>
-                                        <span>{{ user['location'] }}</span>
+                                        <span>{{ user.location }}</span>
                                     </a>
                                 {% endif %}
 
                                 {% if current_user.is_administrator() %}
-                                    <a href="mailto:{{ user['email'] }}" class="text-secondary text-decoration-none d-flex align-items-center gap-1 hover-link">
+                                    <a href="mailto:{{ user.email }}" class="text-secondary text-decoration-none d-flex align-items-center gap-1 hover-link">
                                         <i class="bi bi-envelope-at text-secondary"></i>
-                                        <span>{{ user['email'] }}</span>
+                                        <span>{{ user.email }}</span>
                                     </a>
                                 {% endif %}
                             </div>
                         </div>
 
-                        <!-- Описание профиля / Блок "О себе" (если заполнен) -->
-                        {% if user['about_me'] %}
-                            <div class="col-12 pt-4 mt-4 border-top border-secondary border-opacity-10">
+                        <!-- Описание профиля / Блок "О себе" -->
+                        {% if user.about_me %}
+                            <div class="col-12 pt-2">
                                 <span class="text-secondary d-block fs-8 text-uppercase tracking-wider fw-medium mb-2">О себе</span>
                                 <div class="p-3 bg-dark bg-opacity-20 rounded-3 border border-secondary border-opacity-10 text-secondary-emphasis lh-base small">
-                                    {{ user['about_me'] }}
+                                    {{ user.about_me }}
                                 </div>
                             </div>
                         {% endif %}
 
-                        <!-- Панель управления и кнопок (в самом низу карточки) -->
-                        <div class="col-12 pt-4 mt-4 border-top border-secondary border-opacity-10 d-flex flex-wrap gap-2 justify-content-center justify-content-md-end">
-
-                            <!-- Кнопка обычного редактирования (если это свой профиль) -->
-                            {% if user == current_user %}
-                                <a class="btn btn-outline-secondary px-4 py-2 fs-7 fw-medium text-uppercase tracking-wide" href="{{ url_for('.edit_profile') }}">
-                                    <i class="bi bi-pencil-square me-1"></i> Edit Profile
-                                </a>
-                            {% endif %}
-
-                            <!-- Кнопка админского редактирования (заменили старый серый цвет на стильный контурный красный) -->
-                            {% if current_user.is_administrator() %}
-                                <a class="btn btn-outline-danger px-4 py-2 fs-7 fw-medium text-uppercase tracking-wide"
-                                   href="{{ url_for('.edit_profile_admin', id=user.id) }}">
-                                    <i class="bi bi-shield-exclamation me-1"></i> Edit Profile [Admin]
-                                </a>
-                            {% endif %}
-
-                        </div>
-
                     </div>
                 </div>
-                <!-- ========================================================= -->
-                <!-- НОВЫЙ БЛОК: Любимые заведения пользователя -->
-                <!-- ========================================================= -->
-                <div class="row mt-4">
-                    <div class="col-12">
-                        <div class="card border-0 rounded-4 shadow-sm bg-body-tertiary p-4">
-
-                            <div class="d-flex align-items-center justify-content-between mb-3">
-                                <h3 class="h5 fw-bold text-white mb-0 text-uppercase tracking-wide fs-7">Любимые бары</h3>
-                                <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 rounded-pill px-3 py-1 fs-8">
-                                    <i class="bi bi-heart-fill me-1"></i> {{ favorite_bars|length }}
-                                </span>
-                            </div>
-
-                            <div class="row g-3">
-                                {% if favorite_bars %}
-                                    {% for bar in favorite_bars %}
-                                        <div class="col-12 col-md-6">
-                                            <div class="card bg-dark bg-opacity-40 border-secondary border-opacity-10 rounded-3 h-100 p-3 d-flex flex-column justify-content-between">
-                                                <div>
-                                                    <div class="d-flex justify-content-between align-items-start mb-2">
-                                                        <h4 class="h6 fw-bold text-white mb-0">{{ bar['name'] }}</h4>
-                                                        <span class="badge bg-dark border border-secondary border-opacity-25 text-warning small fw-bold">★ {{ bar['rate'] or '0.0' }}</span>
-                                                    </div>
-                                                    <p class="text-secondary small mb-0 fs-8">
-                                                        <i class="bi bi-geo-alt-fill text-danger me-1 small"></i>
-                                                        {% if bar.get_full_address %}{{ bar.get_full_address() }}{% else %}{{ bar['city'] or 'Адрес не указан' }}{% endif %}
-                                                    </p>
-                                                </div>
-
-                                                <div class="mt-3">
-                                                    <a href="{{ url_for('.get_bar_drinks', id=bar['id']) }}" class="btn btn-outline-primary btn-sm w-100 py-1.5 fs-8 text-uppercase tracking-wide">
-                                                        Меню заведения <i class="bi bi-arrow-right-short fs-6 lh-1 ms-1"></i>
-                                                    </a>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    {% endfor %}
-                                {% else %}
-                                    <div class="col-12 text-center py-4 text-secondary">
-                                        <i class="bi bi-heartbreak fs-2 d-block mb-2 text-opacity-50 text-danger"></i>
-                                        <span class="small text-muted">Список любимых заведений пока пуст</span>
-                                    </div>
-                                {% endif %}
-                            </div>
-
-                        </div>
-                    </div>
-                </div>
+                <!-- ================= БЛОК: СВОДНАЯ СТАТИСТИКА ВЫПИТОГО ================= -->
+                {% include "includes/user_analytics.html" %}
+                <!-- ================= БЛОК: Любимые заведения пользователя ================= -->
+                {% include "includes/user_favorite_bars.html" %}
                 <!-- ================= БЛОК: ИЗБРАННЫЕ НАПИТКИ ================= -->
-                <div class="row mt-4">
-                    <div class="col-12">
-                        <div class="card border-0 rounded-4 shadow-sm bg-body-tertiary p-4">
-
-                            <div class="d-flex align-items-center justify-content-between mb-3">
-                                <h3 class="h5 fw-bold text-white mb-0 text-uppercase tracking-wide fs-7">Избранные напитки</h3>
-                                <span class="badge bg-warning bg-opacity-10 text-warning border border-danger border-opacity-25 rounded-pill px-3 py-1 fs-8">
-                                    <i class="bi bi-bookmark-star-fill me-1"></i> {{ current_user.favorite_drinks.count() }}
-                                </span>
-                            </div>
-
-                            <div class="row g-3">
-                                {% set fav_drinks = current_user.favorite_drinks.all() %}
-                                {% if fav_drinks %}
-                                    {% for drink in fav_drinks %}
-                                        <div class="col-12 col-md-6">
-                                            <div class="card bg-dark bg-opacity-40 border-secondary border-opacity-10 rounded-3 h-100 p-3 d-flex flex-column justify-content-between position-relative">
-
-                                                <!-- Кнопка быстрого удаления из избранного -->
-                                                <form action="{{ url_for('main.toggle_drink_favorite', drink_id=drink.id) }}" method="POST" class="position-absolute top-0 end-0 m-2.5">
-                                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                                                    <button type="submit" class="btn btn-link text-secondary hover-danger p-1 d-flex align-items-center justify-content-center"
-                                                            style="text-decoration: none; transition: color 0.15s ease-in-out;" title="Удалить из избранного">
-                                                        <i class="bi bi-x-lg fs-7"></i>
-                                                    </button>
-                                                </form>
-
-                                                <div class="pe-4"> <!-- Отступ справа, чтобы текст не налезал на крестик -->
-                                                    <div class="d-flex align-items-center justify-content-between mb-2 gap-2">
-                                                        <h4 class="h6 fw-bold text-white mb-0 text-truncate" style="max-width: 75%;">{{ drink.name }}</h4>
-                                                        <span class="badge bg-dark border border-secondary border-opacity-25 text-secondary small fw-medium fs-8">{{ drink.type }}</span>
-                                                    </div>
-                                                    <p class="text-secondary small mb-0 fs-8 text-truncate-2">
-                                                        {{ drink.description or 'Описание отсутствует.' }}
-                                                    </p>
-                                                </div>
-
-                                                <div class="mt-3">
-                                                    <a href="{{ url_for('.get_bar_drinks', id=drink.bar_id) }}" class="btn btn-outline-warning btn-sm w-100 py-1.5 fs-8 text-uppercase tracking-wide">
-                                                        Перейти к бару <i class="bi bi-box-arrow-in-right fs-6 lh-1 ms-1"></i>
-                                                    </a>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    {% endfor %}
-                                {% else %}
-                                    <div class="col-12 text-center py-4 text-secondary">
-                                        <i class="bi bi-bookmark-x fs-2 d-block mb-2 text-opacity-50 text-warning"></i>
-                                        <span class="small text-muted">Вы пока не добавляли напитки в избранное</span>
-                                    </div>
-                                {% endif %}
-                            </div>
-
-                        </div>
-                    </div>
-                </div>
-
-
+                {% include "includes/user_favorite_drinks.html" %}
                 <!-- ================= БЛОК: ВЫПИТЫЕ НАПИТКИ ================= -->
-                <div class="row mt-4">
-                    <div class="col-12">
-                        <div class="card border-0 rounded-4 shadow-sm bg-body-tertiary p-4">
+                {% include "includes/user_drunk_history.html" %}
+                <!-- ================= БЛОК: История активности пользователя ================= -->
+                {% include "includes/user_history.html" %}
+                <!-- ================= БОКОВАЯ ПАНЕЛЬ (САЙДБАР) В СТИЛЕ ПРОЕКТА ================= -->
+                <div class="offcanvas offcanvas-end bg-dark border-start border-secondary border-opacity-25" tabindex="-1" id="profileSidebar" aria-labelledby="profileSidebarLabel" style="--bs-bg-opacity: 0.95; backdrop-filter: blur(10px);">
 
-                            <div class="d-flex align-items-center justify-content-between mb-3">
-                                <h3 class="h5 fw-bold text-white mb-0 text-uppercase tracking-wide fs-7">История выпитого</h3>
-                                <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 rounded-pill px-3 py-1 fs-8">
-                                    <i class="bi bi-check-circle-fill me-1"></i> {{ current_user.drunk_drinks.count() }}
-                                </span>
-                            </div>
+                    <!-- Шапка сайдбара -->
+                    <div class="offcanvas-header border-bottom border-secondary border-opacity-10 p-4">
+                        <h5 class="offcanvas-title text-white fw-bold text-uppercase tracking-wide fs-6 d-flex align-items-center gap-2" id="profileSidebarLabel">
+                            <i class="bi bi-person-gear text-primary"></i> Управление и логи
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white opacity-50 fs-8" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+                    </div>
 
-                            <div class="row g-3">
-                                {% set drunk_drinks_list = current_user.drunk_drinks.all() %}
-                                {% if drunk_drinks_list %}
-                                    {% for drink in drunk_drinks_list %}
-                                        <div class="col-12 col-md-6">
-                                            <div class="card bg-dark bg-opacity-40 border-secondary border-opacity-10 rounded-3 h-100 p-3 d-flex flex-column justify-content-between">
-                                                <div>
-                                                    <div class="d-flex justify-content-between align-items-start mb-2 gap-2">
-                                                        <h4 class="h6 fw-bold text-white mb-0 text-truncate" style="max-width: 75%;">{{ drink.name }}</h4>
+                    <!-- Содержимое сайдбара -->
+                    <div class="offcanvas-body p-4 d-flex flex-column h-100">
 
-                                                        <!-- Выводим личную оценку пользователя, если она есть -->
-                                                        {% set user_rating = drink.ratings.filter_by(user_id=current_user.id).first() %}
-                                                        {% if user_rating %}
-                                                            <span class="badge bg-dark border border-secondary border-opacity-25 text-warning small fw-bold">★ {{ user_rating.value }}.0</span>
-                                                        {% else %}
-                                                            <span class="badge bg-dark border border-secondary border-opacity-25 text-muted small fw-normal fs-8">Без оценки</span>
-                                                        {% endif %}
-                                                    </div>
-                                                    <p class="text-secondary small mb-0 fs-8 text-truncate-2">
-                                                        {{ drink.description or 'Описание отсутствует.' }}
-                                                    </p>
-                                                </div>
+                        <!-- СЕКЦИЯ 1: Управление профилем -->
+                        <div class="mb-4">
+                            <span class="text-secondary d-block fs-9 text-uppercase tracking-wider fw-medium mb-2.5">Действия</span>
+                            <div class="d-flex flex-column gap-2">
+                                <!-- Кнопка обычного редактирования -->
+                                {% if user == current_user %}
+                                    <a class="btn btn-outline-secondary w-100 py-2 fs-7 fw-medium text-uppercase tracking-wide text-start px-3 d-flex align-items-center justify-content-between" href="{{ url_for('.edit_profile') }}">
+                                        <span><i class="bi bi-pencil-square me-2"></i>Edit Profile</span>
+                                        <i class="bi bi-chevron-right fs-8 opacity-50"></i>
+                                    </a>
+                                {% endif %}
 
-                                                <div class="mt-3">
-                                                    <a href="{{ url_for('.get_bar_drinks', id=drink.bar_id) }}" class="btn btn-outline-success btn-sm w-100 py-1.5 fs-8 text-uppercase tracking-wide">
-                                                        Заказать еще раз <i class="bi bi-glass-cocktail fs-6 lh-1 ms-1"></i>
-                                                    </a>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    {% endfor %}
-                                {% else %}
-                                    <div class="col-12 text-center py-4 text-secondary">
-                                        <i class="bi bi-circle fs-2 d-block mb-2 text-opacity-50 text-success"></i>
-                                        <span class="small text-muted">Вы еще не отмечали выпитые напитки</span>
-                                    </div>
+                                <!-- Кнопка админского редактирования -->
+                                {% if current_user.is_administrator() %}
+                                    <a class="btn btn-outline-danger w-100 py-2 fs-7 fw-medium text-uppercase tracking-wide text-start px-3 d-flex align-items-center justify-content-between"
+                                       href="{{ url_for('.edit_profile_admin', id=user.id) }}">
+                                        <span><i class="bi bi-shield-exclamation me-2"></i>Edit Profile [Admin]</span>
+                                        <i class="bi bi-chevron-right fs-8 opacity-50"></i>
+                                    </a>
                                 {% endif %}
                             </div>
-
                         </div>
-                    </div>
-                </div>
-                <!-- ========================================================= -->
-                <!-- НОВЫЙ БЛОК: История активности пользователя -->
-                <!-- ========================================================= -->
-                <div class="row mt-4">
-                    <div class="col-12">
-                        <div class="card border-0 rounded-4 shadow-sm bg-body-tertiary p-4 p-md-5">
 
-                            <!-- Заголовок секции истории -->
-                            <div class="d-flex align-items-center justify-content-between mb-4">
-                                <div>
-                                    <h3 class="h5 fw-bold text-white mb-1 text-uppercase tracking-wide fs-7">История активности</h3>
-                                    <p class="text-secondary small mb-0">Последние действия на платформе BRS.</p>
-                                </div>
-                                <span class="badge bg-body-secondary border border-secondary border-opacity-25 text-secondary-emphasis rounded-pill px-3 py-1.5 fs-8">
-                                    Всего событий: {{ user_logs|length }}
-                                </span>
-                            </div>
+                        <!-- СЕКЦИЯ 2: Лента действий (История) -->
+                        <div class="flex-grow-1 overflow-y-auto pe-1" style="max-height: 60vh;">
+                            <span class="text-secondary d-block fs-9 text-uppercase tracking-wider fw-medium mb-2.5">История действий</span>
 
-                            <!-- Список последних действий -->
-                            <div class="list-group list-group-flush border-top border-secondary border-opacity-10">
-
-                                {% if user_logs %}
-                                    {% for log in user_logs %}
-                                        <div class="list-group-item bg-transparent border-secondary border-opacity-10 px-0 py-3 d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2 {% if loop.last %}border-bottom-0{% endif %}">
-                                            <div class="d-flex align-items-center gap-3">
-
-                                                <!-- Иконки и цвета на основе типа действия -->
-                                                {% if log.action_type in ['rate', 'rate_drink'] %}
-                                                    <div class="bg-warning bg-opacity-10 text-warning rounded-3 p-2 fs-5 lh-1 border border-warning border-opacity-10">
-                                                        <i class="bi bi-star-fill"></i>
-                                                    </div>
-                                                {% elif log.action_type == 'favorite_add' %}
-                                                    <div class="bg-primary bg-opacity-10 text-primary rounded-3 p-2 fs-5 lh-1 border border-primary border-opacity-10">
-                                                        <i class="bi bi-chat-right-heart-fill"></i>
-                                                    </div>
-                                                {% elif log.action_type == 'favorite_remove' %}
-                                                    <div class="bg-danger bg-opacity-10 text-danger rounded-3 p-2 fs-5 lh-1 border border-danger border-opacity-10">
-                                                        <i class="bi bi-heartbreak-fill"></i>
-                                                    </div>
-                                                {% else %}
-                                                    <div class="bg-success bg-opacity-10 text-success rounded-3 p-2 fs-5 lh-1 border border-success border-opacity-10">
-                                                        <i class="bi bi-patch-check-fill"></i>
-                                                    </div>
-                                                {% endif %}
-
-                                                <!-- Текст лога -->
-                                                <div>
-                                                    <span class="text-white small fw-medium d-block">{{ log.description }}</span>
-                                                    <span class="text-muted fs-8">
-                                                        Категория:
-                                                        {% if log.action_type == 'rate_drink' %}Оценка напитка
-                                                        {% elif log.action_type == 'rate' %}Оценка заведения
-                                                        {% elif log.action_type == 'favorite_add' %}Добавление в избранное
-                                                        {% elif log.action_type == 'favorite_remove' %}Удаление из избранного
-                                                        {% elif log.action_type == 'edit_profile' %}Обновление профиля
-                                                        {% else %}Системное событие{% endif %}
-                                                    </span>
-                                                </div>
-                                            </div>
-
-                                            <!-- Правая часть: Бейджи и Дата -->
-                                            <div class="d-flex align-items-center gap-2 ms-5 ms-sm-0">
-                                                {% if log.action_type in ['rate', 'rate_drink'] %}
-                                                    <span class="badge bg-dark border border-secondary border-opacity-25 text-warning fw-semibold px-2 py-1 fs-8">
-                                                        ★ Активность
-                                                    </span>
-                                                {% endif %}
-                                                <span class="text-secondary fs-8" title="{{ log.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}">
-                                                    {{ log.timestamp.strftime('%d.%m.%Y %H:%M') }}
+                            <!-- Используем переменную user_logs, переданную из вашего Flask роута -->
+                            {% if user_logs %}
+                                <div class="d-flex flex-column gap-2">
+                                    {% for action in user_logs %}
+                                        <div class="p-3 bg-body-tertiary bg-opacity-25 border border-secondary border-opacity-10 rounded-3">
+                                            <div class="d-flex justify-content-between align-items-start mb-1.5">
+                                                <!-- Иконка типа действия -->
+                                                <span class="badge bg-secondary bg-opacity-25 text-white-50 border border-secondary border-opacity-25 fs-9 text-uppercase tracking-wider">
+                                                    {{ action.action_type }}
+                                                </span>
+                                                <span class="text-muted" style="font-size: 0.75rem;">
+                                                    <!-- Безопасное форматирование даты, если поле timestamp заполнено -->
+                                                    {% if action.timestamp %}
+                                                        {{ action.timestamp.strftime('%d.%m %H:%M') }}
+                                                    {% endif %}
                                                 </span>
                                             </div>
+                                            <p class="text-white-50 small mb-0 lh-sm fs-8">
+                                                {{ action.description }}
+                                            </p>
                                         </div>
                                     {% endfor %}
-                                {% else %}
-                                    <div class="text-center py-4 text-secondary">
-                                        <i class="bi bi-journal-x fs-2 d-block mb-2 text-opacity-50"></i>
-                                        <span class="small text-muted">Зарегистрированная активность отсутствует</span>
-                                    </div>
-                                {% endif %}
+                                </div>
+                            {% else %}
+                                <!-- Заглушка, если логов действий еще нет -->
+                                <div class="text-center py-5 border border-secondary border-opacity-10 rounded-3 bg-dark bg-opacity-10">
+                                    <i class="bi bi-clock-history text-muted fs-3 d-block mb-2 opacity-50"></i>
+                                    <span class="small text-muted">История активности пуста</span>
+                                </div>
+                            {% endif %}
+                        </div>
 
-                            </div> <!-- Конец списка list-group -->
-
-                        </div> <!-- Конец карточки card -->
-                    </div> <!-- Конец колонки col-12 -->
-                </div> <!-- Конец строки row -->
+                    </div>
+                </div>
             </div>
         </div>
     </div>

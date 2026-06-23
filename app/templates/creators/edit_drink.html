@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% block title %}Edit drink - {{ drink['name'] }}{% endblock %}
+{% block title %}Edit drink - {{ drink.name }}{% endblock %}
 
 {% block content %}
 <div class="container py-5">
@@ -18,7 +18,9 @@
 
             <!-- Карточка с формой -->
             <div class="card border-0 rounded-4 shadow-sm bg-body-tertiary p-4 p-md-5">
-                <form action="{{ url_for('.edit_drink', drink_id=drink['id']) }}" method="post" enctype="multipart/form-data" class="row g-4">
+                <form action="{{ url_for('.edit_drink', drink_id=drink.id) }}" method="post" enctype="multipart/form-data" class="row g-4">
+                    <!-- Защита CSRF во Flask -->
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
 
                     <!-- 1. Название напитка -->
                     <div class="col-12 col-md-7">
@@ -29,7 +31,7 @@
                             </span>
                             <input class="form-control bg-dark bg-opacity-20 border-secondary border-opacity-25 text-white"
                                    type="text" id="name" name="name" placeholder="Например: Negroni"
-                                   value="{{ request.form['name'] or drink['name'] }}" required>
+                                   value="{{ request.form.get('name', drink.name) }}" required>
                         </div>
                     </div>
 
@@ -41,37 +43,67 @@
                                 <i class="bi bi-funnel"></i>
                             </span>
                             <select class="form-select bg-dark bg-opacity-20 border-secondary border-opacity-25 text-white" id="type" name="type">
+                                {% set current_type = request.form.get('type', drink.type) %}
                                 {% for t in ['Water', 'Beer', 'Vodka', 'Wiskey', 'Cocktail'] %}
-                                    <option value="{{ t }}" {% if drink['type'] == t %}selected{% endif %}>{{ t }}</option>
+                                    <option value="{{ t }}" {% if current_type == t %}selected{% endif %}>{{ t }}</option>
                                 {% endfor %}
                             </select>
                         </div>
                     </div>
 
-                    <!-- 3. Интерактивная загрузка изображения с предзагруженным текущим фото -->
+                    <!-- НОВЫЙ БЛОК: ОБЪЕМ И КРЕПОСТЬ НАПИТКА -->
+                    <!-- 3. Объём (мл) -->
+                    <div class="col-12 col-sm-6">
+                        <label for="volume" class="form-label small text-secondary fw-medium text-uppercase tracking-wider fs-8">Объём напитка (мл)</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-dark bg-opacity-50 border-secondary border-opacity-25 text-secondary">
+                                <i class="bi bi-droplet"></i>
+                            </span>
+                            <input class="form-control bg-dark bg-opacity-20 border-secondary border-opacity-25 text-white"
+                                   type="number" id="volume" name="volume" min="0" max="5000" step="1" placeholder="Например: 500"
+                                   value="{{ request.form.get('volume', drink.volume or '') }}" required>
+                            <span class="input-group-text bg-dark bg-opacity-50 border-secondary border-opacity-25 text-muted fs-8">мл</span>
+                        </div>
+                    </div>
+
+                    <!-- 4. Крепость (%) -->
+                    <div class="col-12 col-sm-6">
+                        <label for="abv" class="form-label small text-secondary fw-medium text-uppercase tracking-wider fs-8">Крепость / Градус (%)</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-dark bg-opacity-50 border-secondary border-opacity-25 text-secondary">
+                                <i class="bi bi-percent"></i>
+                            </span>
+                            <input class="form-control bg-dark bg-opacity-20 border-secondary border-opacity-25 text-white"
+                                   type="number" id="abv" name="abv" min="0.0" max="100.0" step="0.1" placeholder="Например: 4.5"
+                                   value="{{ request.form.get('abv', drink.abv or '') }}" required>
+                            <span class="input-group-text bg-dark bg-opacity-50 border-secondary border-opacity-25 text-muted fs-8">% ABV</span>
+                        </div>
+                    </div>
+
+                    <!-- 5. Интерактивная загрузка изображения с предзагруженным текущим фото -->
                     <div class="col-12">
                         <label class="form-label small text-secondary fw-medium text-uppercase tracking-wider fs-8">Фотография напитка</label>
-                        
+
                         <div class="position-relative border border-dashed border-secondary border-opacity-25 rounded-3 bg-dark bg-opacity-20 p-4 text-center" id="drop-zone" style="cursor: pointer;">
-                            <input type="file" class="position-absolute top-0 start-0 w-100 h-100 opacity-0" 
+                            <input type="file" class="position-absolute top-0 start-0 w-100 h-100 opacity-0"
                                    id="image" name="image" accept="image/*" style="cursor: pointer;">
-                            
+
                             <!-- Содержимое по умолчанию скрываем, если картинка уже есть -->
-                            <div id="drop-zone-prompt" class="py-2 {% if drink['image_path'] %}d-none{% endif %}">
+                            <div id="drop-zone-prompt" class="py-2 {% if drink.image_path %}d-none{% endif %}">
                                 <i class="bi bi-cloud-arrow-up text-primary fs-3 d-block mb-2"></i>
                                 <span class="text-white d-block small fw-medium">Перетащите новое фото сюда или кликните для выбора</span>
                                 <span class="form-text text-muted small fs-8">JPEG, PNG, GIF до 5 МБ</span>
                             </div>
 
                             <!-- Контейнер для превью (показывает текущее фото из базы) -->
-                            <div id="preview-container" class="{% if drink['image_path'] %}d-flex{% else %}d-none{% endif %} align-items-center justify-content-between bg-dark bg-opacity-40 rounded-3 p-2 border border-secondary border-opacity-25">
+                            <div id="preview-container" class="{% if drink.image_path %}d-flex{% else %}d-none{% endif %} align-items-center justify-content-between bg-dark bg-opacity-40 rounded-3 p-2 border border-secondary border-opacity-25">
                                 <div class="d-flex align-items-center gap-3 overflow-hidden">
-                                    <img id="image-preview" 
-                                         src="{{ url_for('static', filename='drinks/' + drink['image_path']) if drink['image_path'] else '#' }}" 
+                                    <img id="image-preview"
+                                         src="{{ url_for('static', filename='drinks/' + drink.image_path) if drink.image_path else '#' }}"
                                          alt="Preview" class="rounded object-fit-cover" style="width: 50px; height: 50px;">
                                     <div class="text-start overflow-hidden">
                                         <p id="file-name" class="text-white small mb-0 text-truncate fw-medium" style="max-width: 250px;">
-                                            {{ drink['image_path'] or 'Файл не выбран' }}
+                                            {{ drink.image_path or 'Файл не выбран' }}
                                         </p>
                                         <span id="file-size" class="text-muted fs-8">Текущее изображение</span>
                                     </div>
@@ -83,15 +115,15 @@
                         </div>
                     </div>
 
-                    <!-- 4. Описание напитка -->
+                    <!-- 6. Описание напитка -->
                     <div class="col-12">
                         <label for="description" class="form-label small text-secondary fw-medium text-uppercase tracking-wider fs-8">Описание и состав</label>
                         <textarea class="form-control bg-dark bg-opacity-20 border-secondary border-opacity-25 text-white"
                                   id="description" name="description" rows="4"
-                                  placeholder="Расскажите об ingredиентах...">{{ request.form['description'] or drink['description'] }}</textarea>
+                                  placeholder="Расскажите об ингредиентах...">{{ request.form.get('description', drink.description or '') }}</textarea>
                     </div>
 
-                    <!-- 5. Кнопки управления -->
+                    <!-- 7. Кнопки управления -->
                     <div class="col-12 pt-3 border-top border-secondary border-opacity-10 d-flex flex-column-reverse flex-sm-row justify-content-end gap-2">
                         <a href="javascript:history.back()" class="btn btn-outline-secondary px-4">Отмена</a>
                         <button class="btn btn-warning px-5 fw-medium text-dark" type="submit">
