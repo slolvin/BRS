@@ -219,6 +219,9 @@ class Bar(db.Model):
     rate = db.Column(db.Numeric(5, 2))
     drinks = db.relationship('Drink', backref='bar', lazy='joined', cascade="all, delete-orphan")
 
+    latitude = db.Column(db.Float, nullable=True)  # Широта (например: 55.7558)
+    longitude = db.Column(db.Float, nullable=True)  # Долгота (например: 37.6173)
+
     def __repr__(self):
         return f'<Bar {self.name!r}>'
 
