@@ -111,4 +111,122 @@
             </div>
         {% endif %}
     </div>
+    <div class="container-fluid mb-4">
+        <div class="card border-0 rounded-4 shadow-sm bg-body-tertiary p-3">
+            <div class="d-flex align-items-center justify-content-between mb-3 px-2">
+                <h3 class="h5 fw-bold text-white mb-0 text-uppercase tracking-wide fs-7">
+                    <i class="bi bi-map-fill me-2 text-primary"></i>Бары на карте
+                </h3>
+                <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 rounded-pill px-3 py-1 fs-8">
+                    Интерактивный поиск
+                </span>
+            </div>
+
+            <!-- Контейнер для самой карты Leaflet (Высота регулируется через style) -->
+            <div id="main-map" class="rounded-3 border border-secondary border-opacity-10" style="height: 400px; z-index: 1;"></div>
+        </div>
+    </div>
+{% endblock %}
+{% block scripts %}
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            // 1. Формируем массив данных баров силами Jinja
+            const barsData = [
+                {% for bar in bars %}
+                    {% if bar.latitude and bar.longitude %}
+                    {
+                        id: {{ bar.id }},
+                        name: "{{ bar.name | escape }}",
+                        address: "{{ bar.address | escape }}",
+                        rate: "{{ bar.rate or '0.0' }}",
+                        lat: {{ bar.latitude }},
+                        lng: {{ bar.longitude }},
+                        menuUrl: "{{ url_for('main.get_bar_drinks', id=bar.id) }}"
+                    },
+                    {% endif %}
+                {% endfor %}
+            ];
+
+            console.log("Загружено баров для карты:", barsData.length);
+
+            // 2. Определяем безопасные стартовые координаты, если массив пустой
+            const startLat = barsData.length > 0 ? barsData[0].lat : 55.7558;
+            const startLng = barsData.length > 0 ? barsData[0].lng : 37.6173;
+            const startZoom = barsData.length > 0 ? 12 : 10;
+
+            try {
+                // 3. Инициализируем карту Leaflet
+                const map = L.map('main-map').setView([startLat, startLng], startZoom);
+
+                // ИСПРАВЛЕНО: Изменен тип комментария с # на // (JS стандарт)
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '&copy; <a href="https://openstreetmap.org">OpenStreetMap</a> contributors',
+                    maxZoom: 19
+                }).addTo(map);
+
+                // 4. Создаем группу для маркеров
+                const markerGroup = new L.featureGroup();
+
+                // 5. Расставляем маркеры баров
+                barsData.forEach(function (bar) {
+                    const marker = L.marker([bar.lat, bar.lng]);
+
+                    // Верстка поп-апа внутри карты
+                    const popupContent = `
+                        <div class="text-start" style="font-family: inherit; color: #f8f9fa;">
+                            <div class="d-flex justify-content-between align-items-center mb-1 gap-3">
+                                <h6 class="fw-bold mb-0 text-uppercase tracking-wide" style="font-size: 0.9rem; color: #fff; margin: 0;">${bar.name}</h6>
+                                <span class="badge bg-dark text-warning border border-secondary border-opacity-50 small fw-bold" style="padding: 4px 8px; border-radius: 4px;">★ ${bar.rate}</span>
+                            </div>
+                            <p class="text-muted small mb-2" style="font-size: 0.75rem; line-height: 1.2; margin: 0 0 8px 0;">
+                                <i class="bi bi-geo-alt-fill text-danger me-1"></i>${bar.address}
+                            </p>
+                            <a href="${bar.menuUrl}" class="btn btn-primary btn-sm w-100 py-1 text-uppercase tracking-wider fw-medium text-center text-white" style="font-size: 0.7rem; border-radius: 6px; display: block; text-decoration: none;">
+                                Открыть Меню <i class="bi bi-arrow-right-short ms-0.5"></i>
+                            </a>
+                        </div>
+                    `;
+
+                    marker.bindPopup(popupContent, {
+                        maxWidth: 240,
+                        className: 'dark-theme-popup'
+                    });
+
+                    markerGroup.addLayer(marker);
+                });
+
+                // Добавляем маркеры на карту
+                map.addLayer(markerGroup);
+
+                // 6. Автоматически подгоняем масштаб под все маркеры с отступами в 40 пикселей
+                if (barsData.length > 0) {
+                    map.fitBounds(markerGroup.getBounds(), { padding: [40, 40] });
+                }
+
+                // Заставляем Leaflet принудительно пересчитать размеры окна
+                setTimeout(() => { map.invalidateSize(); }, 200);
+
+            } catch (error) {
+                console.error("Критическая ошибка инициализации карты Leaflet:", error);
+            }
+        });
+    </script>
+
+    <style>
+        /* Стилизация всплывающего окна под темную тему */
+        .dark-theme-popup .leaflet-popup-content-wrapper {
+            background: #212529 !important;
+            border: 1px solid rgba(255, 255, 255, 0.15) !important;
+            border-radius: 12px !important;
+            box-shadow: 0 .5rem 1rem rgba(0,0,0,.15) !important;
+        }
+        .dark-theme-popup .leaflet-popup-tip {
+            background: #212529 !important;
+            border: 1px solid rgba(255, 255, 255, 0.15) !important;
+        }
+        .dark-theme-popup .leaflet-popup-close-button {
+            color: rgba(255, 255, 255, 0.5) !important;
+            padding: 8px 8px 0 0 !important;
+        }
+    </style>
 {% endblock %}

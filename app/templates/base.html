@@ -7,6 +7,8 @@
             {% block styles %}
                 {{ bootstrap.load_css() }}
                 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
+                <!-- Leaflet CSS -->
+                <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.css" />
             {% endblock %}
             <title>{% block title %}{% endblock %} - Main</title>
         {% endblock %}
@@ -181,5 +183,7 @@
                 });
             });
         </script>
+        <!-- Leaflet JavaScript -->
+        <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.js"></script>
     </body>
 </html>
