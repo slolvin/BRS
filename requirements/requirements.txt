@@ -31,6 +31,6 @@ typing_extensions==4.11.0
 importlib-metadata==7.0.1
 importlib_resources==7.1.0
 colorama==0.4.6
-zipp==3.19.1
+zipp==4.1.0
 # Mail
 Flask-Mail==0.9.1
