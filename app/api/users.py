@@ -5,7 +5,7 @@ from . import api
 from collections import Counter
 from datetime import datetime, timedelta
 from ..models import Drink, User, DrunkAction, ActionLog
-#from .decorators import login_required  # или твой декоратор авторизации
+#from .decorators import login_required
 
 @api.route('/user/profile')
 # @login_required
@@ -38,19 +38,15 @@ def get_user_profile():
 
         if count_glasses > 0:
             period_logs = logs_query.all()
-            # Считаем объемы в литрах
             total_ml = sum(log.drink.volume for log in period_logs if log.drink and log.drink.volume)
             total_volume_liters = total_ml / 1000.0
 
-            # Считаем среднюю крепость
             total_abv = sum(float(log.drink.abv) for log in period_logs if log.drink and log.drink.abv)
             avg_abv = total_abv / count_glasses
 
-            # Для общего периода сохраняем напитки, чтобы высчитать топ
             if period_name == 'all_time':
                 all_drunk_drinks = [log.drink for log in period_logs if log.drink]
 
-        # Записываем данные в словарь
         stats[period_name] = {
             'total_glasses': count_glasses,
             'total_liters': round(total_volume_liters, 2),
@@ -79,9 +75,6 @@ def get_user_profile():
     else:
         monthly_badge = "Эстет"
 
-    # =========================================================================
-    # 3. ФОРМИРОВАНИЕ МАССИВОВ ЛОГОВ И ИСТОРИИ ДЛЯ SWIFT
-    # =========================================================================
     # Системные логи (ActionLog)
     user_logs = user.actions.order_by(ActionLog.timestamp.desc()).limit(10).all()
     logs_data = []
@@ -130,7 +123,6 @@ def get_user_profile():
 
 @api.route('/user/favorite-bars', methods=['GET'])
 def get_user_favorite_bars():
-    # ИСПРАВЛЕНО: Безопасное получение пользователя без падения сессии
     if current_user.is_authenticated:
         user = current_user
     else:
@@ -156,7 +148,6 @@ def get_user_favorite_bars():
 
 @api.route('/user/update-location', methods=['POST'])
 def update_user_location():
-    # ИСПРАВЛЕНО: Безопасное получение пользователя без падения сессии
     if current_user.is_authenticated:
         user = current_user
     else:
