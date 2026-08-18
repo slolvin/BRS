@@ -4,11 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="eb508b55-b16e-4136-8abd-996021fa5540" name="Changes" comment="Fix profile infor for IOS APP">
+    <list default="true" id="eb508b55-b16e-4136-8abd-996021fa5540" name="Changes" comment="Improvement profile in IOS app">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/main/views.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/main/views.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/templates/includes/user_drunk_history.html" beforeDir="false" afterPath="$PROJECT_DIR$/app/templates/includes/user_drunk_history.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/templates/metrics.html" beforeDir="false" afterPath="$PROJECT_DIR$/app/templates/metrics.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/api/users.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/api/users.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/docs/ToDo.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/ToDo.md" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -55,20 +53,20 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "DefaultHtmlFileTemplate": "HTML File",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "RunOnceActivity.typescript.service.memoryLimit.init": "true",
-    "codeWithMe.voiceChat.enabledByDefault": "false",
-    "git-widget-placeholder": "br__get__statistics",
-    "last_opened_file_path": "/Users/haris/PycharmProjects/BRS/app/static/drinks",
-    "nodejs_package_manager_path": "npm",
-    "settings.editor.selected.configurable": "org.jetbrains.plugins.github.ui.GithubSettingsConfigurable"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;DefaultHtmlFileTemplate&quot;: &quot;HTML File&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.typescript.service.memoryLimit.init&quot;: &quot;true&quot;,
+    &quot;codeWithMe.voiceChat.enabledByDefault&quot;: &quot;false&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;br__ios__profile__improvement&quot;,
+    &quot;last_opened_file_path&quot;: &quot;/Users/haris/PycharmProjects/BRS/app/static/drinks&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;org.jetbrains.plugins.github.ui.GithubSettingsConfigurable&quot;
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$/app/static/drinks" />
@@ -357,7 +355,15 @@
       <option name="project" value="LOCAL" />
       <updated>1782252378326</updated>
     </task>
-    <option name="localTasksCounter" value="33" />
+    <task id="LOCAL-00033" summary="Improvement profile in IOS app">
+      <option name="closed" value="true" />
+      <created>1783404080755</created>
+      <option name="number" value="00033" />
+      <option name="presentableId" value="LOCAL-00033" />
+      <option name="project" value="LOCAL" />
+      <updated>1783404080755</updated>
+    </task>
+    <option name="localTasksCounter" value="34" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -378,7 +384,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Done with system and users" />
     <MESSAGE value="Add simple profile and user info changing by themselves" />
     <MESSAGE value="Worked users system with roles and users (+admin) editors" />
     <MESSAGE value="Add Bars, Admins and Drinks models" />
@@ -403,6 +408,17 @@
     <MESSAGE value="Broke stars. Move to new rating model. Add favorites bar and action log" />
     <MESSAGE value="Fix stars and remove old files" />
     <MESSAGE value="Improve drink model, profile page and metrics" />
-    <option name="LAST_COMMIT_MESSAGE" value="Improve drink model, profile page and metrics" />
+    <MESSAGE value="Improvement profile in IOS app" />
+    <option name="LAST_COMMIT_MESSAGE" value="Improvement profile in IOS app" />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/app/api/users.py</url>
+          <option name="timeStamp" value="1" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
   </component>
 </project>

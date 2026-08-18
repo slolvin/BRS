@@ -19,7 +19,7 @@ def allowed_file(filename):
 
 
 @main.route('/user/<username>')
-@login_required
+# @login_required
 def user(username):
     this_user = User.query.filter_by(username=username).first_or_404()
 
@@ -117,7 +117,7 @@ def user(username):
 
 
 @main.route('/edit_profile', methods=['GET', 'POST'])
-@login_required
+# @login_required
 def edit_profile():
     # ИСПРАВЛЕНО: берем логи и любимые бары прямо из текущего залогиненного пользователя
     user_logs = current_user.actions.order_by(ActionLog.timestamp.desc()).limit(10).all()
@@ -147,7 +147,7 @@ def edit_profile():
 
 
 @main.route('/edit-profile/<int:id>', methods=['GET', 'POST'])
-@login_required
+# @login_required
 # @admin_required
 def edit_profile_admin(id):
     user = User.query.get_or_404(id)
@@ -420,7 +420,7 @@ def get_drinks_list():
 
 
 @main.route('/delete_bar/<int:bar_id>', methods=['POST'])
-@login_required
+# @login_required
 def delete_bar(bar_id):
     # Получаем бар из базы или сразу отдаем 404, если его нет
     bar = Bar.query.get_or_404(bar_id)
@@ -437,7 +437,7 @@ def delete_bar(bar_id):
 
 
 @main.route('/bar/<int:id>', methods=['GET'])
-@login_required
+# @login_required
 def get_bar_drinks(id):
     bar = Bar.query.get_or_404(id)
     return render_template('/includes/bar_drinks.html', bar=bar)
@@ -571,7 +571,7 @@ def edit_drink(drink_id):
 
 
 @main.route('/drink/<int:drink_id>/toggle-favorite', methods=['POST'])
-@login_required
+# @login_required
 def toggle_drink_favorite(drink_id):
     drink = Drink.query.get_or_404(drink_id)
 
@@ -613,7 +613,7 @@ def calculate_monthly_badge(user):
 
 
 @main.route('/drink/<int:drink_id>/add-drunk', methods=['POST'])
-@login_required
+# @login_required
 def add_drink_drunk(drink_id):
     drink = Drink.query.get_or_404(drink_id)
     now = datetime.utcnow()
@@ -644,7 +644,7 @@ def add_drink_drunk(drink_id):
 
 
 @main.route('/drink/<int:drink_id>/rate', methods=['POST'])
-@login_required
+# @login_required
 def rate_drink(drink_id):
     drink = Drink.query.get_or_404(drink_id)
     # ВАЖНОЕ ОБНОВЛЕНИЕ: Проверка на то, выпит ли напиток
@@ -689,7 +689,7 @@ def rate_drink(drink_id):
 
 
 @main.route('/delete_drink/<int:drink_id>', methods=['POST'])
-@login_required
+# @login_required
 def delete_drink(drink_id):
     drink = Drink.query.get_or_404(drink_id)
 
@@ -702,7 +702,7 @@ def delete_drink(drink_id):
 
 
 @main.route('/favorite/toggle/<int:bar_id>', methods=['POST'])
-@login_required
+# @login_required
 def toggle_favorite(bar_id):
     # Находим бар в базе данных
     bar = Bar.query.get_or_404(bar_id)
