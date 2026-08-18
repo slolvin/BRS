@@ -11,6 +11,7 @@ import os
 import random
 from werkzeug.utils import secure_filename
 from datetime import datetime, timedelta
+from sqlalchemy.orm import joinedload
 
 
 def allowed_file(filename):
@@ -21,7 +22,20 @@ def allowed_file(filename):
 @login_required
 def user(username):
     this_user = User.query.filter_by(username=username).first_or_404()
-    user_logs = this_user.actions.order_by(ActionLog.timestamp.desc()).limit(10).all()
+
+    user_logs = db.session.query(ActionLog) \
+        .filter(ActionLog.user_id == this_user.id) \
+        .options(joinedload(ActionLog.user)) \
+        .order_by(ActionLog.timestamp.desc()) \
+        .limit(10) \
+        .all()
+
+    drunk_history_optimized = this_user.drunk_history \
+        .options(joinedload(DrunkAction.drink)) \
+        .order_by(DrunkAction.timestamp.desc()) \
+        .limit(15) \
+        .all()
+
     favorite_bars = this_user.favorite_bars.all()
 
     # === РАСЧЕТ СТАТИСТИКИ (Ваш прошлый код таблицы) ===
@@ -35,60 +49,58 @@ def user(username):
     }
 
     stats = {}
-    all_drunk_drinks = []  # Список всех выпитых напитков для подсчета любимого
-
     for period_name, start_date in periods.items():
-        logs_query = this_user.drunk_history.filter(DrunkAction.timestamp >= start_date)
-        count_glasses = logs_query.count()
+        # Делаем ОДИН запрос к базе, который сразу считает COUNT и SUM
+        # Связываем DrunkAction с Drink, чтобы получить доступ к volume и abv
+        result = db.session.query(
+            func.count(DrunkAction.id).label('glasses_count'),
+            func.sum(Drink.volume).label('total_ml'),
+            func.avg(Drink.abv).label('average_abv')
+        ).join(Drink, DrunkAction.drink_id == Drink.id) \
+            .filter(DrunkAction.user_id == this_user.id, DrunkAction.timestamp >= start_date) \
+            .first()
 
-        total_volume_liters = 0.0
-        avg_abv = 0.0
+        # Вытаскиваем результаты (обработка None на случай, если логов за период нет)
+        count_glasses = result.glasses_count or 0
+        total_ml = result.total_ml or 0
+        avg_abv = float(result.average_abv) if result.average_abv else 0.0
 
-        if count_glasses > 0:
-            period_logs = logs_query.all()
-            total_ml = sum(log.drink.volume for log in period_logs if log.drink.volume)
-            total_volume_liters = total_ml / 1000.0
-            total_abv = sum(float(log.drink.abv) for log in period_logs if log.drink.abv)
-            avg_abv = total_abv / count_glasses
-
-            # Сохраняем напитки для расчёта любимого за всё время
-            if period_name == 'all_time':
-                all_drunk_drinks = [log.drink for log in period_logs]
-
+        # Переводим мл в литры и округляем
         stats[period_name] = {
             'count': count_glasses,
-            'volume': round(total_volume_liters, 2),
+            'volume': round(total_ml / 1000.0, 2),
             'abv': round(avg_abv, 1)
         }
 
     # === ВЫЧИСЛЕНИЕ ЛЮБИМОГО НАПИТКА ===
-    fav_drink = None  # Передаем сам объект Drink вместо строки
-    if all_drunk_drinks:
-        # Считаем дубликаты объектов напитков
-        drink_counts = Counter(all_drunk_drinks)
-        # Забираем самый частый объект Drink
-        fav_drink = drink_counts.most_common(1)[0][0]
+    fav_drink_query = db.session.query(
+        Drink,
+        func.count(DrunkAction.id).label('drink_count')
+    ).join(DrunkAction, DrunkAction.drink_id == Drink.id) \
+        .filter(DrunkAction.user_id == this_user.id) \
+        .group_by(Drink.id) \
+        .order_by(func.count(DrunkAction.id).desc()) \
+        .first()
 
-    # === ЛОГИКА ОПРЕДЕЛЕНИЯ ЗВАНИЯ МЕСЯЦА (Заглушка) ===
+    # Извлекаем объект Drink, если он есть
+    fav_drink = fav_drink_query[0] if fav_drink_query else None
+
+    # === 4. ОПРЕДЕЛЕНИЕ ЗВАНИЯ МЕСЯЦА ===
     month_volume = stats['month']['volume']
     month_abv = stats['month']['abv']
 
     if month_volume == 0:
-        monthly_badge = "Трезвенник"
+        monthly_badge, badge_color = "Трезвенник", "secondary"
         badge_desc = "В этом месяце вы не отметили ни одного бокала."
-        badge_color = "secondary"
     elif month_volume >= 5.0 and month_abv <= 6.0:
-        monthly_badge = "ПИВО"
+        monthly_badge, badge_color = "ПИВО", "warning"
         badge_desc = "Упор на объём и классический солод. Легенда пабов!"
-        badge_color = "warning"
     elif month_abv >= 30.0 and month_volume >= 1.0:
-        monthly_badge = "Пират"
+        monthly_badge, badge_color = "Пират", "danger"
         badge_desc = "Предпочитаете чистый крепкий алкоголь. Йо-хо-хо!"
-        badge_color = "danger"
     else:
-        monthly_badge = "Коктейльный Эстет"
+        monthly_badge, badge_color = "Коктейльный Эстет", "primary"
         badge_desc = "Умеренное потребление и разнообразие вкусов."
-        badge_color = "primary"
 
     return render_template(
         'user.html',
@@ -96,6 +108,7 @@ def user(username):
         user_logs=user_logs,
         favorite_bars=favorite_bars,
         stats=stats,
+        drunk_history_optimized=drunk_history_optimized,
         fav_drink=fav_drink,
         monthly_badge=monthly_badge,
         badge_desc=badge_desc,
@@ -158,10 +171,99 @@ def index():
     return redirect(url_for('.get_bars_list'))
 
 
+def get_top_drink_for_period(start_date=None):
+    """Вспомогательная функция: ищет самый популярный напиток и количество его заказов за период"""
+    query = db.session.query(
+        Drink,
+        func.count(DrunkAction.id).label('orders_count')
+    ).join(DrunkAction, DrunkAction.drink_id == Drink.id)
+
+    if start_date:
+        query = query.filter(DrunkAction.timestamp >= start_date)
+
+    # Группируем по ID напитка, сортируем по убыванию количества логов и берем самый первый
+    result = query.group_by(Drink.id).order_by(func.count(DrunkAction.id).desc()).first()
+    return result if result else (None, 0)
+
+
+def get_top_bar_for_period(start_date=None):
+    """Вспомогательная функция: ищет бар с наибольшим количеством выпитых в нем напитков за период"""
+    # Связываем логи выпитого с напитками, а напитки с барами
+    query = db.session.query(
+        Bar,
+        func.count(DrunkAction.id).label('visits_count')
+    ).join(Drink, Drink.bar_id == Bar.id) \
+        .join(DrunkAction, DrunkAction.drink_id == Drink.id)
+
+    if start_date:
+        query = query.filter(DrunkAction.timestamp >= start_date)
+
+    result = query.group_by(Bar.id).order_by(func.count(DrunkAction.id).desc()).first()
+    return result if result else (None, 0)
+
+
 @main.route('/metrics/')
 def metrics():
-    # Пока отдаем пустую заглушку, как мы сверстали
-    return render_template('metrics.html')
+    now = datetime.utcnow()
+
+    # Временные метки для фильтрации СУБД
+    day_ago = now - timedelta(days=1)
+    month_ago = now - timedelta(days=30)
+    year_ago = now - timedelta(days=365)
+
+    # 1. РАСЧЕТ ЛИЧНОЙ СТАТИСТИКИ ТЕКУЩЕГО ПОЛЬЗОВАТЕЛЯ
+    user_fav_drink = None
+    user_fav_percentage = 0
+
+    if current_user.is_authenticated:
+        # Считаем сколько раз юзер пил каждый напиток
+        user_logs = db.session.query(
+            Drink,
+            func.count(DrunkAction.id).label('c')
+        ).join(DrunkAction, DrunkAction.drink_id == Drink.id) \
+            .filter(DrunkAction.user_id == current_user.id) \
+            .group_by(Drink.id).order_by(func.count(DrunkAction.id).desc()).all()
+
+        if user_logs:
+            total_user_drinks = sum(log.c for log in user_logs)
+            user_fav_drink = user_logs[0][0]  # Самый популярный объект Drink
+            if total_user_drinks > 0:
+                user_fav_percentage = int((user_logs[0][1] / total_user_drinks) * 100)
+
+    # 2. АГРЕГАЦИЯ ТОП НАПИТКОВ СООБЩЕСТВА
+    drink_moment, count_dm = get_top_drink_for_period(day_ago)
+    drink_month, count_dmo = get_top_drink_for_period(month_ago)
+    drink_year, count_dy = get_top_drink_for_period(year_ago)
+    drink_all, count_da = get_top_drink_for_period(None)
+
+    # 3. АГРЕГАЦИЯ ТОП БАРОВ СООБЩЕСТВА
+    bar_moment, count_bm = get_top_bar_for_period(day_ago)
+    bar_month, count_bmo = get_top_bar_for_period(month_ago)
+    bar_year, count_by = get_top_bar_for_period(year_ago)
+    bar_all, count_ba = get_top_bar_for_period(None)
+
+    # Упаковываем все данные в один чистый контекст для Jinja
+    community_metrics = {
+        'drinks': {
+            'moment': {'object': drink_moment, 'value': count_dm},
+            'month': {'object': drink_month, 'value': count_dmo},
+            'year': {'object': drink_year, 'value': count_dy},
+            'all_time': {'object': drink_all, 'value': count_da}
+        },
+        'bars': {
+            'moment': {'object': bar_moment, 'value': count_bm},
+            'month': {'object': bar_month, 'value': count_bmo},
+            'year': {'object': bar_year, 'value': count_by},
+            'all_time': {'object': bar_all, 'value': count_ba}
+        }
+    }
+
+    return render_template(
+        'metrics.html',
+        user_fav_drink=user_fav_drink,
+        user_fav_percentage=user_fav_percentage,
+        cm=community_metrics
+    )
 
 
 @main.route('/bars/', methods=['GET'])
@@ -514,7 +616,20 @@ def calculate_monthly_badge(user):
 @login_required
 def add_drink_drunk(drink_id):
     drink = Drink.query.get_or_404(drink_id)
+    now = datetime.utcnow()
 
+    last_action = current_user.drunk_history \
+        .filter_by(drink_id=drink.id) \
+        .order_by(DrunkAction.timestamp.desc()) \
+        .first()
+    if last_action:
+        cooldown_seconds = 10
+        time_passed = now - last_action.timestamp
+
+        if time_passed < timedelta(seconds=cooldown_seconds):
+            remaining_time = cooldown_seconds - int(time_passed.total_seconds())
+            flash(f'Подождите еще {remaining_time} сек. перед тем как отметить следующий бокал!', 'danger')
+            return redirect(request.referrer or url_for('.get_drinks_list'))
     # Добавляем новую запись в историю (пользователь выпил еще один бокал)
     new_action = DrunkAction(user_id=current_user.id, drink_id=drink.id)
     db.session.add(new_action)
