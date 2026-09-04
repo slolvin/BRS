@@ -5,7 +5,8 @@ from sqlalchemy import func
 from . import main
 from .forms import EditProfileAdminForm
 from .. import db
-from ..models import User, Role, Permission, Bar, Drink, ActionLog, DrinkRating, DrunkAction
+from ..models import User, Bar, Drink, ActionLog, DrinkRating, DrunkAction
+from ..decorators import admin_required
 from config import Config
 import os
 import random
@@ -151,24 +152,62 @@ def edit_profile():
 # @admin_required
 def edit_profile_admin(id):
     user = User.query.get_or_404(id)
-    if request.method == 'POST':
-        user.email = request.form['email']
-        user.username = request.form['username']
-        # user.confirmed = form.confirmed.data
-        user.role = Role.query.get(request.form['role'])
-        user.name = request.form['name']
-        user.location = request.form['location']
-        user.about_me = request.form['about_me']
-        db.session.add(user)
+
+    # Загружаем форму и передаем туда объект пользователя для валидации дубликатов
+    form = EditProfileAdminForm(user=user)
+
+    if form.validate_on_submit():
+        # Сохраняем измененные данные в модель
+        user.email = form.email.data
+        user.username = form.username.data
+        user.name = form.name.data
+        user.location = form.location.data
+        user.about_me = form.about_me.data
+
+        # === САМАЯ ВАЖНАЯ СТРОЧКА: Меняем роль на выбранную в SelectField ===
+        # Сюда прилетит 'user', 'manager' или 'administrator'
+        user.role = form.role.data
+
         db.session.commit()
-        flash('The profile has been updated.')
+
+        flash(f'Профиль пользователя @{user.username} успешно обновлен.', 'success')
         return redirect(url_for('.user', username=user.username))
-    return render_template('edit_profile_admin.html', editing_user=user)
+
+    # При первом GET-запросе предзаполняем поля формы текущими данными из БД
+    form.email.data = user.email
+    form.username.data = user.username
+    form.role.data = user.role  # Подставит текущую роль пользователя в выпадающий список
+    form.name.data = user.name
+    form.location.data = user.location
+    form.about_me.data = user.about_me
+
+    return render_template('edit_profile_admin.html', form=form, user=user)
 
 
 @main.route('/')
 def index():
     return redirect(url_for('.get_bars_list'))
+
+
+@main.route('/users-management/')
+@login_required
+@admin_required
+def users_management():
+    # 1. Забираем поисковый запрос из URL (например, ?search=haris)
+    search_query = request.args.get('search', '').strip()
+
+    # 2. Строим базовый запрос к СУБД
+    query = User.query
+
+    # 3. Если админ что-то ввел в поиск — фильтруем по совпадению в никнейме (регистронезависимо)
+    if search_query:
+        query = query.filter(User.username.ilike(f'%{search_query}%'))
+
+    # 4. Выполняем запрос с сортировкой
+    all_users = query.order_by(User.username.asc()).all()
+
+    # Передаем сам запрос обратно, чтобы сохранить текст в инпуте после перезагрузки
+    return render_template('users_management.html', users=all_users, search_query=search_query)
 
 
 def get_top_drink_for_period(start_date=None):

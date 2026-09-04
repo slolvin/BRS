@@ -2,7 +2,7 @@ from flask import jsonify, request, g, url_for, current_app
 from .. import db
 from sqlalchemy.exc import IntegrityError
 from flask_login import current_user, login_required
-from ..models import Bar, Permission
+from ..models import Bar
 from . import api
 from .decorators import permission_required
 from .errors import forbidden

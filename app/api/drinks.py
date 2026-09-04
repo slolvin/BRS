@@ -1,6 +1,6 @@
 from flask import jsonify, request, g, url_for, current_app
 from .. import db
-from ..models import Drink, Permission, DrinkRating
+from ..models import Drink, DrinkRating
 from flask_login import current_user, login_required
 from sqlalchemy import func
 from . import api

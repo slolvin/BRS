@@ -1,9 +1,6 @@
 from flask import Blueprint
+
 main = Blueprint('main', __name__)
+
+# Импорты в самом конце для предотвращения циклических зависимостей
 from . import views, errors
-from ..models import Permission
-
-
-@main.app_context_processor
-def inject_permissions():
-    return dict(Permission=Permission)
