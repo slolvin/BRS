@@ -2,7 +2,7 @@ from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, BooleanField, SubmitField, TextAreaField, SelectField
 from wtforms.validators import DataRequired, Length, Email, Regexp, EqualTo
 from wtforms import ValidationError
-from ..models import Role, User, Manager, Bar, Drink
+from ..models import User, Bar, Drink
 
 
 class EditProfileForm(FlaskForm):
@@ -14,12 +14,19 @@ class EditProfileForm(FlaskForm):
 
 class EditProfileAdminForm(FlaskForm):
     email = StringField('Email', validators=[DataRequired(), Length(1, 64), Email()])
-    username = StringField('Username', validators=[DataRequired(), Length(1, 64), Regexp(
-        '^[A-Za-z][A-Za-z0-9_.]*$', 0,
-        'Usernames must have only letters, '
-        'numbers, dots or underscores')])
+    username = StringField('Username', validators=[
+        DataRequired(),
+        Length(1, 64),
+        Regexp(
+            '^[A-Za-z][A-Za-z0-9_.]*$',
+            message='Usernames must have only letters, numbers, dots or underscores'
+        )
+    ])
     confirmed = BooleanField('Confirmed')
-    role = SelectField('Role', coerce=int)
+
+    # ИСПРАВЛЕНО: Убрали coerce=int, так как роли теперь строковые (String)
+    role = SelectField('Role')
+
     name = StringField('Real name', validators=[Length(0, 64)])
     location = StringField('Location', validators=[Length(0, 64)])
     about_me = TextAreaField('About me')
@@ -27,7 +34,13 @@ class EditProfileAdminForm(FlaskForm):
 
     def __init__(self, user, *args, **kwargs):
         super(EditProfileAdminForm, self).__init__(*args, **kwargs)
-        self.role.choices = [(role.id, role.name) for role in Role.query.order_by(Role.name).all()]
+        # ИСПРАВЛЕНО: Захардкодили наши новые строковые роли напрямую в выпадающий список.
+        # Кортеж состоит из (значение_в_БД, текст_на_экране)
+        self.role.choices = [
+            ('user', 'User (Посетитель)'),
+            ('manager', 'Manager (Управляющий)'),
+            ('administrator', 'Administrator (Админ)')
+        ]
         self.user = user
 
     def validate_email(self, field):

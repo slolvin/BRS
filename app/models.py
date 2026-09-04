@@ -7,69 +7,38 @@ from app.exeptions import ValidationError
 from . import db, login_manager
 from hashlib import md5
 import re
-from sqlalchemy.orm import with_polymorphic
 
 
 @login_manager.user_loader
 def load_user(user_id):
-    poly_user = with_polymorphic(User, '*')
-    return db.session.query(poly_user).filter_by(id=int(user_id)).first()
-
-
-class Permission:
-    FOLLOW = 0x01
-    COMMENT = 0x02
-    WRITE_ARTICLES = 0x04
-    MODERATE_COMMENTS = 0x08
-    ADMINISTER = 0x80
+    return User.query.get(int(user_id))
 
 
 class Role(db.Model):
-    __tablename__ = 'roles'
+    __tablename__ = 'users'
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(64), unique=True)
-    default = db.Column(db.Boolean, default=False, index=True)
-    permissions = db.Column(db.Integer)
-    users = db.relationship('User', backref='role', lazy='dynamic')
+    username = db.Column(db.String(64), unique=True, index=True)
+    email = db.Column(db.String(64), unique=True, index=True)
+    password_hash = db.Column(db.String(512))
 
-    def add_permission(self, perm):
-        if not self.has_permission(perm):
-            self.permissions += perm
+    # Управлять ролями теперь максимально просто: обычная строка
+    # Дефолтное значение — 'user'
+    role = db.Column(db.String(32), default='user', nullable=False)
 
-    def remove_permission(self, perm):
-        if self.has_permission(perm):
-            self.permissions -= perm
+    # Ваши старые поля профиля
+    name = db.Column(db.String(64))
+    location = db.Column(db.String(64))
+    about_me = db.Column(db.Text())
 
-    def reset_permissions(self):
-        self.permissions = 0
+    # Хелпер-методы для быстрой проверки прав в коде и шаблонах Jinja
+    def is_manager(self):
+        return self.role in ['manager', 'administrator']
 
-    def has_permission(self, perm):
-        return self.permissions & perm == perm
+    def is_administrator(self):
+        return self.role == 'administrator'
 
-    def __repr__(self):
-        return '<Role %r' % self.name
-
-    @staticmethod
-    def insert_roles():
-        roles = {
-            'User': (Permission.FOLLOW |
-                     Permission.COMMENT |
-                     Permission.WRITE_ARTICLES, True),
-            'Moderator': (Permission.FOLLOW |
-                          Permission.COMMENT |
-                          Permission.WRITE_ARTICLES |
-                          Permission.MODERATE_COMMENTS, False),
-            'Administrator': (0xff, False)
-        }
-
-        for r in roles:
-            role = Role.query.filter_by(name=r).first()
-            if role is None:
-                role = Role(name=r)
-            role.permissions = roles[r][0]
-            role.default = roles[r][1]
-            db.session.add(role)
-        db.session.commit()
+    def is_user(self):
+        return self.role == 'user'
 
 user_favorite_bars = db.Table(
     'user_favorite_bars',
@@ -96,12 +65,12 @@ class DrunkAction(db.Model):
 
 class User(UserMixin, db.Model):
     __tablename__ = 'users'
+    __table_args__ = {'extend_existing': True}
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(64), unique=True, index=True)
     password_hash = db.Column(db.String(512))
     email = db.Column(db.String(64), unique=True, index=True)
-    role_id = db.Column(db.Integer, db.ForeignKey('roles.id'))
-    type = db.Column(db.String(64))
+    role = db.Column(db.String(32), default='user', nullable=False)
     name = db.Column(db.String(64))
     location = db.Column(db.String(64))
     about_me = db.Column(db.Text())
@@ -116,6 +85,18 @@ class User(UserMixin, db.Model):
 
     # Новая история выпитого (один ко многим к таблице логов)
     drunk_history = db.relationship('DrunkAction', backref='user', lazy='dynamic', cascade="all, delete-orphan")
+
+    def is_manager(self):
+        return self.role in ['manager', 'administrator']
+
+    def is_administrator(self):
+        return self.role == 'administrator'
+
+    def is_user(self):
+        return self.role == 'user'
+
+    def get_user_name(self):
+        return self.name if self.name else self.username
 
     def is_drink_drunk(self, drink_id):
         """Метод проверки: пил ли пользователь этот напиток вообще хоть раз"""
@@ -153,20 +134,6 @@ class User(UserMixin, db.Model):
         return '{url}/{hash}?s={size}&d={default}&r={rating}'.format(
             url=url, hash=hash, size=size, default=default, rating=rating)
 
-    def __init__(self, **kwargs):
-        super(User, self).__init__(**kwargs)
-
-        # Проверяем, что это создание нового пользователя, а не загрузка из БД
-        if self.id is None:
-            if self.role_id is None:
-                if self.email == current_app.config.get('APP_ADMIN'):
-                    self.role = Role.query.filter_by(permissions=0xff).first()
-                if self.role is None:
-                    self.role = Role.query.filter_by(default=True).first()
-
-            if self.email is not None and self.avatar_hash is None:
-                self.avatar_hash = self.gravatar_hash()
-
     @property
     def password(self):
         return AttributeError('Password is not a readable attribute')
@@ -178,13 +145,6 @@ class User(UserMixin, db.Model):
     def verify_password(self, password):
         return check_password_hash(self.password_hash, password)
 
-    def can(self, permissions):
-        return self.role is not None and \
-            (self.role.permissions & permissions) == permissions
-
-    def is_administrator(self):
-        return self.can(Permission.ADMINISTER)
-
     def ping(self):
         self.last_seen = datetime.utcnow()
         db.session.add(self)
@@ -192,28 +152,13 @@ class User(UserMixin, db.Model):
     def __repr__(self):
         return '<User %r>' % self.username
 
-    __mapper_args__ = {
-        'polymorphic_identity': 'user',
-        'polymorphic_on': 'type',
-        'with_polymorphic': '*'
-    }
-
-
-class Manager(User):
-    __tablename__ = 'managers'
-    manager_id = db.Column(db.Integer, db.ForeignKey('users.id'), primary_key=True)
-
-    __mapper_args__ = {
-        'polymorphic_identity': 'manager'
-    }
-
 
 class Bar(db.Model):
     __tablename__ = 'bars'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(64), unique=True)
-    admin_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    manager = db.relationship('User', backref='bars', lazy='joined', foreign_keys=[admin_id])
+    admin_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
+    manager = db.relationship('User', backref='bars', lazy='joined')
     address = db.Column(db.Text())
     city = db.Column(db.Text())
     rate = db.Column(db.Numeric(5, 2))
@@ -233,17 +178,7 @@ class Bar(db.Model):
         return f"{city_str}{clean_address}, Россия"
 
     def get_user_name(self):
-        # Если связь сработала, берем имя из подгруженного объекта User/Manager
-        if self.manager:
-            # Убедись, что в User поле называется username (или name, оставь как в твоей модели)
-            return getattr(self.manager, 'username', getattr(self.manager, 'name', 'Менеджер'))
-
-        # Резервный ручной запрос, если связь пустая
-        user = User.query.get(self.admin_id)
-        if user:
-            return getattr(user, 'username', getattr(user, 'name', 'Менеджер'))
-
-        return f"Неизвестный менеджер (ID: {self.admin_id})"
+        return self.manager.get_user_name() if self.manager else "Неизвестно"
 
     def get_bar_rate(self):
         # 1. Собираем только напитки с выставленной оценкой
@@ -285,7 +220,7 @@ class Drink(db.Model):
     description = db.Column(db.Text())
     score = db.Column(db.Numeric(5, 2))
     image_path = db.Column(db.String(255), nullable=True)
-    bar_id = db.Column(db.Integer, db.ForeignKey('bars.id'), nullable=True)
+    bar_id = db.Column(db.Integer, db.ForeignKey('bars.id', ondelete='CASCADE'), nullable=True)
 
     # НОВОЕ ПОЛЕ: Хранит средний балл (например, 4.50)
     rating = db.Column(db.Numeric(5, 2), default=0.0)
@@ -356,11 +291,16 @@ class DrinkRating(db.Model):
 
 
 class AnonymousUser(AnonymousUserMixin):
-    def can(self, permissions):
+    # Гость не является ни менеджером, ни админом, ни подтвержденным юзером
+    def is_manager(self):
         return False
 
     def is_administrator(self):
         return False
 
+    def is_user(self):
+        return False
 
+
+# Привязываем кастомного гостя к менеджеру логина Flask
 login_manager.anonymous_user = AnonymousUser
