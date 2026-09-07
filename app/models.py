@@ -1,13 +1,13 @@
 from werkzeug.security import generate_password_hash,check_password_hash
 import hashlib
-from datetime import datetime
+from datetime import datetime, timedelta
 from flask_login import UserMixin, AnonymousUserMixin
 from flask import current_app, request, url_for
 from app.exeptions import ValidationError
 from . import db, login_manager
 from hashlib import md5
 import re
-
+import jwt
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -85,6 +85,33 @@ class User(UserMixin, db.Model):
 
     # Новая история выпитого (один ко многим к таблице логов)
     drunk_history = db.relationship('DrunkAction', backref='user', lazy='dynamic', cascade="all, delete-orphan")
+
+    def generate_auth_token(self, expiration=604800):
+        """
+        Генерирует JWT-токен для мобильного приложения.
+        по умолчанию срок действия — 7 дней (604800 секунд).
+        """
+        payload = {
+            'user_id': self.id,
+            'exp': datetime.utcnow() + timedelta(seconds=expiration),
+            'iat': datetime.utcnow()
+        }
+        # Шифруем токен с помощью SECRET_KEY вашего Flask-приложения
+        return jwt.encode(payload, current_app.config['SECRET_KEY'], algorithm='HS256')
+
+    @staticmethod
+    def verify_auth_token(token):
+        """
+        Проверяет токен. Если он валиден — возвращает объект пользователя, иначе None.
+        """
+        try:
+            payload = jwt.decode(token, current_app.config['SECRET_KEY'], algorithms=['HS256'])
+        except jwt.ExpiredSignatureError:
+            return None  # Срок действия токена истек
+        except jwt.InvalidTokenError:
+            return None  # Токен подделан или некорректен
+
+        return User.query.get(payload['user_id'])
 
     def is_manager(self):
         return self.role in ['manager', 'administrator']
