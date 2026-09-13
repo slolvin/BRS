@@ -8,12 +8,20 @@ from .decorators import mobile_token_required
 
 @api.route('/bars/map', methods=['GET'])
 def get_bars_for_map():
-    all_bars = Bar.query.all()
-    # Фильтруем бары: берем только те, у которых адрес собрался корректно
+    # Получаем город из параметров запроса iOS (например: ?city=Любляна)
+    target_city = request.args.get('city')
+
+    if target_city:
+        # Фильтруем бары строго по выбранному в настройках городу
+        all_bars = Bar.query.filter_by(city=target_city).all()
+    else:
+        all_bars = Bar.query.all()
+
     valid_bars = [bar.to_json() for bar in all_bars if bar.get_full_address() is not None]
+
     return jsonify({
         'bars': valid_bars
-    })
+    }), 200
 
 
 @api.route('/bars/create', methods=['POST'])
