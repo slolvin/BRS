@@ -7,6 +7,7 @@ from flask_login import LoginManager
 from config import DevelopmentConfig
 from flask_migrate import Migrate, upgrade
 from flask_wtf.csrf import CSRFProtect
+from prometheus_flask_exporter import PrometheusMetrics
 
 bootstrap = Bootstrap5()
 # mail = Mail()
@@ -31,6 +32,7 @@ def create_app(config_name=DevelopmentConfig):
     db.init_app(app)
     csrf.init_app(app)
     login_manager.init_app(app)
+    metrics = PrometheusMetrics(app)
 
     from app.main import main as main_blueprint
     app.register_blueprint(main_blueprint)

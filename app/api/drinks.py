@@ -1,17 +1,14 @@
-from flask import jsonify, request, g, url_for, current_app
+from flask import jsonify, request, g, current_app
 from .. import db
-from ..models import Drink, DrinkRating
-from flask_login import current_user, login_required
-from sqlalchemy import func
+from ..models import Drink, DrunkAction
 from . import api
-from .decorators import permission_required
-from .errors import forbidden
+from .decorators import mobile_token_required
 
 
-@api.route('/drinks/')
+@api.route('/drinks/', methods=['GET'])
+@mobile_token_required  # Теперь список напитков защищен токеном
 def get_drinks():
     page = request.args.get('page', 1, type=int)
-    # Используем стандартный лимит из конфига, убираем странный +2 для предсказуемости iOS-сеток
     per_page = current_app.config.get('DRINKS_PER_PAGE', 10)
 
     pagination = Drink.query.paginate(
@@ -20,22 +17,15 @@ def get_drinks():
         error_out=False
     )
     drinks = pagination.items
-
-    # Формируем базовый URL сервера для картинок (iOS нужен полный путь!)
-    # request.host_url вернет что-то вроде http://192.168.1 (в зависимости от сети)
     base_url = request.host_url.rstrip('/')
 
-    # Сериализуем данные, на лету добавляя абсолютный путь к фото для Xcode
     json_drinks = []
     for drink in drinks:
         drink_data = drink.to_json()
-        if drink_data.get('image'):
-            drink_data['image_url'] = f"{base_url}/static/drinks/{drink_data['image']}"
-        else:
-            drink_data['image_url'] = None
+        drink_data['image_url'] = f"{base_url}/static/drinks/{drink_data.get('image')}" if drink_data.get(
+            'image') else None
         json_drinks.append(drink_data)
 
-    # Отдаем идеальный для Swift-структур (Decodable) ответ
     return jsonify({
         'drinks': json_drinks,
         'current_page': page,
@@ -44,59 +34,58 @@ def get_drinks():
         'has_prev': pagination.has_prev,
         'has_next': pagination.has_next,
         'count': pagination.total
-    })
-
-
-# @api.route('/drinks/<int:id>')
-# def get_drink(id):
-#     drink = Drink.query.get_or_404(id)
-#     drink_data = drink.to_json()
-#
-#     # Также собираем абсолютный URL для одиночного запроса
-#     base_url = request.host_url.rstrip('/')
-#     if drink_data.get('image'):
-#         drink_data['image_url'] = f"{base_url}/static/drinks/{drink_data['image']}"
-#     else:
-#         drink_data['image_url'] = None
-#
-#     return jsonify(drink_data)
+    }), 200
 
 
 @api.route('/drinks/<int:id>', methods=['GET'])
-# @login_required  # Защищаем ручку сессией авторизации
+@mobile_token_required  # Карточка напитка под JWT
 def get_drink(id):
-    # 1. Ищем напиток по id. Если его нет — вернется чистый 404 Not Found
     drink = Drink.query.get_or_404(id)
-
-    # 2. Базовый URL для сборки абсолютного пути к картинке
     base_url = request.host_url.rstrip('/')
-
-    # 3. Сериализуем через родной метод модели
     drink_data = drink.to_json()
 
-    # 4. Проверяем имя картинки (из модели или словаря) и собираем url для UIImageView
     image_name = drink.image_path or drink_data.get('image') or drink_data.get('image_path')
+    drink_data['image_url'] = f"{base_url}/static/drinks/{image_name}" if image_name else None
 
-    if image_name:
-        drink_data['image_url'] = f"{base_url}/static/drinks/{image_name}"
-    else:
-        drink_data['image_url'] = None
-
-    # На всякий случай удаляем сырое имя файла, чтобы не путать Swift-клиент
+    # Очищаем лишние поля
     drink_data.pop('image_path', None)
     drink_data.pop('image', None)
 
-    # 5. Отдаем готовый JSON со статусом 200 OK
+    # Добавляем для iOS флаг проверки: заказывал ли пользователь этот напиток ранее
+    # и оценивал ли уже (чтобы iOS сразу блокировала кнопки звезд, если нельзя оценивать)
+    has_drunk = DrunkAction.query.filter_by(user_id=g.current_mobile_user.id, drink_id=id).first() is not None
+
+    # Предполагаем, что мы добавили отметку об оценке в DrunkAction (например, поле rated=True)
+    # Если поля rated нет, мы можем временно проверять просто факт наличия заказа
+    drink_data['can_rate'] = has_drunk
+
     return jsonify(drink_data), 200
 
 
 @api.route('/drinks/<int:id>/rate', methods=['POST'])
-# @login_required  # Оценивать могут только авторизованные пользователи
+@mobile_token_required  # Оценивать могут только верифицированные пользователи по JWT
 def rate_drink(id):
-    # 1. Ищем напиток в базе
     drink = Drink.query.get_or_404(id)
+    user = g.current_mobile_user
 
-    # 2. Получаем JSON из Swift
+    # 1. ЗАЩИТА ОТ НАКРУТКИ: Проверяем, пил ли пользователь этот напиток вообще
+    # Ищем последнюю запись употребления, которую юзер еще НЕ оценивал
+    action = DrunkAction.query.filter_by(user_id=user.id, drink_id=id).order_by(DrunkAction.timestamp.desc()).first()
+
+    if not action:
+        return jsonify({
+            'error': 'Forbidden',
+            'message': 'Вы не можете оценить напиток, пока не отметите факт его употребления (нажав "Выпить").'
+        }), 403
+
+    # Если в модели DrunkAction есть флаг rated (был ли этот бокал уже оценен)
+    if hasattr(action, 'is_rated') and action.is_rated:
+        return jsonify({
+            'error': 'Conflict',
+            'message': 'Вы уже оценили этот бокал. Чтобы оценить снова, добавьте новую запись употребления.'
+        }), 409
+
+    # 2. Получаем оценку из Swift
     json_data = request.get_json()
     if not json_data or 'rating' not in json_data:
         return jsonify({'error': 'Bad Request', 'message': 'Отсутствует поле rating'}), 400
@@ -109,21 +98,19 @@ def rate_drink(id):
         return jsonify({'error': 'Validation Error', 'message': 'Оценка должна быть целым числом'}), 422
 
     try:
-        # 3. ЛОГИКА ПЕРЕСЧЕТА (Без таблицы оценок):
-        # Если у напитка еще нет рейтинга (score равен None или 0)
+        # 3. Алгоритм экспоненциального сглаживания (из твоей логики бэкенда)
         if not drink.score or float(drink.score) == 0.0:
             drink.score = float(new_rating)
         else:
-            # «Мягкое» обновление рейтинга (алгоритм экспоненциального сглаживания):
-            # Новая оценка влияет на общий рейтинг с определенным весом (например, 20%)
-            # Это позволяет рейтингу плавно изменяться, имитируя присутствие других оценок
             current_score = float(drink.score)
-            weight = 0.2  # Коэффициент влияния новой оценки (чем меньше, тем тяжелее изменить рейтинг)
-
+            weight = 0.2
             updated_score = (current_score * (1 - weight)) + (new_rating * weight)
             drink.score = round(updated_score, 2)
 
-        # 4. Сохраняем изменения в текущую таблицу drinks
+        # 4. Помечаем эту конкретную запись употребления как "оцененную"
+        if hasattr(action, 'is_rated'):
+            action.is_rated = True
+
         db.session.commit()
 
     except Exception as e:

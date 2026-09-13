@@ -1,47 +1,47 @@
-from flask import jsonify, request, g, url_for, current_app
+from flask import jsonify, request, g, current_app
 from .. import db
 from sqlalchemy.exc import IntegrityError
-from flask_login import current_user, login_required
 from ..models import Bar
 from . import api
-from .decorators import permission_required
-from .errors import forbidden
+from .decorators import mobile_token_required
 
 
-@api.route('/bars/map')
+@api.route('/bars/map', methods=['GET'])
 def get_bars_for_map():
     all_bars = Bar.query.all()
-
     # Фильтруем бары: берем только те, у которых адрес собрался корректно
     valid_bars = [bar.to_json() for bar in all_bars if bar.get_full_address() is not None]
-
     return jsonify({
         'bars': valid_bars
     })
 
 
-@api.route('/bars/', methods=['POST'])
-# @login_required  # Гарантирует, что сессия активна и пользователь залогинен
-##@permission_required(Permission.WRITE) # Проверяет права текущего пользователя
+@api.route('/bars/create', methods=['POST'])
+@mobile_token_required  # Из паспорта: проверяет Bearer JWT и пишет юзера в g.current_mobile_user
 def create_bar():
-    # 1. Получаем JSON из запроса
+    # 1. Проверяем строковую ролевую модель из паспорта проекта
+    current_user = g.current_mobile_user
+    if current_user.role != 'administrator':
+        return jsonify({
+            'error': 'Forbidden',
+            'message': 'Доступ запрещен. Создавать бары может только администратор.'
+        }), 403
+
+    # 2. Получаем JSON из запроса
     json_data = request.get_json()
     if not json_data:
         return jsonify({'error': 'Bad Request', 'message': 'Отсутствуют JSON данные'}), 400
 
-    # 2. Обязательные поля для валидации
     name = json_data.get('name')
     address = json_data.get('address')
     city = json_data.get('city')
 
-    # Базовая проверка на заполненность критичных полей
+    # Валидация полей
     if not name or not address:
         return jsonify({'error': 'Validation Error', 'message': 'Поля name и address обязательны'}), 422
 
-    # 3. Привязываем администратора бара из текущей сессии (current_user)
-    # Если суперадмин может создавать бары для других менеджеров,
-    # приоритет отдаем admin_id из JSON, иначе берем текущего юзера.
-    admin_id = json_data.get('admin_id') or current_user.id
+    # 3. Привязываем администратора бара на основе верифицированного JWT контекста g
+    admin_id = current_user.id
 
     # 4. Создаем экземпляр модели
     new_bar = Bar(
@@ -52,7 +52,7 @@ def create_bar():
         rate=json_data.get('rate', 0.0)
     )
 
-    # 5. Сохраняем в базу данных с обработкой уникальности имени
+    # 5. Сохраняем в СУБД
     try:
         db.session.add(new_bar)
         db.session.commit()
@@ -63,7 +63,7 @@ def create_bar():
         db.session.rollback()
         return jsonify({'error': 'Internal Server Error', 'message': str(e)}), 500
 
-    # 6. Возвращаем успешный ответ (201 Created)
+    # 6. Возвращаем успешный ответ (201 Created) под спецификацию iOS
     return jsonify({
         'status': 'success',
         'message': 'Бар успешно создан',
@@ -77,20 +77,16 @@ def create_bar():
 
 
 @api.route('/bars/<int:id>', methods=['GET'])
-# @login_required  # Требуем сессию авторизованного пользователя
+@mobile_token_required  # Защищаем эндпоинт карточки бара для мобилки
 def get_bar(id):
-    # 1. Ищем бар по ID (автоматический 404, если не найден)
     bar = Bar.query.get_or_404(id)
-
-    # 2. Формируем базовый URL для картинок напитков, как в твоей ручке /drinks/
     base_url = request.host_url.rstrip('/')
 
-    # 3. Собираем список напитков, переиспользуя метод то_json() модели Drink
     drinks_list = []
     for drink in bar.drinks:
         drink_data = drink.to_json()
 
-        # Добавляем абсолютный путь к фото для отображения в UIImageView / AsyncImage
+        # Формируем абсолютный URL картинок для UIImageView / AsyncImage на iOS
         if drink_data.get('image'):
             drink_data['image_url'] = f"{base_url}/static/drinks/{drink_data['image']}"
         else:
@@ -98,7 +94,6 @@ def get_bar(id):
 
         drinks_list.append(drink_data)
 
-    # 4. Отдаем полный JSON для Swift-экрана
     return jsonify({
         'id': bar.id,
         'name': bar.name,
@@ -107,42 +102,53 @@ def get_bar(id):
         'rate': float(bar.rate) if bar.rate else 0.0,
         'manager_name': bar.get_user_name(),
         'admin_id': bar.admin_id,
-        'drinks': drinks_list  # Список напитков теперь содержит полные данные с image_url
+        'drinks': drinks_list
     }), 200
 
 
-# @api.route('/bars/')
-# def get_bars():
-#     page = request.args.get('page', 1, type=int)
-#     pagination = Bar.query.paginate(
-#         page=page, per_page=current_app.config['DRINKS_PER_PAGE']+2,
-#         error_out=False)
-#     bars = pagination.items
-#     prev = None
-#     if pagination.has_prev:
-#         prev = url_for('api.get_bars', page=page-1)
-#     next = None
-#     if pagination.has_next:
-#         next = url_for('api.get_bars', page=page+1)
-#     return jsonify({
-#         'bars': [bar.to_json() for bar in bars],
-#         'prev': prev,
-#         'next': next,
-#         'count': pagination.total
-#     })
+@api.route('/bars/<int:bar_id>/drinks/add', methods=['POST'])
+@mobile_token_required  # Проверяем Bearer JWT токен менеджера/админа
+def add_drink_to_bar(bar_id):
+    # 1. Ищем бар, в который добавляем напиток
+    bar = Bar.query.get_or_404(bar_id)
 
+    # 2. Проверяем права строковой ролевой модели БРС
+    current_user = g.current_mobile_user
+    if current_user.role not in ['manager', 'administrator']:
+        return jsonify({'error': 'Forbidden', 'message': 'Недостаточно прав для добавления напитков'}), 403
 
-# @api.route('/bars/<int:id>')
-# def get_bar(id):
-#     post = Bar.query.get_or_404(id)
-#     return jsonify(post.to_json())
+    # 3. Валидируем JSON от iOS
+    json_data = request.get_json()
+    if not json_data:
+        return jsonify({'error': 'Bad Request', 'message': 'Отсутствуют JSON данные'}), 400
 
+    name = json_data.get('name')
+    drink_type = json_data.get('type', 'Пиво')
+    abv = float(json_data.get('abv', 0.0))
 
-# @api.route('/bars/', methods=['POST'])
-# def new_bar():
-#     bar = Bar.from_json(request.json)
-#     # Add admin from creator
-#     db.session.add(bar)
-#     db.session.commit()
-#     return jsonify(bar.to_json()), 201, \
-#         {'Location': url_for('api.get_bar', id=bar.id)}
+    if not name:
+        return jsonify({'error': 'Validation Error', 'message': 'Название напитка обязательно'}), 422
+
+    # 4. Создаем напиток с правильным именем колонки СУБД (image_path вместо image)
+    from ..models import Drink
+    new_drink = Drink(
+        name=name.strip(),
+        type=drink_type,
+        abv=abv,
+        score=0.0,  # Защита Swift от null-значений
+        bar_id=bar.id,
+        image_path=json_data.get('image_url') if json_data.get('image_url') else None  # 🌟 ИСПРАВЛЕНО ЗДЕСЬ
+    )
+
+    try:
+        db.session.add(new_drink)
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': 'Internal Server Error', 'message': str(e)}), 500
+
+    return jsonify({
+        'status': 'success',
+        'message': 'Напиток успешно добавлен в меню',
+        'drink': new_drink.to_json()
+    }), 201
