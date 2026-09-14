@@ -1,7 +1,8 @@
 from flask import jsonify, request, g, current_app
 from .. import db
 from sqlalchemy.exc import IntegrityError
-from ..models import Bar
+from datetime import datetime
+from ..models import Bar, BarCheckIn, DrunkAction
 from . import api
 from .decorators import mobile_token_required
 
@@ -85,16 +86,28 @@ def create_bar():
 
 
 @api.route('/bars/<int:id>', methods=['GET'])
-@mobile_token_required  # Защищаем эндпоинт карточки бара для мобилки
+@mobile_token_required
 def get_bar(id):
     bar = Bar.query.get_or_404(id)
     base_url = request.host_url.rstrip('/')
+    user_id = g.current_mobile_user.id
+
+    # 1. Проверяем, зачекинен ли юзер в этом баре
+    active_checkin = BarCheckIn.query.filter_by(user_id=user_id, bar_id=bar.id).first()
+    is_bar_active = active_checkin is not None and not active_checkin.is_expired()
 
     drinks_list = []
     for drink in bar.drinks:
         drink_data = drink.to_json()
 
-        # Формируем абсолютный URL картинок для UIImageView / AsyncImage на iOS
+        # 2. ЧЕСТНАЯ ПРОВЕРКА БРС: Смотрим в СУБД, пил ли этот юзер этот конкретный напиток
+        has_drunk = DrunkAction.query.filter_by(user_id=user_id, drink_id=drink.id).first() is not None
+
+        # Напиток можно оценивать ТОЛЬКО если юзер зачекинен в баре И уже выпил его.
+        # Записываем этот статус в can_rate для iOS
+        drink_data['can_rate'] = is_bar_active and has_drunk
+
+        # Сборка абсолютного URL для картинок
         if drink_data.get('image'):
             drink_data['image_url'] = f"{base_url}/static/drinks/{drink_data['image']}"
         else:
@@ -102,14 +115,16 @@ def get_bar(id):
 
         drinks_list.append(drink_data)
 
+    # Отдаем полный JSON для Swift-экрана
     return jsonify({
         'id': bar.id,
         'name': bar.name,
-        'address': bar.get_full_address(),
+        'address': bar.get_full_address() if bar.get_full_address() else "Адрес не указан",
         'city': bar.city,
         'rate': float(bar.rate) if bar.rate else 0.0,
         'manager_name': bar.get_user_name(),
         'admin_id': bar.admin_id,
+        'isCheckedIn': is_bar_active,
         'drinks': drinks_list
     }), 200
 
@@ -159,4 +174,40 @@ def add_drink_to_bar(bar_id):
         'status': 'success',
         'message': 'Напиток успешно добавлен в меню',
         'drink': new_drink.to_json()
+    }), 201
+
+
+@api.route('/bars/checkin', methods=['POST'])
+@mobile_token_required
+def bar_checkin():
+    user = g.current_mobile_user
+    json_data = request.get_json()
+
+    if not json_data or 'qr_hash' not in json_data:
+        return jsonify({'error': 'Bad Request', 'message': 'Отсутствует QR-код заведения'}), 400
+
+    qr_hash = json_data.get('qr_hash').strip()
+
+    # Ищем бар, которому принадлежит этот QR-код
+    bar = Bar.query.filter_by(qr_secret_hash=qr_hash).first()
+    if not bar:
+        return jsonify({'error': 'Not Found', 'message': 'Невалидный QR-код. Заведение не найдено.'}), 404
+
+    # Зачищаем старые протухшие чекины этого юзера, чтобы не копить мусор в СУБД
+    BarCheckIn.query.filter_by(user_id=user.id).delete()
+
+    # Создаем новую активную сессию присутствия в баре
+    new_checkin = BarCheckIn(user_id=user.id, bar_id=bar.id, timestamp=datetime.utcnow())
+
+    try:
+        db.session.add(new_checkin)
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': 'Internal Server Error', 'message': str(e)}), 500
+
+    return jsonify({
+        'status': 'success',
+        'message': f'Вы успешно чекинились в баре {bar.name}! Сессия активна 3 часа.',
+        'checkin': new_checkin.to_json()
     }), 201
