@@ -1,11 +1,12 @@
 from flask import jsonify, request, g, current_app
 from .. import db
-from ..models import Drink, DrunkAction
+from ..models import Drink, DrunkAction, BarCheckIn
 from . import api
 from .decorators import mobile_token_required
+from datetime import datetime
 
 
-@api.route('/drinks/', methods=['GET'])
+@api.route('/drinks', methods=['GET'])
 @mobile_token_required  # Теперь список напитков защищен токеном
 def get_drinks():
     page = request.args.get('page', 1, type=int)
@@ -18,12 +19,27 @@ def get_drinks():
     )
     drinks = pagination.items
     base_url = request.host_url.rstrip('/')
+    user_id = g.current_mobile_user.id  # Получаем ID текущего залогиненного юзера
 
     json_drinks = []
     for drink in drinks:
         drink_data = drink.to_json()
-        drink_data['image_url'] = f"{base_url}/static/drinks/{drink_data.get('image')}" if drink_data.get(
-            'image') else None
+
+        # Сборка абсолютного URL для картинок
+        if drink_data.get('image'):
+            drink_data['image_url'] = f"{base_url}/static/drinks/{drink_data['image']}"
+        else:
+            drink_data['image_url'] = None
+
+        # 🌟 ИСПРАВЛЕНИЕ 2: Считаем честный статус can_rate для каждого напитка из базы,
+        # чтобы ячейки в общем списке "Барная карта" знали, активировать ли зеленый статус "Выпито"!
+        from ..models import DrunkAction, BarCheckIn
+        active_checkin = BarCheckIn.query.filter_by(user_id=user_id, bar_id=drink.bar_id).first()
+        is_bar_active = active_checkin is not None and not active_checkin.is_expired()
+
+        has_drunk = DrunkAction.query.filter_by(user_id=user_id, drink_id=drink.id).first() is not None
+        drink_data['can_rate'] = is_bar_active and has_drunk
+
         json_drinks.append(drink_data)
 
     return jsonify({
@@ -67,6 +83,22 @@ def get_drink(id):
 def rate_drink(id):
     drink = Drink.query.get_or_404(id)
     user = g.current_mobile_user
+
+    # 🌟 ГЛАВНЫЙ СЛOЙ ЗАЩИТЫ БРС: Проверяем наличие активного QR-чекина в этом конкретном баре
+    from ..models import BarCheckIn
+    active_checkin = BarCheckIn.query.filter_by(user_id=user.id, bar_id=drink.bar_id).first()
+
+    # Если чекина нет или с момента сканирования прошло больше 3 часов
+    if not active_checkin or active_checkin.is_expired():
+        # Если чекин устарел, сразу трем его из базы
+        if active_checkin:
+            db.session.delete(active_checkin)
+            db.session.commit()
+
+        return jsonify({
+            'error': 'Forbidden',
+            'message': 'Для оценки напитка необходимо отсканировать QR-код на столе этого заведения.'
+        }), 403
 
     # 1. ЗАЩИТА ОТ НАКРУТКИ: Проверяем, пил ли пользователь этот напиток вообще
     # Ищем последнюю запись употребления, которую юзер еще НЕ оценивал
@@ -123,3 +155,38 @@ def rate_drink(id):
         'message': 'Оценка учтена',
         'new_score': float(drink.score)
     }), 200
+
+
+@api.route('/drinks/<int:id>/drink', methods=['POST'])
+@mobile_token_required  # Требуем Bearer JWT токен юзера
+def log_drink_action(id):
+    drink = Drink.query.get_or_404(id)
+    user = g.current_mobile_user
+
+    # 1. ЗАЩИТА БРС: Проверяем, зачекинен ли пользователь в баре, где налит напиток
+    active_checkin = BarCheckIn.query.filter_by(user_id=user.id, bar_id=drink.bar_id).first()
+    if not active_checkin or active_checkin.is_expired():
+        return jsonify({
+            'error': 'Forbidden',
+            'message': 'Вы не можете отметить напиток выпитым, пока не выполните QR-чекин в этом заведении.'
+        }), 403
+
+    # 2. Создаем экземпляр транзакции (один бокал = одна запись в таблице)
+    new_action = DrunkAction(
+        user_id=user.id,
+        drink_id=drink.id,
+        timestamp=datetime.utcnow()  # Фиксируем точное время по UTC
+    )
+
+    try:
+        db.session.add(new_action)
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': 'Internal Server Error', 'message': str(e)}), 500
+
+    return jsonify({
+        'status': 'success',
+        'message': f'Запись добавлена: выпит 1 бокал {drink.name}.',
+        'action_id': new_action.id
+    }), 201

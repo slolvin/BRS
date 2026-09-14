@@ -3,9 +3,7 @@ import hashlib
 from datetime import datetime, timedelta
 from flask_login import UserMixin, AnonymousUserMixin
 from flask import current_app, request, url_for
-from app.exeptions import ValidationError
 from . import db, login_manager
-from hashlib import md5
 import re
 import jwt
 
@@ -190,7 +188,7 @@ class Bar(db.Model):
     city = db.Column(db.Text())
     rate = db.Column(db.Numeric(5, 2))
     drinks = db.relationship('Drink', backref='bar', lazy='joined', cascade="all, delete-orphan")
-
+    qr_secret_hash = db.Column(db.String(128), unique=True, nullable=True)
     latitude = db.Column(db.Float, nullable=True)  # Широта (например: 55.7558)
     longitude = db.Column(db.Float, nullable=True)  # Долгота (например: 37.6173)
 
@@ -327,6 +325,29 @@ class AnonymousUser(AnonymousUserMixin):
 
     def is_user(self):
         return False
+
+
+class BarCheckIn(db.Model):
+    __tablename__ = 'bar_checkins'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    bar_id = db.Column(db.Integer, db.ForeignKey('bars.id'), nullable=False)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    # Метод проверки: не истекли ли 3 часа с момента сканирования QR
+    def is_expired(self):
+        # 2026-й год на дворе, используем чистый тайм-дельта
+        return datetime.utcnow() > self.timestamp + timedelta(hours=3)
+
+    def to_json(self):
+        return {
+            'id': self.id,
+            'user_id': self.user_id,
+            'bar_id': self.bar_id,
+            'timestamp': self.timestamp.isoformat(),
+            'is_active': not self.is_expired()
+        }
 
 
 # Привязываем кастомного гостя к менеджеру логина Flask
