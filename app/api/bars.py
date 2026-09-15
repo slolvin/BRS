@@ -1,4 +1,4 @@
-from flask import jsonify, request, g, current_app
+from flask import jsonify, request, g
 from .. import db
 from sqlalchemy.exc import IntegrityError
 from datetime import datetime
@@ -90,24 +90,23 @@ def create_bar():
 def get_bar(id):
     bar = Bar.query.get_or_404(id)
     base_url = request.host_url.rstrip('/')
-    user_id = g.current_mobile_user.id
+    user = g.current_mobile_user  # Получаем текущего юзера из JWT-токена
 
-    # 1. Проверяем, зачекинен ли юзер в этом баре
-    active_checkin = BarCheckIn.query.filter_by(user_id=user_id, bar_id=bar.id).first()
+    # 1. Проверяем, зачекинен ли юзер
+    active_checkin = BarCheckIn.query.filter_by(user_id=user.id, bar_id=bar.id).first()
     is_bar_active = active_checkin is not None and not active_checkin.is_expired()
+
+    # 🌟 2. ЧЕСТНАЯ ПРОВЕРОЧКА ИЗБРАННОГО: Используем твое поле favorite_bars
+    is_favorite = user.favorite_bars.filter_by(id=bar.id).first() is not None
 
     drinks_list = []
     for drink in bar.drinks:
         drink_data = drink.to_json()
 
-        # 2. ЧЕСТНАЯ ПРОВЕРКА БРС: Смотрим в СУБД, пил ли этот юзер этот конкретный напиток
-        has_drunk = DrunkAction.query.filter_by(user_id=user_id, drink_id=drink.id).first() is not None
-
-        # Напиток можно оценивать ТОЛЬКО если юзер зачекинен в баре И уже выпил его.
-        # Записываем этот статус в can_rate для iOS
+        # Проверка DrunkAction для кнопок "Выпить"
+        has_drunk = DrunkAction.query.filter_by(user_id=user.id, drink_id=drink.id).first() is not None
         drink_data['can_rate'] = is_bar_active and has_drunk
 
-        # Сборка абсолютного URL для картинок
         if drink_data.get('image'):
             drink_data['image_url'] = f"{base_url}/static/drinks/{drink_data['image']}"
         else:
@@ -115,7 +114,7 @@ def get_bar(id):
 
         drinks_list.append(drink_data)
 
-    # Отдаем полный JSON для Swift-экрана
+    # Отдаем полный JSON для Swift-экрана, включая флаги isCheckedIn и isFavorite
     return jsonify({
         'id': bar.id,
         'name': bar.name,
@@ -125,9 +124,52 @@ def get_bar(id):
         'manager_name': bar.get_user_name(),
         'admin_id': bar.admin_id,
         'isCheckedIn': is_bar_active,
+        'is_favorite': is_favorite,  # 🌟 ИСПРАВЛЕНО: привели к общему стандарту с нижним подчеркиванием
         'drinks': drinks_list
     }), 200
 
+
+@api.route('/bars/<int:bar_id>/favorite', methods=['POST'])
+@mobile_token_required
+def toggle_mobile_bar_favorite(bar_id):
+    bar = Bar.query.get_or_404(bar_id)
+    user = g.current_mobile_user
+
+    # Проверяем наличие бара в избранном по твоей логике СУБД
+    is_fav = user.favorite_bars.filter_by(id=bar.id).first() is not None
+
+    if is_fav:
+        # Если уже в любимых — удаляем
+        user.favorite_bars.remove(bar)
+
+        # Твой кастомный метод логов БРС (если он доступен в модели)
+        if hasattr(user, 'log_action'):
+            user.log_action(
+                action_type='favorite_remove',
+                description=f'Вы удалили заведение «{bar.name}» из избранного'
+            )
+        message = f"Заведение {bar.name} удалено из избранного"
+        current_status = False
+    else:
+        # Если еще нет — добавляем
+        user.favorite_bars.append(bar)
+
+        if hasattr(user, 'log_action'):
+            user.log_action(
+                action_type='favorite_add',
+                description=f'Вы добавили заведение «{bar.name}» в избранное'
+            )
+        message = f"Заведение {bar.name} добавлено в избранное!"
+        current_status = True
+
+    db.session.commit()
+
+    # Возвращаем строгий JSON-статус вместо веб-страницы!
+    return jsonify({
+        'status': 'success',
+        'message': message,
+        'isFavorite': current_status
+    }), 200
 
 @api.route('/bars/<int:bar_id>/drinks/add', methods=['POST'])
 @mobile_token_required  # Проверяем Bearer JWT токен менеджера/админа
@@ -211,3 +253,28 @@ def bar_checkin():
         'message': f'Вы успешно чекинились в баре {bar.name}! Сессия активна 3 часа.',
         'checkin': new_checkin.to_json()
     }), 201
+
+
+@api.route('/user/favorites', methods=['GET'])
+@mobile_token_required  # Гарантируем проверку Bearer JWT-токена
+def get_mobile_user_favorites():
+    user = g.current_mobile_user
+    base_url = request.host_url.rstrip('/')
+
+    # Запрашиваем Many-to-Many связь, которую мы подтвердили в СУБД
+    fav_bars = user.favorite_bars.all()
+
+    bars_json = []
+    for bar in fav_bars:
+        bars_json.append({
+            'id': bar.id,
+            'name': bar.name,
+            'address': bar.get_full_address() if bar.get_full_address() else "Адрес не указан",
+            'city': bar.city if bar.city else "Любляна",
+            'rate': float(bar.rate) if bar.rate else 0.0
+        })
+
+    # Отдаем строгий JSON с ключом 'bars', который прописан в Swift-модели FavoriteBarsResponse
+    return jsonify({
+        'bars': bars_json
+    }), 200

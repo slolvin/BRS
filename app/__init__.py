@@ -1,6 +1,6 @@
 from flask import Flask, render_template
 from flask_bootstrap import Bootstrap5
-#from flask_mail import Mail
+from flask_mail import Mail
 #from flask_moment import Moment
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
@@ -10,7 +10,7 @@ from flask_wtf.csrf import CSRFProtect
 from prometheus_flask_exporter import PrometheusMetrics
 
 bootstrap = Bootstrap5()
-# mail = Mail()
+mail = Mail()
 # moment = Moment()
 db = SQLAlchemy()
 csrf = CSRFProtect()
@@ -27,7 +27,7 @@ def create_app(config_name=DevelopmentConfig):
     migrate = Migrate(app, db)
 
     bootstrap.init_app(app)
-    # mail.init_app(app)
+    mail.init_app(app)
     # moment.init_app(app)
     db.init_app(app)
     csrf.init_app(app)

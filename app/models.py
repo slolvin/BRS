@@ -1,4 +1,5 @@
 from werkzeug.security import generate_password_hash,check_password_hash
+from itsdangerous import URLSafeTimedSerializer as Serializer
 import hashlib
 from datetime import datetime, timedelta
 from flask_login import UserMixin, AnonymousUserMixin
@@ -75,6 +76,7 @@ class User(UserMixin, db.Model):
     member_since = db.Column(db.DateTime(), default=datetime.utcnow)
     last_seen = db.Column(db.DateTime(), default=datetime.utcnow)
     avatar_hash = db.Column(db.String(32))
+    confirmed = db.Column(db.Boolean, default=False, nullable=False)
     # Отношение для избранных напитков
     favorite_drinks = db.relationship('Drink',
                                       secondary=favorite_drinks,
@@ -83,6 +85,25 @@ class User(UserMixin, db.Model):
 
     # Новая история выпитого (один ко многим к таблице логов)
     drunk_history = db.relationship('DrunkAction', backref='user', lazy='dynamic', cascade="all, delete-orphan")
+
+    def generate_confirmation_token(self):
+        """Генерирует токен для ссылки подтверждения регистрации"""
+        s = Serializer(current_app.config['SECRET_KEY'])
+        return s.dumps({'confirm': self.id})
+
+    def confirm(self, token):
+        """Проверяет токен подтверждения из письма"""
+        s = Serializer(current_app.config['SECRET_KEY'])
+        try:
+            data = s.loads(token, max_age=3600)  # Токен активен 1 час
+        except:
+            return False
+        if data.get('confirm') != self.id:
+            return False
+        self.confirmed = True
+        db.session.add(self)
+        db.session.commit()
+        return True
 
     def generate_auth_token(self, expiration=604800):
         """

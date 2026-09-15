@@ -12,33 +12,26 @@ def get_drinks():
     page = request.args.get('page', 1, type=int)
     per_page = current_app.config.get('DRINKS_PER_PAGE', 10)
 
-    pagination = Drink.query.paginate(
-        page=page,
-        per_page=per_page,
-        error_out=False
-    )
+    pagination = Drink.query.paginate(page=page, per_page=per_page, error_out=False)
     drinks = pagination.items
     base_url = request.host_url.rstrip('/')
-    user_id = g.current_mobile_user.id  # Получаем ID текущего залогиненного юзера
+    user_id = g.current_mobile_user.id
 
     json_drinks = []
     for drink in drinks:
         drink_data = drink.to_json()
 
-        # Сборка абсолютного URL для картинок
         if drink_data.get('image'):
             drink_data['image_url'] = f"{base_url}/static/drinks/{drink_data['image']}"
         else:
             drink_data['image_url'] = None
 
-        # 🌟 ИСПРАВЛЕНИЕ 2: Считаем честный статус can_rate для каждого напитка из базы,
-        # чтобы ячейки в общем списке "Барная карта" знали, активировать ли зеленый статус "Выпито"!
-        from ..models import DrunkAction, BarCheckIn
-        active_checkin = BarCheckIn.query.filter_by(user_id=user_id, bar_id=drink.bar_id).first()
-        is_bar_active = active_checkin is not None and not active_checkin.is_expired()
-
+        # 🌟 ИСПРАВЛЕНО: Для глобального списка 'can_rate' отражает ТОЛЬКО факт того,
+        # пил ли юзер этот напиток когда-либо (True/False).
+        # У нового пользователя тут гарантированно запишется False!
+        from ..models import DrunkAction
         has_drunk = DrunkAction.query.filter_by(user_id=user_id, drink_id=drink.id).first() is not None
-        drink_data['can_rate'] = is_bar_active and has_drunk
+        drink_data['can_rate'] = has_drunk
 
         json_drinks.append(drink_data)
 
