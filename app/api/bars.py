@@ -2,9 +2,10 @@ from flask import jsonify, request, g
 from .. import db
 from sqlalchemy.exc import IntegrityError
 from datetime import datetime
-from ..models import Bar, BarCheckIn, DrunkAction
+from ..models import Bar, BarCheckIn, DrunkAction, User
 from . import api
 from .decorators import mobile_token_required
+import secrets
 
 
 @api.route('/bars/map', methods=['GET'])
@@ -26,9 +27,8 @@ def get_bars_for_map():
 
 
 @api.route('/bars/create', methods=['POST'])
-@mobile_token_required  # Из паспорта: проверяет Bearer JWT и пишет юзера в g.current_mobile_user
+@mobile_token_required
 def create_bar():
-    # 1. Проверяем строковую ролевую модель из паспорта проекта
     current_user = g.current_mobile_user
     if current_user.role != 'administrator':
         return jsonify({
@@ -36,7 +36,6 @@ def create_bar():
             'message': 'Доступ запрещен. Создавать бары может только администратор.'
         }), 403
 
-    # 2. Получаем JSON из запроса
     json_data = request.get_json()
     if not json_data:
         return jsonify({'error': 'Bad Request', 'message': 'Отсутствуют JSON данные'}), 400
@@ -45,23 +44,25 @@ def create_bar():
     address = json_data.get('address')
     city = json_data.get('city')
 
-    # Валидация полей
     if not name or not address:
         return jsonify({'error': 'Validation Error', 'message': 'Поля name и address обязательны'}), 422
 
-    # 3. Привязываем администратора бара на основе верифицированного JWT контекста g
     admin_id = current_user.id
 
-    # 4. Создаем экземпляр модели
+    # 🌟 2. ГЕНЕРАЦИЯ СЕКРЕТА: Создаем уникальный случайный хэш (64 символа)
+    # По паспорту СУБД: именно это поле сверяется при QR-валидации присутствия
+    generated_qr_secret = secrets.token_hex(32)
+
+    # 3. Создаем экземпляр модели с заполнением qr_secret_hash
     new_bar = Bar(
         name=name.strip(),
         address=address.strip(),
         city=city.strip() if city else "Самара",
         admin_id=admin_id,
-        rate=json_data.get('rate', 0.0)
+        rate=json_data.get('rate', 0.0),
+        qr_secret_hash=generated_qr_secret  # 🌟 Присваиваем сгенерированный хэш полю модели
     )
 
-    # 5. Сохраняем в СУБД
     try:
         db.session.add(new_bar)
         db.session.commit()
@@ -72,7 +73,7 @@ def create_bar():
         db.session.rollback()
         return jsonify({'error': 'Internal Server Error', 'message': str(e)}), 500
 
-    # 6. Возвращаем успешный ответ (201 Created) под спецификацию iOS
+    # 4. Возвращаем успешный ответ и прокидываем хэш обратно в iOS приложение
     return jsonify({
         'status': 'success',
         'message': 'Бар успешно создан',
@@ -80,7 +81,8 @@ def create_bar():
             'id': new_bar.id,
             'name': new_bar.name,
             'address': new_bar.get_full_address(),
-            'manager': new_bar.get_user_name()
+            'manager': new_bar.get_user_name(),
+            'qr_secret_hash': new_bar.qr_secret_hash  # 🌟 Отдаем его фронтенду
         }
     }), 201
 
@@ -278,3 +280,64 @@ def get_mobile_user_favorites():
     return jsonify({
         'bars': bars_json
     }), 200
+
+
+@api.route('/user/managed_bars', methods=['GET'])
+@mobile_token_required
+def get_managed_bars():
+    current_user = g.current_mobile_user
+
+    # Ролевой барьер: отсекаем обычных гостей
+    if current_user.role.lower() not in ['manager', 'administrator']:
+        return jsonify({
+            'error': 'Forbidden',
+            'message': 'Данный раздел доступен только для менеджеров и администраторов БРС.'
+        }), 403
+
+    # 🌟 АРХИТЕКТУРНЫЙ ФИКС ВЫБОРКИ ДЛЯ СУПЕРАДМИНА:
+    if current_user.role.lower() == 'administrator':
+        # Верховный админ видит ВСЕ бары системы для глобального менеджмента
+        bars = Bar.query.all()
+    else:
+        # Обычный менеджер видит строго привязанные к нему точки
+        bars = Bar.query.filter_by(admin_id=current_user.id).all()
+
+    bars_json = []
+    for bar in bars:
+        bars_json.append({
+            'id': bar.id,
+            'name': bar.name,
+            'address': bar.get_full_address() if bar.get_full_address() else "Адрес не указан",
+            'city': bar.city,
+            'rate': float(bar.rate) if bar.rate else 0.0,
+            'qr_secret_hash': bar.qr_secret_hash if hasattr(bar, 'qr_secret_hash') else "no_secret_hash"
+        })
+
+    return jsonify({
+        'status': 'success',
+        'bars': bars_json
+    }), 200
+
+
+@api.route('/bars/<int:bar_id>/edit', methods=['POST'])
+@mobile_token_required
+def api_edit_bar(bar_id):
+    current_user = g.current_mobile_user
+    if current_user.role.lower() != 'administrator':
+        return jsonify({'error': 'Forbidden', 'message': 'Только суперадмин может менять привязку баров.'}), 403
+
+    bar = Bar.query.get_or_404(bar_id)
+    json_data = request.get_json() or {}
+
+    new_manager_id = json_data.get('manager_id')  # ID юзера, выбранного из списка
+    if new_manager_id:
+        manager_user = User.query.get(new_manager_id)
+        if manager_user:
+            bar.admin_id = manager_user.id
+            bar.manager_name = manager_user.username  # Синхронизируем имя для техпаспорта СУБД
+
+    bar.name = json_data.get('name', bar.name).strip()
+    bar.address = json_data.get('address', bar.address).strip()
+
+    db.session.commit()
+    return jsonify({'status': 'success', 'message': 'Данные бара и управляющий успешно обновлены.'}), 200

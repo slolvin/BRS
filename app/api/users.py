@@ -8,6 +8,7 @@ from ..models import Drink, User, DrunkAction, ActionLog
 #from .decorators import login_required
 from .decorators import mobile_token_required
 from sqlalchemy import func
+from werkzeug.security import generate_password_hash
 
 @api.route('/user/profile')
 @mobile_token_required
@@ -149,4 +150,176 @@ def update_user_location():
         'status': 'success',
         'message': f'Город успешно изменен на {user.location}',
         'current_city': user.location
+    }), 200
+
+
+@api.route('/admin/users', methods=['GET'])
+@mobile_token_required
+def api_users_management():
+    """Возвращает отфильтрованный список всех пользователей для админки iOS."""
+    current_user = g.current_mobile_user
+
+    # Жесткий барьер безопасности верховного админа
+    if current_user.role.lower() != 'administrator':
+        return jsonify({'error': 'Forbidden', 'message': 'Доступ запрещен. Только для администраторов.'}), 403
+
+    # Поддерживаем ваш веб-поиск ?search=...
+    search_query = request.args.get('search', '').strip()
+    query = User.query
+
+    if search_query:
+        query = query.filter(User.username.ilike(f'%{search_query}%'))
+
+    all_users = query.order_by(User.username.asc()).all()
+
+    # Формируем JSON с полями под спецификацию iOS
+    users_list = []
+    for user in all_users:
+        users_list.append({
+            'id': user.id,
+            'username': user.username,
+            'email': user.email,
+            'role': user.role,
+            'name': user.name or "",
+            'location': user.location or "",
+            'about_me': user.about_me or "",
+            'confirmed': user.confirmed
+        })
+
+    return jsonify({'status': 'success', 'users': users_list}), 200
+
+
+@api.route('/admin/users/<int:user_id>/edit', methods=['POST'])
+@mobile_token_required
+def api_edit_profile_admin(user_id):
+    """Принимает плоский JSON и обновляет профиль любого пользователя."""
+    current_user = g.current_mobile_user
+
+    if current_user.role.lower() != 'administrator':
+        return jsonify({'error': 'Forbidden', 'message': 'Доступ запрещен.'}), 403
+
+    target_user = User.query.get_or_404(user_id)
+    json_data = request.get_json() or {}
+
+    # Заменяем веб-логику form.validate_on_submit() на проверку JSON данных
+    new_username = json_data.get('username', '').strip()
+    new_email = json_data.get('email', '').strip()
+    new_role = json_data.get('role', '').lower().strip()  # 'user', 'manager', 'administrator'
+
+    if not new_username or not new_email or not new_role:
+        return jsonify({'error': 'Validation Error', 'message': 'Поля username, email и role обязательны.'}), 422
+
+    # Проверка на дубликаты (уникальность в СУБД)
+    if new_username != target_user.username and User.query.filter_by(username=new_username).first():
+        return jsonify({'error': 'Conflict', 'message': 'Этот никнейм уже занят.'}), 409
+    if new_email != target_user.email and User.query.filter_by(email=new_email).first():
+        return jsonify({'error': 'Conflict', 'message': 'Этот Email уже зарегистрирован.'}), 409
+
+    # Сохраняем изменения в модель СУБД из JSON
+    target_user.username = new_username
+    target_user.email = new_email
+    target_user.role = new_role
+    target_user.name = json_data.get('name', '').strip()
+    target_user.location = json_data.get('location', '').strip()
+    target_user.about_me = json_data.get('about_me', '').strip()
+
+    try:
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': 'Internal Server Error', 'message': str(e)}), 500
+
+    return jsonify({
+        'status': 'success',
+        'message': f'Профиль пользователя @{target_user.username} успешно обновлен.',
+        'user': {
+            'id': target_user.id,
+            'username': target_user.username,
+            'role': target_user.role
+        }
+    }), 200
+
+
+@api.route('/admin/managers', methods=['GET'])
+@mobile_token_required
+def get_all_managers():
+    """Возвращает список всех пользователей с ролью manager или administrator для назначения в бары."""
+    current_user = g.current_mobile_user
+    if current_user.role.lower() != 'administrator':
+        return jsonify({'error': 'Forbidden', 'message': 'Доступ разрешен только администраторам.'}), 403
+
+    # Вытаскиваем из СУБД тех, кто имеет право управлять заведениями
+    managers = User.query.filter(User.role.in_(['manager', 'administrator'])).order_by(User.username.asc()).all()
+
+    return jsonify({
+        'status': 'success',
+        'managers': [{'id': m.id, 'username': m.username} for m in managers]
+    }), 200
+
+
+@api.route('/user/edit_profile', methods=['POST'])
+@mobile_token_required
+def api_edit_profile():
+    """
+    Мобильный эндпоинт редактирования профиля текущим пользователем.
+    Принимает плоский JSON, поддерживает опциональную смену пароля.
+    """
+    current_user = g.current_mobile_user
+    json_data = request.get_json() or {}
+
+    new_email = json_data.get('email', '').strip()
+    new_name = json_data.get('name', '').strip()
+    new_location = json_data.get('location', '').strip()
+    new_about_me = json_data.get('about_me', '').strip()
+
+    # Блок безопасности (смена пароля)
+    password = json_data.get('password', '')
+    password_confirm = json_data.get('password_confirm', '')
+
+    if not new_email:
+        return jsonify({'error': 'Validation Error', 'message': 'Email обязателен для заполнения'}), 422
+
+    # 1. Проверка уникальности Email, если пользователь решил его поменять
+    if new_email != current_user.email:
+        email_exists = User.query.filter_by(email=new_email).first()
+        if email_exists:
+            return jsonify({'error': 'Conflict', 'message': 'Этот Email уже занят другим аккаунтом'}), 409
+        current_user.email = new_email
+
+    # 2. Обновляем личные данные в Postgres
+    current_user.name = new_name
+    current_user.location = new_location
+    current_user.about_me = new_about_me
+
+    # 3. Валидация и хэширование нового пароля из блока «Безопасность»
+    if password or password_confirm:
+        if password != password_confirm:
+            return jsonify({'error': 'Validation Error', 'message': 'Введенные пароли не совпадают'}), 422
+        if len(password) < 6:
+            return jsonify({'error': 'Validation Error', 'message': 'Пароль должен быть не менее 6 символов'}), 422
+
+        # Записываем в базу безопасный хэш вместо сырой строки!
+        current_user.password_hash = generate_password_hash(password)
+
+    # 4. Пишем каноничный системный лог БРС, как в вашей веб-версии
+    if hasattr(current_user, 'log_action'):
+        current_user.log_action(
+            action_type='edit_profile',
+            description='Вы обновили данные своего профиля через мобильное приложение'
+        )
+
+    try:
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': 'Internal Server Error', 'message': str(e)}), 500
+
+    return jsonify({
+        'status': 'success',
+        'message': 'Профиль успешно обновлен в СУБД БРС',
+        'user': {
+            'id': current_user.id,
+            'username': current_user.username,
+            'email': current_user.email
+        }
     }), 200

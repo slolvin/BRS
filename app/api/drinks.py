@@ -1,6 +1,6 @@
 from flask import jsonify, request, g, current_app
 from .. import db
-from ..models import Drink, DrunkAction, BarCheckIn
+from ..models import Drink, DrunkAction, BarCheckIn, Bar
 from . import api
 from .decorators import mobile_token_required
 from datetime import datetime
@@ -182,4 +182,90 @@ def log_drink_action(id):
         'status': 'success',
         'message': f'Запись добавлена: выпит 1 бокал {drink.name}.',
         'action_id': new_action.id
+    }), 201
+
+
+@api.route('/bars/<int:bar_id>/drinks/add', methods=['POST'])
+@mobile_token_required  # Из паспорта: верифицирует токен и пишет юзера в g.current_mobile_user
+def api_add_drink(bar_id):
+    """
+    Унифицированный мобильный эндпоинт добавления напитка менеджером/администратором.
+    Заменяет старую ручку, корректно работает со структурой СУБД (image_path, score).
+    """
+    current_user = g.current_mobile_user
+    bar = Bar.query.get_or_404(bar_id)
+
+    # 🌟 ЖЕСТКАЯ ПРОВЕРКА ВЛАДЕНИЯ ЗАВЕДЕНИЕМ ДЛЯ МЕНЕДЖЕРА:
+    if current_user.role.lower() == 'manager':
+        # Проверяем, привязан ли этот бар к текущему менеджеру в Postgres (по полю admin_id)
+        if bar.admin_id != current_user.id:
+            return jsonify({
+                'error': 'Forbidden',
+                'message': 'Доступ запрещен. Вы можете управлять меню только своего заведения.'
+            }), 403
+
+    # Если это не менеджер и не админ сети — полный отказ
+    elif current_user.role.lower() != 'administrator':
+        return jsonify({
+            'error': 'Forbidden',
+            'message': 'Недостаточно прав для выполнения этого действия.'
+        }), 403
+
+    # 3. Валидируем JSON от iOS-формы
+    json_data = request.get_json()
+    if not json_data:
+        return jsonify({'error': 'Bad Request', 'message': 'Отсутствуют JSON данные'}), 400
+
+    name = json_data.get('name')
+    drink_type = json_data.get('type', 'Пиво')
+    description = json_data.get('description', '')
+
+    if not name:
+        return jsonify({'error': 'Validation Error', 'message': 'Название напитка обязательно'}), 422
+
+    # Безопасный сбор объема и крепости под типы СУБД
+    try:
+        volume = int(json_data.get('volume', 0))
+    except (ValueError, TypeError):
+        volume = 0
+
+    try:
+        abv = float(json_data.get('abv', 0.0))
+    except (ValueError, TypeError):
+        abv = 0.0
+
+    # 4. Создаем напиток со всеми обязательными системными полями базы БРС
+    new_drink = Drink(
+        name=name.strip(),
+        type=drink_type.strip(),
+        description=description.strip(),
+        volume=volume,
+        abv=abv,
+        score=0.0,  # Гарантированная защита Swift от падения на null-значениях
+        bar_id=bar.id,
+        # Используем честное имя колонки из вашей рабочей СУБД!
+        image_path=json_data.get('image_url') if json_data.get('image_url') else None
+    )
+
+    # 5. Сохраняем трансляцию в базу
+    try:
+        db.session.add(new_drink)
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        print(f"❌ Ошибка сохранения напитка в Postgres: {str(e)}")
+        return jsonify({'error': 'Internal Server Error', 'message': str(e)}), 500
+
+    # 6. Успешный ответ 201 с JSON-представлением объекта под iOS-модель
+    return jsonify({
+        'status': 'success',
+        'message': 'Напиток успешно добавлен в меню заведения',
+        'drink': {
+            'id': new_drink.id,
+            'name': new_drink.name,
+            'type': new_drink.type,
+            'volume': new_drink.volume,
+            'abv': new_drink.abv,
+            'score': new_drink.score
+        }
     }), 201
