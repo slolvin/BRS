@@ -48,6 +48,16 @@
                             {{ form.role(class="form-select bg-dark bg-opacity-20 border-secondary border-opacity-25 text-white") }}
                         </div>
                     </div>
+                    <!-- 🌟 НОВЫЙ БЛОК: ЗАКРЕПЛЕНИЕ ЗАВЕДЕНИЯ БРС (Встает в один ряд справа) -->
+                    <div class="col-12 col-md-6" id="bar-selector-wrapper">
+                        <label for="assigned_bar" class="form-label small text-info fw-medium text-uppercase tracking-wider fs-8">Закрепленное заведение БРС</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-dark bg-opacity-50 border-secondary border-opacity-25 text-info">
+                                <i class="bi bi-building-fill-gear"></i>
+                            </span>
+                            {{ form.assigned_bar(class="form-select bg-dark bg-opacity-20 border-secondary border-opacity-25 text-white") }}
+                        </div>
+                    </div>
 
                     <!-- Реальное имя -->
                     <div class="col-12 col-md-6">
@@ -82,3 +92,26 @@
     </div>
 </div>
 {% endblock %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var roleSelect = document.getElementById('role');
+    var barWrapper = document.getElementById('bar-selector-wrapper');
+
+    function toggleBarVisibility() {
+        // Если у пользователя роль обычного юзера, прячем блок выбора бара
+        if (roleSelect.value === 'user') {
+            barWrapper.style.opacity = '0';
+            barWrapper.style.pointerEvents = 'none';
+            // Или жестко скрываем:
+            barWrapper.style.display = 'none';
+        } else {
+            barWrapper.style.display = 'block';
+            barWrapper.style.opacity = '1';
+            barWrapper.style.pointerEvents = 'auto';
+        }
+    }
+
+    roleSelect.addEventListener('change', toggleBarVisibility);
+    toggleBarVisibility(); // Проверяем состояние при загрузке страницы
+});
+</script>

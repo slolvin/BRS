@@ -13,6 +13,10 @@ import random
 from werkzeug.utils import secure_filename
 from datetime import datetime, timedelta
 from sqlalchemy.orm import joinedload
+import io
+import base64
+import qrcode
+import secrets
 
 
 def allowed_file(filename):
@@ -38,7 +42,32 @@ def user(username):
         .all()
 
     favorite_bars = this_user.favorite_bars.all()
+    managed_bars = []
+    if this_user.role in ['manager', 'administrator']:
+        if this_user.role == 'administrator':
+            # Верховный админ видит вообще все бары системы
+            managed_bars = Bar.query.order_by(Bar.name.asc()).all()
+        else:
+            # Менеджер видит только свои закрепленные точки из Postgres
+            managed_bars = Bar.query.filter_by(admin_id=this_user.id).order_by(Bar.name.asc()).all()
 
+    managed_bars_with_qr = []
+    for b in managed_bars:
+        b_qr = None
+        if b.qr_secret_hash:
+            qr = qrcode.QRCode(version=1, box_size=10, border=2)
+            qr.add_data(b.qr_secret_hash)
+            qr.make(fit=True)
+            img = qr.make_image(fill_color="black", back_color="white")
+            buf = io.BytesIO()
+            img.save(buf, format='PNG')
+            b_qr = base64.b64encode(buf.getvalue()).decode('utf-8')
+
+        # Собираем словарь для удобного рендеринга в Jinja2
+        managed_bars_with_qr.append({
+            'bar': b,
+            'qr_base64': b_qr
+        })
     # === РАСЧЕТ СТАТИСТИКИ (Ваш прошлый код таблицы) ===
     now = datetime.utcnow()
     periods = {
@@ -113,7 +142,8 @@ def user(username):
         fav_drink=fav_drink,
         monthly_badge=monthly_badge,
         badge_desc=badge_desc,
-        badge_color=badge_color
+        badge_color=badge_color,
+        managed_bars=managed_bars_with_qr
     )
 
 
@@ -152,34 +182,48 @@ def edit_profile():
 # @admin_required
 def edit_profile_admin(id):
     user = User.query.get_or_404(id)
-
-    # Загружаем форму и передаем туда объект пользователя для валидации дубликатов
     form = EditProfileAdminForm(user=user)
 
     if form.validate_on_submit():
-        # Сохраняем измененные данные в модель
         user.email = form.email.data
         user.username = form.username.data
+        user.role = form.role.data
         user.name = form.name.data
         user.location = form.location.data
         user.about_me = form.about_me.data
+        # user.confirmed = form.confirmed.data (если используете флаг подтверждения)
 
-        # === САМАЯ ВАЖНАЯ СТРОЧКА: Меняем роль на выбранную в SelectField ===
-        # Сюда прилетит 'user', 'manager' или 'administrator'
-        user.role = form.role.data
+        # 🌟 ОБНОВЛЕНИЕ СВЯЗИ МЕНЕДЖЕРА И БАРА В СУБД POSTGRES
+        selected_bar_id = form.assigned_bar.data
+
+        # 1. Сбрасываем старые привязки этого юзера к любым барам сети
+        old_bars = Bar.query.filter_by(admin_id=user.id).all()
+        for b in old_bars:
+            b.admin_id = None
+            b.manager_name = "Не назначен"
+
+        # 2. Если роль позволяет управлять и выбран конкретный бар -> привязываем
+        if user.role in ['manager', 'administrator'] and selected_bar_id > 0:
+            target_bar = Bar.query.get(selected_bar_id)
+            if target_bar:
+                target_bar.admin_id = user.id
+                target_bar.manager_name = user.username  # Синхронизируем имя для паспорта СУБД
 
         db.session.commit()
-
         flash(f'Профиль пользователя @{user.username} успешно обновлен.', 'success')
         return redirect(url_for('.user', username=user.username))
 
-    # При первом GET-запросе предзаполняем поля формы текущими данными из БД
+    # GET-запрос: Предзаполняем личные поля
     form.email.data = user.email
     form.username.data = user.username
-    form.role.data = user.role  # Подставит текущую роль пользователя в выпадающий список
+    form.role.data = user.role
     form.name.data = user.name
     form.location.data = user.location
     form.about_me.data = user.about_me
+
+    # 🌟 ПРЕДЗАПОЛНЯЕМ ТЕКУЩИЙ ЗАКРЕПЛЕННЫЙ БАР
+    current_bar = Bar.query.filter_by(admin_id=user.id).first()
+    form.assigned_bar.data = current_bar.id if current_bar else 0
 
     return render_template('edit_profile_admin.html', form=form, user=user)
 
@@ -395,8 +439,44 @@ def edit_bar(id):
         db.session.commit()
         flash('The bar has been changed.')
         return redirect(url_for('main.get_bars_list'))
-    return render_template('editors/edit_bar.html', editing_bar=bar)
+    qr_base64 = None
+    if bar.qr_secret_hash:
+        # Создаем объект QR-кода на основе хэша из Postgres
+        qr = qrcode.QRCode(version=1, box_size=10, border=2)
+        qr.add_data(bar.qr_secret_hash)
+        qr.make(fit=True)
 
+        # Рендерим в картинку Pillow
+        img = qr.make_image(fill_color="black", back_color="white")
+
+        # Сохраняем в байтовый буфер в памяти RAM, чтобы не мусорить файлами на диске
+        buf = io.BytesIO()
+        img.save(buf, format='PNG')
+
+        # Кодируем байты в строку Base64 для безопасной вставки в HTML
+        qr_base64 = base64.b64encode(buf.getvalue()).decode('utf-8')
+    return render_template('editors/edit_bar.html', editing_bar=bar, qr_base64=qr_base64)
+
+
+@main.route('/generate-bar-qr/<int:id>', methods=['POST'])
+@login_required
+def generate_bar_qr(id):
+    bar = Bar.query.get_or_404(id)
+
+    # Защита: генерировать хэши может только суперадмин или владелец бара
+    if current_user.role == 'manager' and bar.admin_id != current_user.id:
+        flash('Доступ запрещен.', 'danger')
+        return redirect(url_for('main.user', username=current_user.username))
+    elif current_user.role == 'user':
+        abort(403)
+
+    # Генерируем 32-байтный хэш под паспорт проекта БРС
+    bar.qr_secret_hash = secrets.token_hex(32)
+    db.session.commit()
+
+    flash(f'Криптографический секрет для заведения "{bar.name}" успешно сгенерирован.', 'success')
+    # Возвращаем админа туда, откуда он пришел
+    return redirect(request.referrer or url_for('main.get_bar_drinks', id=bar.id))
 
 @main.route('/drinks/', methods=['GET'])
 def get_drinks_list():
@@ -483,62 +563,64 @@ def get_bar_drinks(id):
 
 
 @main.route('/add_drink/', methods=['GET', 'POST'])
+@login_required
 def add_drink():
     # Забираем ID бара из query-параметров URL (?bar_id=...)
     bar_id = request.args.get('bar_id', type=int)
 
+    # 🌟 БЕЗОПАСНОСТЬ: Если напиток привязывается к бару, проверяем права владения
+    if bar_id:
+        bar = Bar.query.get_or_404(bar_id)
+
+        # Если зашел менеджер, но он не является админом ЭТОГО конкретного заведения
+        if current_user.role == 'manager' and bar.admin_id != current_user.id:
+            flash('Доступ запрещен. Вы можете расширять ассортимент только своего бара.', 'danger')
+            return redirect(url_for('main.get_bar_drinks', id=bar.id))
+
+        # Если это обычный посетитель (user) — жесткий отлуп 403
+        elif current_user.role == 'user':
+            abort(403)
+    else:
+        # Если bar_id вообще не передан, создавать «глобальные» напитки может только суперадмин
+        if current_user.role != 'administrator':
+            abort(403)
+
     if request.method == 'POST':
         drink = Drink()
-
-        # Используем .get() с дефолтными значениями для безопасности
         drink.name = request.form.get('name', '').strip()
         drink.type = request.form.get('type', 'Cocktail')
         drink.description = request.form.get('description', '')
 
-        # === НОВЫЙ БЛОК: Сбор объема и крепости ===
         try:
             drink.volume = int(request.form.get('volume', 0))
         except (ValueError, TypeError):
             drink.volume = 0
 
         try:
-            # Преобразуем в float (SQLAlchemy Numeric сам приведет его к Decimal в БД)
             drink.abv = float(request.form.get('abv', 0.0))
         except (ValueError, TypeError):
             drink.abv = 0.0
-        # =========================================
 
-        # Обработка загрузки изображения
+        # Обработка изображений (сохраняем вашу оригинальную логику Werkzeug)
         if 'image' in request.files:
             file = request.files['image']
             if file and file.filename != '' and allowed_file(file.filename):
                 filename = secure_filename(file.filename)
-
-                # Гарантируем, что папка для загрузки существует
                 os.makedirs(Config.UPLOAD_FOLDER, exist_ok=True)
                 file_path = os.path.join(Config.UPLOAD_FOLDER, filename)
-
-                # Сохраняем файл силами Werkzeug
                 file.save(file_path)
                 drink.image_path = filename
-
-                # Ваша подстраховка на случай, если файл сохранился пустым (0 байт)
                 if os.path.exists(file_path) and os.path.getsize(file_path) == 0:
                     file.seek(0)
                     with open(file_path, 'wb') as f:
                         f.write(file.read())
-            elif file and file.filename != '':
-                flash('Недопустимый формат файла.', 'danger')
 
-        # Если напиток создается из контекста конкретного бара, привязываем его
         if bar_id:
             drink.bar_id = bar_id
 
-        # Сохраняем изменения в базу данных
         db.session.add(drink)
         db.session.commit()
-
-        flash('Напиток успешно добавлен!', 'success')
+        flash('Напиток успешно добавлен в меню!', 'success')
 
         if bar_id:
             return redirect(url_for('main.get_bar_drinks', id=bar_id))

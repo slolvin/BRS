@@ -11,9 +11,15 @@
             <!-- Название и Управляющий -->
             <div class="d-flex flex-wrap align-items-baseline gap-2 mb-1">
                 <h5 class="card-title fw-bold text-white mb-0 text-uppercase tracking-wide">{{ bar['name'] }}</h5>
-                <span class="text-white-50 small fs-8">
-                    (Управляющий: {{ bar.get_user_name() }} <span class="text-muted">ID: {{ bar['admin_id'] }}</span>)
-                </span>
+                {% if bar.manager %}
+                    <a href="{{ url_for('.user', username=bar.manager.username) }}" class="text-white fw-semibold text-decoration-none small">
+                        <i class="bi bi-person-badge text-secondary fs-7"></i> @{{ bar.manager.username }}
+                    </a>
+                {% else %}
+                    <span class="text-muted small italic">
+                        <i class="bi bi-person-dash me-1"></i> Не назначен
+                    </span>
+                {% endif %}
             </div>
 
             <!-- Геолокация -->
@@ -57,7 +63,7 @@
             <div class="d-flex justify-content-end align-items-center gap-2">
 
                 <!-- Кнопка Избранное -->
-                <div>
+                <div class="d-flex gap-2">
                     {% if current_user.is_authenticated %}
                         <form action="{{ url_for('.toggle_favorite', bar_id=bar.id) }}" method="POST" class="m-0">
                             {% if bar in current_user.favorite_bars.all() %}
@@ -75,20 +81,22 @@
                             <i class="bi bi-heart"></i>
                         </a>
                     {% endif %}
+
+                    <!-- Кнопка Редактирования -->
+                    {% if current_user.is_authenticated and (current_user.role == 'administrator' or (current_user.role == 'manager' and bar.admin_id == current_user.id)) %}
+                        <a class="btn btn-outline-secondary btn-sm p-2 d-flex align-items-center justify-content-center" style="width: 38px; height: 38px;"
+                           href="{{ url_for('.edit_bar', id=bar.id) }}" title="Edit">
+                           <i class="bi bi-pencil"></i>
+                        </a>
+                    {% endif %}
+
+                    <!-- Кнопка перехода к Меню -->
+                    <a class="btn btn-primary btn-sm px-3 h-100 d-flex align-items-center justify-content-center gap-1 shadow-sm" style="height: 38px;"
+                       href="{{ url_for('.get_bar_drinks', id=bar.id) }}">
+                       <span>Menu</span>
+                       <i class="bi bi-arrow-right-short fs-5 lh-1"></i>
+                    </a>
                 </div>
-
-                <!-- Кнопка Редактирования -->
-                <a class="btn btn-outline-secondary btn-sm p-2 d-flex align-items-center justify-content-center" style="width: 38px; height: 38px;"
-                   href="{{ url_for('.edit_bar', id=bar.id) }}" title="Edit">
-                   <i class="bi bi-pencil"></i>
-                </a>
-
-                <!-- Кнопка перехода к Меню -->
-                <a class="btn btn-primary btn-sm px-3 h-100 d-flex align-items-center justify-content-center gap-1 shadow-sm" style="height: 38px;"
-                   href="{{ url_for('.get_bar_drinks', id=bar.id) }}">
-                   <span>Menu</span>
-                   <i class="bi bi-arrow-right-short fs-5 lh-1"></i>
-                </a>
 
             </div>
         </div>
