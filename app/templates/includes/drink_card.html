@@ -81,7 +81,11 @@
         <!-- Текущий рейтинг -->
         <div class="mb-1 pt-3 border-top border-secondary border-opacity-10">
             <span class="text-secondary small d-block mb-1 fw-medium text-uppercase tracking-wider fs-8">Текущая оценка</span>
-            {% include "includes/rate_drink.html" %}
+            {% if drink['rate'] is not none %}
+                <div class="small-rating-container">
+                    {% include "includes/rate_drink.html" %}
+                </div>
+            {% endif %}
         </div>
     </div>
 
@@ -98,23 +102,16 @@
             {% set current_val = user_rating.value if user_rating else 0 %}
 
             <!-- Центрируем контейнер со звездами в блоке -->
-            <div class="d-flex align-items-center justify-content-center bg-body-tertiary bg-opacity-25 border border-secondary border-opacity-10 rounded-3 p-2 py-3">
-                <div class="rating-stars">
-                    <input type="radio" id="star5-{{ drink.id }}" name="value" value="5" {% if current_val == 5 %}checked{% endif %} onchange="this.form.submit()" required />
-                    <label for="star5-{{ drink.id }}" title="5 — Отлично"></label>
-
-                    <input type="radio" id="star4-{{ drink.id }}" name="value" value="4" {% if current_val == 4 %}checked{% endif %} onchange="this.form.submit()" />
-                    <label for="star4-{{ drink.id }}" title="4 — Хорошо"></label>
-
-                    <input type="radio" id="star3-{{ drink.id }}" name="value" value="3" {% if current_val == 3 %}checked{% endif %} onchange="this.form.submit()" />
-                    <label for="star3-{{ drink.id }}" title="3 — Нормально"></label>
-
-                    <input type="radio" id="star2-{{ drink.id }}" name="value" value="2" {% if current_val == 2 %}checked{% endif %} onchange="this.form.submit()" />
-                    <label for="star2-{{ drink.id }}" title="2 — Плохо"></label>
-
-                    <input type="radio" id="star1-{{ drink.id }}" name="value" value="1" {% if current_val == 1 %}checked{% endif %} onchange="this.form.submit()" />
-                    <label for="star1-{{ drink.id }}" title="1 — Ужасно"></label>
-                </div>
+            <div class="d-flex align-items-center justify-content-center gap-2 bg-body-tertiary bg-opacity-25 border border-secondary border-opacity-10 rounded-3 p-2 py-3">
+                {% for star in range(1, 6) %}
+                    <form action="{{ url_for('main.rate_drink', drink_id=drink.id) }}" method="POST" class="d-inline m-0">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                        <input type="hidden" name="value" value="{{ star }}"/>
+                        <button type="submit" class="btn btn-link p-0 text-decoration-none text-warning fs-4" title="Оценить на {{ star }}">
+                            <i class="bi {% if current_val >= star %}bi-star-fill{% else %}bi-star text-secondary opacity-50{% endif %}"></i>
+                        </button>
+                    </form>
+                {% endfor %}
             </div>
         </form>
     {% else %}

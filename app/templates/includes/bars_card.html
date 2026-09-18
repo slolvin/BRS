@@ -37,7 +37,6 @@
                 <span class="text-secondary d-block fs-8 text-uppercase tracking-wider fw-medium mb-1">Управляющий</span>
                 {% if bar.manager %}
                     <div class="d-flex align-items-center gap-2 text-white-50 small">
-                        <!-- 🌟 ИСПРАВЛЕНО: Читаем напрямую из связи баз данных без вызова методов -->
                         <a href="{{ url_for('.user', username=bar.manager.username) }}" class="text-white fw-semibold text-decoration-none small">
                             <i class="bi bi-person-badge text-secondary fs-7"></i> @{{ bar.manager.username}}
                         </a>
