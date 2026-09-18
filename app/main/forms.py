@@ -23,9 +23,10 @@ class EditProfileAdminForm(FlaskForm):
         )
     ])
     confirmed = BooleanField('Confirmed')
-
-    # ИСПРАВЛЕНО: Убрали coerce=int, так как роли теперь строковые (String)
     role = SelectField('Role')
+
+    # 🌟 ДОБАВЛЯЕМ ПОЛЕ ВЫБОРА БАРА ИЗ POSTGRES (coerce=int для ID)
+    assigned_bar = SelectField('Assigned Bar', coerce=int)
 
     name = StringField('Real name', validators=[Length(0, 64)])
     location = StringField('Location', validators=[Length(0, 64)])
@@ -34,18 +35,23 @@ class EditProfileAdminForm(FlaskForm):
 
     def __init__(self, user, *args, **kwargs):
         super(EditProfileAdminForm, self).__init__(*args, **kwargs)
-        # ИСПРАВЛЕНО: Захардкодили наши новые строковые роли напрямую в выпадающий список.
-        # Кортеж состоит из (значение_в_БД, текст_на_экране)
         self.role.choices = [
             ('user', 'User (Посетитель)'),
             ('manager', 'Manager (Управляющий)'),
             ('administrator', 'Administrator (Админ)')
         ]
+
+        # 🌟 ДИНАМИЧЕСКИЙ СБОР БАРОВ ИЗ СУБД ПРИ ИНИЦИАЛИЗАЦИИ ФОРМЫ
+        # Импортируем модель Bar локально, чтобы избежать циклического импорта
+        from ..models import Bar
+        all_bars = Bar.query.order_by(Bar.name.asc()).all()
+        self.assigned_bar.choices = [(0, '— Не назначен —')] + [(bar.id, f"{bar.name} ({bar.city})") for bar in
+                                                                all_bars]
+
         self.user = user
 
     def validate_email(self, field):
-        if field.data != self.user.email and \
-                User.query.filter_by(email=field.data).first():
+        if field.data != self.user.email and User.query.filter_by(email=field.data).first():
             raise ValidationError('Email already registered.')
 
     def validate_username(self, field):

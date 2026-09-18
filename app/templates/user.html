@@ -72,6 +72,81 @@
 
                     </div>
                 </div>
+                {% if user.role in ['manager', 'administrator'] %}
+                    <div class="card bg-dark bg-opacity-20 border-secondary border-opacity-25 rounded-4 p-4 mb-4">
+                        <h3 class="h5 fw-bold text-warning mb-3 text-uppercase tracking-wider fs-7">
+                            <i class="bi bi-briefcase-fill me-2"></i> Под управлением заведения
+                        </h3>
+
+                        {% if managed_bars %}
+                            <div class="list-group list-group-flush">
+                                {% for item in managed_bars %}
+                                    <!-- 🌟 Вытаскиваем bar и qr_base64 из переданного нами словаря -->
+                                    {% set bar = item.bar %}
+                                    {% set qr_base64 = item.qr_base64 %}
+
+                                    <div class="list-group-item bg-transparent border-secondary border-opacity-10 d-flex justify-content-between align-items-center px-0 py-3">
+                                        <div>
+                                            <a href="{{ url_for('.edit_bar', id=bar.id) }}" class="text-white fw-semibold text-decoration-none">
+                                                {{ bar.name }}
+                                            </a>
+                                            <div class="small text-secondary"><i class="bi bi-geo-alt-fill me-1"></i> {{ bar.address }}</div>
+                                        </div>
+
+                                        <div class="d-flex align-items-center gap-2">
+                                            <!-- 🌟 ИСПРАВЛЕНО: Кнопка "Код" теперь проверяет правильную переменную qr_base64 -->
+                                            {% if qr_base64 %}
+                                                <button class="btn btn-sm btn-dark border border-secondary border-opacity-20 px-3 text-warning"
+                                                        data-bs-toggle="modal" data-bs-target="#qrModal{{ bar.id }}">
+                                                    <i class="bi bi-qrcode"></i> Код
+                                                </button>
+                                            {% else %}
+                                                <!-- Кнопка генерации, если хэша в Postgres еще нет -->
+                                                <form action="{{ url_for('main.generate_bar_qr', id=bar.id) }}" method="POST" class="m-0">
+                                                    <button type="submit" class="btn btn-sm btn-outline-warning px-2">
+                                                        <i class="bi bi-plus-lg"></i> QR
+                                                    </button>
+                                                </form>
+                                            {% endif %}
+
+                                            <a href="{{ url_for('main.edit_bar', id=bar.id) }}" class="btn btn-sm btn-outline-secondary px-3">
+                                                <i class="bi bi-pencil"></i>
+                                            </a>
+
+                                            <!-- Ссылка на добавление напитка -->
+                                            <a href="{{ url_for('main.add_drink', bar_id=bar.id) }}" class="btn btn-sm btn-outline-primary px-3">
+                                                <i class="bi bi-plus-lg"></i> Напиток
+                                            </a>
+                                        </div>
+                                    </div>
+
+                                    <!-- 🌟 КРИТИЧЕСКИЙ ФИКС: Добавлен HTML-код всплывающего баннера модалки -->
+                                    {% if qr_base64 %}
+                                    <div class="modal fade" id="qrModal{{ bar.id }}" tabindex="-1" aria-hidden="true">
+                                        <div class="modal-dialog modal-dialog-centered modal-sm">
+                                            <div class="modal-content bg-dark border border-secondary border-opacity-25 rounded-4 shadow-lg">
+                                                <div class="modal-header border-0 pb-0">
+                                                    <h5 class="modal-title text-white small text-uppercase tracking-wider fw-bold mx-auto">{{ bar.name }}</h5>
+                                                    <button type="button" class="btn-close btn-close-white ms-0 position-absolute end-0 me-3" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                </div>
+                                                <div class="modal-body text-center py-4">
+                                                    <div class="d-inline-block p-3 bg-white rounded-4 shadow-sm mb-3">
+                                                        <img src="data:image/png;base64,{{ qr_base64 }}" alt="QR Code" style="width: 180px; height: 180px;">
+                                                    </div>
+                                                    <p class="text-secondary small mb-0 px-2">Покажите этот экран гостю паба БРС для мгновенного чекина.</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endif %}
+
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <p class="text-secondary small mb-0">За этим аккаунтом пока не закреплено ни одного действующего бара БРС.</p>
+                        {% endif %}
+                    </div>
+                    {% endif %}
                 <!-- ================= БЛОК: СВОДНАЯ СТАТИСТИКА ВЫПИТОГО ================= -->
                 {% include "includes/user_analytics.html" %}
                 <!-- ================= БЛОК: Любимые заведения пользователя ================= -->
