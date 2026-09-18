@@ -12,3 +12,6 @@ flask db init
 flask db migrate
 flask db upgrade
 https://pypi.org/project/Flask-Migrate/
+python3 -m pip install black ruff
+python3 -m black app
+python3 -m ruff check app --fix
