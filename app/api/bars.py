@@ -162,7 +162,9 @@ def get_bar(id):
                 "rate": float(bar.rate) if bar.rate else 0.0,
                 "manager_name": bar.get_user_name() if bar.get_user_name() else "Не назначен",
                 "admin_id": bar.admin_id if bar.admin_id else 0,
-                "isCheckedIn": is_bar_active,
+
+                # 🌟 ИСПРАВЛЕНО: Приводим к snake_case, чтобы JSONDecoder на iOS не паниковал
+                "is_checked_in": is_bar_active,
                 "is_favorite": is_favorite,
                 "drinks": drinks_list,
             }

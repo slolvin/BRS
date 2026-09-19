@@ -362,3 +362,85 @@ def api_add_drink(bar_id):
         ),
         201,
     )
+
+
+@api.route('/drinks/<int:drink_id>/edit', methods=['POST'])
+@mobile_token_required
+def api_edit_drink(drink_id):
+    """
+    Обновляет данные напитка (имя, тип, описание, объем, градус).
+    Доступно суперадмину или менеджеру этого конкретного заведения.
+    """
+    drink = Drink.query.get_or_404(drink_id)
+    bar = Bar.query.get(drink.bar_id) if drink.bar_id else None
+    current_user = g.current_mobile_user
+
+    # Жесткий барьер безопасности: проверяем права на этот бар в СУБД
+    if current_user.role.lower() == 'manager':
+        if not bar or bar.admin_id != current_user.id:
+            return jsonify(
+                {'error': 'Forbidden', 'message': 'Вы можете редактировать напитки только своего бара.'}), 403
+    elif current_user.role.lower() != 'administrator':
+        return jsonify({'error': 'Forbidden', 'message': 'Доступ запрещен.'}), 403
+
+    json_data = request.get_json() or {}
+
+    # Считываем измененные данные из JSON
+    drink.name = json_data.get('name', drink.name).strip()
+    drink.type = json_data.get('type', drink.type).strip()
+    drink.description = json_data.get('description', drink.description).strip()
+
+    try:
+        drink.volume = int(json_data.get('volume', drink.volume))
+        drink.abv = float(json_data.get('abv', drink.abv))
+    except (ValueError, TypeError):
+        return jsonify(
+            {'error': 'Validation Error', 'message': 'Неверный формат числовых данных объема или градуса.'}), 422
+
+    # Каноничный лог действия в СУБД для Менеджера
+    if hasattr(current_user, 'log_action'):
+        current_user.log_action(
+            action_type='edit_drink',
+            description=f'Обновлен напиток: {drink.name} (Бар: {bar.name if bar else "Глобальный"})'
+        )
+
+    db.session.commit()
+    return jsonify({
+        'status': 'success',
+        'message': f'Напиток "{drink.name}" успешно обновлен.',
+        'drink': {'id': drink.id, 'name': drink.name, 'volume': drink.volume, 'abv': drink.abv}
+    }), 200
+
+
+@api.route('/drinks/<int:drink_id>/delete', methods=['POST'])
+@mobile_token_required
+def api_delete_drink(drink_id):
+    """
+    Полностью удаляет напиток из меню заведения в СУБД Postgres.
+    Доступно суперадмину или менеджеру этого конкретного заведения.
+    """
+    drink = Drink.query.get_or_404(drink_id)
+    bar = Bar.query.get(drink.bar_id) if drink.bar_id else None
+    current_user = g.current_mobile_user
+
+    # Жесткий барьер безопасности БРС
+    if current_user.role.lower() == 'manager':
+        if not bar or bar.admin_id != current_user.id:
+            return jsonify({'error': 'Forbidden', 'message': 'Вы можете удалять напитки только своего бара.'}), 403
+    elif current_user.role.lower() != 'administrator':
+        return jsonify({'error': 'Forbidden', 'message': 'Доступ запрещен.'}), 403
+
+    # Системный лог действия в Postgres перед стиранием
+    if hasattr(current_user, 'log_action'):
+        current_user.log_action(
+            action_type='delete_drink',
+            description=f'Удален напиток: {drink.name} (Бар: {bar.name if bar else "Глобальный"})'
+        )
+
+    db.session.delete(drink)
+    db.session.commit()
+
+    return jsonify({
+        'status': 'success',
+        'message': f'Напиток успешно удален из базы данных БРС.'
+    }), 200
