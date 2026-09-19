@@ -1,6 +1,6 @@
-from datetime import datetime
-
+from datetime import datetime, timezone, timedelta
 from flask import current_app, g, jsonify, request
+from sqlalchemy import func
 
 from .. import db
 from ..models import Bar, BarCheckIn, Drink, DrunkAction
@@ -443,4 +443,106 @@ def api_delete_drink(drink_id):
     return jsonify({
         'status': 'success',
         'message': f'Напиток успешно удален из базы данных БРС.'
+    }), 200
+
+
+@api.route('/drinks/<int:drink_id>/analytics', methods=['GET'])
+@mobile_token_required
+def get_drink_b2b_analytics(drink_id):
+    """
+    Возвращает честную B2B-аналитику по напитку с фильтрацией по периодам (День/Неделя/Месяц/Год).
+    """
+    drink = Drink.query.get_or_404(drink_id)
+    bar = Bar.query.get(drink.bar_id) if drink.bar_id else None
+    current_user = g.current_mobile_user
+
+    # Проверка прав доступа БРС
+    if current_user.role.lower() == 'manager':
+        if not bar or bar.admin_id != current_user.id:
+            return jsonify(
+                {'error': 'Forbidden', 'message': 'Вы можете смотреть аналитику только своих напитков.'}), 403
+    elif current_user.role.lower() != 'administrator':
+        return jsonify({'error': 'Forbidden', 'message': 'Доступ запрещен.'}), 403
+
+    # 1. Забираем ВЕСЬ массив действий для этого напитка
+    all_drink_actions = DrunkAction.query.filter_by(drink_id=drink.id).all()
+
+    # Коэффициент объема (мл -> литры)
+    drink_vol_liters = (drink.volume if drink.volume else 0) / 1000.0
+
+    # Получаем текущее время. Чтобы избежать конфликтов naive/aware, приводим всё к общему знаменателю
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
+
+    # Временные границы для фильтрации
+    past_24h = now - timedelta(days=1)
+    past_7d = now - timedelta(days=7)
+    past_30d = now - timedelta(days=30)
+    past_365d = now - timedelta(days=365)
+
+    # Счётчики порций по периодам
+    portions_day = 0
+    portions_week = 0
+    portions_month = 0
+    portions_year = 0
+
+    # Матрица распределения по 24 часам суток (копим за всё время для стабильного графика пиков)
+    hourly_distribution = [0] * 24
+
+    for action in all_drink_actions:
+        if not action.timestamp:
+            continue
+
+        dt_obj = None
+        # Парсим таймстамп из любого формата СУБД
+        if isinstance(action.timestamp, str):
+            try:
+                clean_ts = action.timestamp.split('.')[0]
+                dt_obj = datetime.strptime(clean_ts, "%Y-%m-%d %H:%M:%S")
+            except Exception:
+                try:
+                    dt_obj = datetime.fromisoformat(action.timestamp)
+                except Exception:
+                    continue
+        elif isinstance(action.timestamp, datetime):
+            dt_obj = action.timestamp
+
+        if dt_obj:
+            # Сбрасываем таймзону для безопасного вычитания дат
+            if dt_obj.tzinfo is not None:
+                dt_obj = dt_obj.replace(tzinfo=None)
+
+            # Распределяем по временным периодам
+            if dt_obj >= past_24h:
+                portions_day += 1
+            if dt_obj >= past_7d:
+                portions_week += 1
+            if dt_obj >= past_30d:
+                portions_month += 1
+            if dt_obj >= past_365d:
+                portions_year += 1
+
+            # Накапливаем суточную активность для графика
+            hour = dt_obj.hour
+            if 0 <= hour < 24:
+                hourly_distribution[hour] += 1
+
+    # Собираем JSON-массив для оси графиков
+    chart_data = []
+    for hour in range(24):
+        chart_data.append({
+            "hour": f"{hour:02d}:00",
+            "count": int(hourly_distribution[hour])
+        })
+
+    return jsonify({
+        "status": "success",
+        "drink_id": drink.id,
+        "name": drink.name,
+        "metrics": {
+            "day": {"portions": portions_day, "liters": round(portions_day * drink_vol_liters, 2)},
+            "week": {"portions": portions_week, "liters": round(portions_week * drink_vol_liters, 2)},
+            "month": {"portions": portions_month, "liters": round(portions_month * drink_vol_liters, 2)},
+            "year": {"portions": portions_year, "liters": round(portions_year * drink_vol_liters, 2)}
+        },
+        "hourly_chart": chart_data
     }), 200
