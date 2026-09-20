@@ -1,6 +1,6 @@
-from datetime import datetime
-
+from datetime import datetime, timezone, timedelta
 from flask import current_app, g, jsonify, request
+from sqlalchemy import func
 
 from .. import db
 from ..models import Bar, BarCheckIn, Drink, DrunkAction
@@ -362,3 +362,177 @@ def api_add_drink(bar_id):
         ),
         201,
     )
+
+
+@api.route('/drinks/<int:drink_id>/edit', methods=['POST'])
+@mobile_token_required
+def api_edit_drink(drink_id):
+    """
+    Обновляет данные напитка (имя, тип, описание, объем, градус).
+    Доступно суперадмину или менеджеру этого конкретного заведения.
+    """
+    drink = Drink.query.get_or_404(drink_id)
+    bar = Bar.query.get(drink.bar_id) if drink.bar_id else None
+    current_user = g.current_mobile_user
+
+    # Жесткий барьер безопасности: проверяем права на этот бар в СУБД
+    if current_user.role.lower() == 'manager':
+        if not bar or bar.admin_id != current_user.id:
+            return jsonify(
+                {'error': 'Forbidden', 'message': 'Вы можете редактировать напитки только своего бара.'}), 403
+    elif current_user.role.lower() != 'administrator':
+        return jsonify({'error': 'Forbidden', 'message': 'Доступ запрещен.'}), 403
+
+    json_data = request.get_json() or {}
+
+    # Считываем измененные данные из JSON
+    drink.name = json_data.get('name', drink.name).strip()
+    drink.type = json_data.get('type', drink.type).strip()
+    drink.description = json_data.get('description', drink.description).strip()
+
+    try:
+        drink.volume = int(json_data.get('volume', drink.volume))
+        drink.abv = float(json_data.get('abv', drink.abv))
+    except (ValueError, TypeError):
+        return jsonify(
+            {'error': 'Validation Error', 'message': 'Неверный формат числовых данных объема или градуса.'}), 422
+
+    # Каноничный лог действия в СУБД для Менеджера
+    if hasattr(current_user, 'log_action'):
+        current_user.log_action(
+            action_type='edit_drink',
+            description=f'Обновлен напиток: {drink.name} (Бар: {bar.name if bar else "Глобальный"})'
+        )
+
+    db.session.commit()
+    return jsonify({
+        'status': 'success',
+        'message': f'Напиток "{drink.name}" успешно обновлен.',
+        'drink': {'id': drink.id, 'name': drink.name, 'volume': drink.volume, 'abv': drink.abv}
+    }), 200
+
+
+@api.route('/drinks/<int:drink_id>/delete', methods=['POST'])
+@mobile_token_required
+def api_delete_drink(drink_id):
+    """
+    Полностью удаляет напиток из меню заведения в СУБД Postgres.
+    Доступно суперадмину или менеджеру этого конкретного заведения.
+    """
+    drink = Drink.query.get_or_404(drink_id)
+    bar = Bar.query.get(drink.bar_id) if drink.bar_id else None
+    current_user = g.current_mobile_user
+
+    # Жесткий барьер безопасности БРС
+    if current_user.role.lower() == 'manager':
+        if not bar or bar.admin_id != current_user.id:
+            return jsonify({'error': 'Forbidden', 'message': 'Вы можете удалять напитки только своего бара.'}), 403
+    elif current_user.role.lower() != 'administrator':
+        return jsonify({'error': 'Forbidden', 'message': 'Доступ запрещен.'}), 403
+
+    # Системный лог действия в Postgres перед стиранием
+    if hasattr(current_user, 'log_action'):
+        current_user.log_action(
+            action_type='delete_drink',
+            description=f'Удален напиток: {drink.name} (Бар: {bar.name if bar else "Глобальный"})'
+        )
+
+    db.session.delete(drink)
+    db.session.commit()
+
+    return jsonify({
+        'status': 'success',
+        'message': f'Напиток успешно удален из базы данных БРС.'
+    }), 200
+
+
+@api.route('/drinks/<int:drink_id>/analytics', methods=['GET'])
+@mobile_token_required
+def get_drink_b2b_analytics(drink_id):
+    drink = Drink.query.get_or_404(drink_id)
+    bar = Bar.query.get(drink.bar_id) if drink.bar_id else None
+    current_user = g.current_mobile_user
+
+    if current_user.role.lower() == 'manager' and (not bar or bar.admin_id != current_user.id):
+        return jsonify({'error': 'Forbidden', 'message': 'Вы можете смотреть аналитику только своих напитков.'}), 403
+    elif current_user.role.lower() != 'administrator' and current_user.role.lower() != 'manager':
+        return jsonify({'error': 'Forbidden', 'message': 'Доступ запрещен.'}), 403
+
+    all_drink_actions = DrunkAction.query.filter_by(drink_id=drink.id).all()
+    drink_vol_liters = (drink.volume if drink.volume else 0) / 1000.0
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
+
+    # Словарные сетки под масштабы осей графиков БРС
+    chart_day = {f"{h:02d}:00": 0 for h in range(24)}
+    chart_week = {"Пн": 0, "Вт": 0, "Ср": 0, "Чт": 0, "Пт": 0, "Сб": 0, "Вс": 0}
+    chart_month = {f"{d}": 0 for d in range(1, 31)}
+    chart_year = {"Янв": 0, "Фев": 0, "Мар": 0, "Апр": 0, "Май": 0, "Июн": 0, "Июл": 0, "Авг": 0, "Сент": 0, "Окт": 0,
+                  "Ноя": 0, "Дек": 0}
+
+    # 🌟 ИСПРАВЛЕНО: Добавлен пустой элемент в начало, чтобы индексы 1-12 совпадали с календарем СУБД
+    days_map = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"]
+    months_map = ["", "Янв", "Фев", "Мар", "Апр", "Май", "Июн", "Июл", "Авг", "Сент", "Окт", "Ноя", "Дек"]
+
+    portions_d, portions_w, portions_m, portions_y = 0, 0, 0, 0
+
+    for action in all_drink_actions:
+        if not action.timestamp:
+            continue
+
+        dt_obj = action.timestamp if isinstance(action.timestamp, datetime) else None
+        if isinstance(action.timestamp, str):
+            try:
+                clean_ts = action.timestamp.split('.')
+                dt_obj = datetime.fromisoformat(clean_ts[0])
+            except:
+                continue
+
+        if dt_obj:
+            if dt_obj.tzinfo is not None:
+                dt_obj = dt_obj.replace(tzinfo=None)
+
+            delta = now - dt_obj
+
+            try:
+                # 🟢 СРЕЗ: ДЕНЬ
+                if delta.days < 1:
+                    portions_d += 1
+                    chart_day[f"{dt_obj.hour:02d}:00"] += 1
+
+                # 🔵 СРЕЗ: НЕДЕЛЯ
+                if delta.days < 7:
+                    portions_w += 1
+                    chart_week[days_map[dt_obj.weekday()]] += 1
+
+                # 🟡 СРЕЗ: МЕСЯЦ
+                if delta.days < 30:
+                    portions_m += 1
+                    days_ago = delta.days if delta.days > 0 else 1
+                    if 1 <= days_ago <= 30:
+                        chart_month[f"{days_ago}"] += 1
+
+                # 🔴 СРЕЗ: ГОД
+                if delta.days < 365:
+                    portions_y += 1
+                    # Безопасное чтение месяца (1-12) из нашего расширенного массива
+                    if 1 <= dt_obj.month <= 12:
+                        chart_year[months_map[dt_obj.month]] += 1
+            except Exception as e:
+                print(f"⚠️ Ошибка распределения лога БРС: {e}")
+                continue
+
+    # Сортируем списки для JSON под нативные оси Swift Charts
+    day_sorted = [{"label": f"{h}", "count": v} for h, v in sorted(chart_day.items())]
+    week_sorted = [{"label": k, "count": v} for k, v in chart_week.items()]
+    month_sorted = [{"label": f"День {k}", "count": v} for k, v in sorted(chart_month.items(), key=lambda x: int(x[0]))]
+    year_sorted = [{"label": k, "count": v} for k, v in chart_year.items()]
+
+    return jsonify({
+        "status": "success",
+        "metrics": {
+            "day": {"portions": portions_d, "liters": round(portions_d * drink_vol_liters, 2), "chart": day_sorted},
+            "week": {"portions": portions_w, "liters": round(portions_w * drink_vol_liters, 2), "chart": week_sorted},
+            "month": {"portions": portions_m, "liters": round(portions_m * drink_vol_liters, 2), "chart": month_sorted},
+            "year": {"portions": portions_y, "liters": round(portions_y * drink_vol_liters, 2), "chart": year_sorted}
+        }
+    }), 200
