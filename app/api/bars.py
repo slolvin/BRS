@@ -1,5 +1,5 @@
 import secrets
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 
 from flask import g, jsonify, request
 from sqlalchemy.exc import IntegrityError
@@ -460,3 +460,100 @@ def api_edit_bar(bar_id):
         ),
         200,
     )
+
+
+@api.route('/bars/<int:id>/analytics', methods=['GET'])
+@mobile_token_required
+def get_bar_b2b_analytics(id):
+    """
+    Возвращает B2B-аналитику посещаемости конкретного бара на основе логов BarCheckIn.
+    """
+    bar = Bar.query.get_or_404(id)
+    current_user = g.current_mobile_user
+
+    # Защита: только админ или хозяин точки
+    if current_user.role.lower() == 'manager' and bar.admin_id != current_user.id:
+        return jsonify({'error': 'Forbidden', 'message': 'Вы можете просматривать аналитику только своего бара.'}), 403
+    elif current_user.role.lower() != 'administrator' and current_user.role.lower() != 'manager':
+        return jsonify({'error': 'Forbidden', 'message': 'Доступ запрещен.'}), 403
+
+    all_checkins = BarCheckIn.query.filter_by(bar_id=bar.id).all()
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
+
+    # Инициализируем сетки под масштабы графиков
+    chart_day = {f"{h:02d}:00": 0 for h in range(24)}
+    chart_week = {"Пн": 0, "Вт": 0, "Ср": 0, "Чт": 0, "Пт": 0, "Сб": 0, "Вс": 0}
+    chart_month = {f"{d}": 0 for d in range(1, 31)}
+    chart_year = {"Янв": 0, "Фев": 0, "Мар": 0, "Апр": 0, "Май": 0, "Июн": 0, "Июл": 0, "Авг": 0, "Сент": 0, "Окт": 0,
+                  "Ноя": 0, "Дек": 0}
+
+    # Маппинги выровнены с индексами календаря (0-6 для дней, 1-12 для месяцев)
+    days_map = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"]
+    months_map = ["", "Янв", "Фев", "Мар", "Апр", "Май", "Июн", "Июл", "Авг", "Сент", "Окт", "Ноя", "Дек"]
+
+    count_d, count_w, count_m, count_y = 0, 0, 0, 0
+
+    for checkin in all_checkins:
+        if not checkin.timestamp:
+            continue
+
+        dt_obj = checkin.timestamp if isinstance(checkin.timestamp, datetime) else None
+        if isinstance(checkin.timestamp, str):
+            try:
+                clean_ts = checkin.timestamp.split('.')
+                dt_obj = datetime.fromisoformat(clean_ts)
+            except:
+                continue
+
+        if dt_obj:
+            if dt_obj.tzinfo is not None:
+                dt_obj = dt_obj.replace(tzinfo=None)
+
+            delta = now - dt_obj
+
+            try:
+                # 🟢 СРЕЗ: ДЕНЬ (Почасовой график)
+                if delta.days < 1:
+                    count_d += 1
+                    chart_day[f"{dt_obj.hour:02d}:00"] += 1
+
+                # 🔵 СРЕЗ: НЕДЕЛЯ (Дни недели Пн-Вс)
+                if delta.days < 7:
+                    count_w += 1
+                    # dt_obj.weekday() возвращает строго 0-6, мапим без ошибок:
+                    chart_week[days_map[dt_obj.weekday()]] += 1
+
+                # 🟡 СРЕЗ: МЕСЯЦ (30 дней)
+                if delta.days < 30:
+                    count_m += 1
+                    days_ago = delta.days if delta.days > 0 else 1
+                    if 1 <= days_ago <= 30:
+                        chart_month[f"{days_ago}"] += 1
+
+                # 🔴 СРЕЗ: ГОД (По месяцам)
+                if delta.days < 365:
+                    count_y += 1
+                    if 1 <= dt_obj.month <= 12:
+                        chart_year[months_map[dt_obj.month]] += 1
+            except Exception as e:
+                print(f"⚠️ Ошибка распределения чекина БРС: {e}")
+                continue
+
+    # Сортируем списки для JSON под нативные оси Swift Charts
+    day_sorted = [{"label": k, "count": v} for k, v in sorted(chart_day.items())]
+    week_sorted = [{"label": k, "count": v} for k, v in chart_week.items()]
+    month_sorted = [
+        {"label": f"День {k}", "count": v}
+        for k, v in sorted(chart_month.items(), key=lambda x: int(x[0]))
+    ]
+    year_sorted = [{"label": k, "count": v} for k, v in chart_year.items()]
+
+    return jsonify({
+        "status": "success",
+        "metrics": {
+            "day": {"portions": count_d, "liters": 0.0, "chart": day_sorted},
+            "week": {"portions": count_w, "liters": 0.0, "chart": week_sorted},
+            "month": {"portions": count_m, "liters": 0.0, "chart": month_sorted},
+            "year": {"portions": count_y, "liters": 0.0, "chart": year_sorted}
+        }
+    }), 200
