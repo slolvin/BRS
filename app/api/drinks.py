@@ -449,100 +449,90 @@ def api_delete_drink(drink_id):
 @api.route('/drinks/<int:drink_id>/analytics', methods=['GET'])
 @mobile_token_required
 def get_drink_b2b_analytics(drink_id):
-    """
-    Возвращает честную B2B-аналитику по напитку с фильтрацией по периодам (День/Неделя/Месяц/Год).
-    """
     drink = Drink.query.get_or_404(drink_id)
     bar = Bar.query.get(drink.bar_id) if drink.bar_id else None
     current_user = g.current_mobile_user
 
-    # Проверка прав доступа БРС
-    if current_user.role.lower() == 'manager':
-        if not bar or bar.admin_id != current_user.id:
-            return jsonify(
-                {'error': 'Forbidden', 'message': 'Вы можете смотреть аналитику только своих напитков.'}), 403
-    elif current_user.role.lower() != 'administrator':
+    if current_user.role.lower() == 'manager' and (not bar or bar.admin_id != current_user.id):
+        return jsonify({'error': 'Forbidden', 'message': 'Вы можете смотреть аналитику только своих напитков.'}), 403
+    elif current_user.role.lower() != 'administrator' and current_user.role.lower() != 'manager':
         return jsonify({'error': 'Forbidden', 'message': 'Доступ запрещен.'}), 403
 
-    # 1. Забираем ВЕСЬ массив действий для этого напитка
     all_drink_actions = DrunkAction.query.filter_by(drink_id=drink.id).all()
-
-    # Коэффициент объема (мл -> литры)
     drink_vol_liters = (drink.volume if drink.volume else 0) / 1000.0
-
-    # Получаем текущее время. Чтобы избежать конфликтов naive/aware, приводим всё к общему знаменателю
     now = datetime.now(timezone.utc).replace(tzinfo=None)
 
-    # Временные границы для фильтрации
-    past_24h = now - timedelta(days=1)
-    past_7d = now - timedelta(days=7)
-    past_30d = now - timedelta(days=30)
-    past_365d = now - timedelta(days=365)
+    # Словарные сетки под масштабы осей графиков БРС
+    chart_day = {f"{h:02d}:00": 0 for h in range(24)}
+    chart_week = {"Пн": 0, "Вт": 0, "Ср": 0, "Чт": 0, "Пт": 0, "Сб": 0, "Вс": 0}
+    chart_month = {f"{d}": 0 for d in range(1, 31)}
+    chart_year = {"Янв": 0, "Фев": 0, "Мар": 0, "Апр": 0, "Май": 0, "Июн": 0, "Июл": 0, "Авг": 0, "Сент": 0, "Окт": 0,
+                  "Ноя": 0, "Дек": 0}
 
-    # Счётчики порций по периодам
-    portions_day = 0
-    portions_week = 0
-    portions_month = 0
-    portions_year = 0
+    # 🌟 ИСПРАВЛЕНО: Добавлен пустой элемент в начало, чтобы индексы 1-12 совпадали с календарем СУБД
+    days_map = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"]
+    months_map = ["", "Янв", "Фев", "Мар", "Апр", "Май", "Июн", "Июл", "Авг", "Сент", "Окт", "Ноя", "Дек"]
 
-    # Матрица распределения по 24 часам суток (копим за всё время для стабильного графика пиков)
-    hourly_distribution = [0] * 24
+    portions_d, portions_w, portions_m, portions_y = 0, 0, 0, 0
 
     for action in all_drink_actions:
         if not action.timestamp:
             continue
 
-        dt_obj = None
-        # Парсим таймстамп из любого формата СУБД
+        dt_obj = action.timestamp if isinstance(action.timestamp, datetime) else None
         if isinstance(action.timestamp, str):
             try:
-                clean_ts = action.timestamp.split('.')[0]
-                dt_obj = datetime.strptime(clean_ts, "%Y-%m-%d %H:%M:%S")
-            except Exception:
-                try:
-                    dt_obj = datetime.fromisoformat(action.timestamp)
-                except Exception:
-                    continue
-        elif isinstance(action.timestamp, datetime):
-            dt_obj = action.timestamp
+                clean_ts = action.timestamp.split('.')
+                dt_obj = datetime.fromisoformat(clean_ts[0])
+            except:
+                continue
 
         if dt_obj:
-            # Сбрасываем таймзону для безопасного вычитания дат
             if dt_obj.tzinfo is not None:
                 dt_obj = dt_obj.replace(tzinfo=None)
 
-            # Распределяем по временным периодам
-            if dt_obj >= past_24h:
-                portions_day += 1
-            if dt_obj >= past_7d:
-                portions_week += 1
-            if dt_obj >= past_30d:
-                portions_month += 1
-            if dt_obj >= past_365d:
-                portions_year += 1
+            delta = now - dt_obj
 
-            # Накапливаем суточную активность для графика
-            hour = dt_obj.hour
-            if 0 <= hour < 24:
-                hourly_distribution[hour] += 1
+            try:
+                # 🟢 СРЕЗ: ДЕНЬ
+                if delta.days < 1:
+                    portions_d += 1
+                    chart_day[f"{dt_obj.hour:02d}:00"] += 1
 
-    # Собираем JSON-массив для оси графиков
-    chart_data = []
-    for hour in range(24):
-        chart_data.append({
-            "hour": f"{hour:02d}:00",
-            "count": int(hourly_distribution[hour])
-        })
+                # 🔵 СРЕЗ: НЕДЕЛЯ
+                if delta.days < 7:
+                    portions_w += 1
+                    chart_week[days_map[dt_obj.weekday()]] += 1
+
+                # 🟡 СРЕЗ: МЕСЯЦ
+                if delta.days < 30:
+                    portions_m += 1
+                    days_ago = delta.days if delta.days > 0 else 1
+                    if 1 <= days_ago <= 30:
+                        chart_month[f"{days_ago}"] += 1
+
+                # 🔴 СРЕЗ: ГОД
+                if delta.days < 365:
+                    portions_y += 1
+                    # Безопасное чтение месяца (1-12) из нашего расширенного массива
+                    if 1 <= dt_obj.month <= 12:
+                        chart_year[months_map[dt_obj.month]] += 1
+            except Exception as e:
+                print(f"⚠️ Ошибка распределения лога БРС: {e}")
+                continue
+
+    # Сортируем списки для JSON под нативные оси Swift Charts
+    day_sorted = [{"label": f"{h}", "count": v} for h, v in sorted(chart_day.items())]
+    week_sorted = [{"label": k, "count": v} for k, v in chart_week.items()]
+    month_sorted = [{"label": f"День {k}", "count": v} for k, v in sorted(chart_month.items(), key=lambda x: int(x[0]))]
+    year_sorted = [{"label": k, "count": v} for k, v in chart_year.items()]
 
     return jsonify({
         "status": "success",
-        "drink_id": drink.id,
-        "name": drink.name,
         "metrics": {
-            "day": {"portions": portions_day, "liters": round(portions_day * drink_vol_liters, 2)},
-            "week": {"portions": portions_week, "liters": round(portions_week * drink_vol_liters, 2)},
-            "month": {"portions": portions_month, "liters": round(portions_month * drink_vol_liters, 2)},
-            "year": {"portions": portions_year, "liters": round(portions_year * drink_vol_liters, 2)}
-        },
-        "hourly_chart": chart_data
+            "day": {"portions": portions_d, "liters": round(portions_d * drink_vol_liters, 2), "chart": day_sorted},
+            "week": {"portions": portions_w, "liters": round(portions_w * drink_vol_liters, 2), "chart": week_sorted},
+            "month": {"portions": portions_m, "liters": round(portions_m * drink_vol_liters, 2), "chart": month_sorted},
+            "year": {"portions": portions_y, "liters": round(portions_y * drink_vol_liters, 2), "chart": year_sorted}
+        }
     }), 200
