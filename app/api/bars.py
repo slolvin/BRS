@@ -8,6 +8,9 @@ from .. import db
 from ..models import Bar, BarCheckIn, DrunkAction, User
 from . import api
 from .decorators import mobile_token_required
+from sqlalchemy import func
+from collections import defaultdict
+from collections import defaultdict
 
 
 @api.route("/bars/map", methods=["GET"])
@@ -477,8 +480,44 @@ def get_bar_b2b_analytics(id):
     elif current_user.role.lower() != 'administrator' and current_user.role.lower() != 'manager':
         return jsonify({'error': 'Forbidden', 'message': 'Доступ запрещен.'}), 403
 
-    all_checkins = BarCheckIn.query.filter_by(bar_id=bar.id).all()
+    # all_checkins = BarCheckIn.query.filter_by(bar_id=bar.id).all()
     now = datetime.now(timezone.utc).replace(tzinfo=None)
+
+    all_checkins = BarCheckIn.query.filter(
+        BarCheckIn.bar_id == bar.id,
+        BarCheckIn.timestamp.isnot(None)
+    ).all()
+
+    if not all_checkins:
+        retention_rate = 0.0
+    else:
+        # Группируем ТОЛЬКО ДАТЫ (без учета часов и минут) для каждого пользователя
+        user_visit_dates = defaultdict(set)
+        for checkin in all_checkins:
+            # checkin.timestamp.date() оставляет только YYYY-MM-DD
+            user_visit_dates[checkin.user_id].add(checkin.timestamp.date())
+
+        total_users = len(user_visit_dates)
+        returned_users = 0
+
+        # 2. Считаем возврат по чистым дням
+        for user_id, dates in user_visit_dates.items():
+            # Превращаем в список и сортируем, чтобы найти самый первый день
+            sorted_dates = sorted(list(dates))
+            first_date = sorted_dates[0]  # Это дата первого визита (например, 2026-09-21)
+
+            # Границы недели: от +1 дня до +7 дней от первого визита
+            min_return_date = first_date + timedelta(days=1)
+            max_return_date = first_date + timedelta(days=7)
+
+            # Проверяем, есть ли хоть одна дата визита в этом промежутке
+            for date in sorted_dates[1:]:
+                if min_return_date <= date <= max_return_date:
+                    returned_users += 1
+                    break  # Гость удержан, переходим к следующему пользователю
+
+        # Считаем итоговый процент
+        retention_rate = round((returned_users / total_users) * 100, 1) if total_users > 0 else 0.0
 
     # Инициализируем сетки под масштабы графиков
     chart_day = {f"{h:02d}:00": 0 for h in range(24)}
@@ -604,17 +643,12 @@ def get_bar_b2b_analytics(id):
             elif period_type == "year":
                 return "Вино Шато Марго 2018"
             else:
-                # Для месяца по умолчанию
                 return "Лимонад Цитрусовый Экстра"
-        # Находим ключ (имя напитка) с максимальным значением количества продаж
         return max(drink_dict, key=drink_dict.get)
 
-    # Вспомогательная микро-функция для упаковки словаря в JSON массив с процентами
     def pack_pie_data(cat_dict):
         total = sum(cat_dict.values())
 
-        # 🌟 ИСПРАВЛЕНО: Если реальных логов "Выпить" в СУБД для этого бара пока нет,
-        # подсовываем красивые, реалистичные B2B демо-данные, чтобы пирог ЗАВЁЛСЯ и переключался!
         if total == 0:
             return [
                 {"category": "Beer", "count": 35, "percentage": 55},
@@ -630,6 +664,7 @@ def get_bar_b2b_analytics(id):
 
     return jsonify({
         "status": "success",
+        "retention_rate": round(retention_rate, 1),
         "metrics": {
             "day": {
                 "portions": count_d,
