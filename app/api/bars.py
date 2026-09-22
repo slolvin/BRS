@@ -5,7 +5,7 @@ from flask import g, jsonify, request
 from sqlalchemy.exc import IntegrityError
 
 from .. import db
-from ..models import Bar, BarCheckIn, DrunkAction, User
+from ..models import Bar, BarCheckIn, DrunkAction, User, Drink
 from . import api
 from .decorators import mobile_token_required
 from sqlalchemy import func
@@ -468,6 +468,7 @@ def api_edit_bar(bar_id):
 @api.route('/bars/<int:id>/analytics', methods=['GET'])
 @mobile_token_required
 def get_bar_b2b_analytics(id):
+    from ..models import Drink, DrunkAction
     """
     Возвращает B2B-аналитику посещаемости конкретного бара на основе логов BarCheckIn.
     """
@@ -483,6 +484,37 @@ def get_bar_b2b_analytics(id):
     # all_checkins = BarCheckIn.query.filter_by(bar_id=bar.id).all()
     now = datetime.now(timezone.utc).replace(tzinfo=None)
 
+    # DRINKS RATE
+    # ====================
+    drinks_ranking_query = db.session.query(
+        DrunkAction.drink_id,
+        Drink.name.label('drink_name'),
+        func.count(DrunkAction.id).label('total_count')
+    ).join(
+        Drink, DrunkAction.drink_id == Drink.id
+    ).filter(
+        # Добавьте фильтрацию по бару, если она есть в одной из таблиц, например:
+        Drink.bar_id == bar.id
+        # DrunkAction.drink.bar_id == bar.id
+    ).group_by(
+        DrunkAction.drink_id,
+        Drink.name
+    ).order_by(
+        func.count(DrunkAction.id).desc()  # От самых популярных к худшим
+    ).all()
+
+    # Собираем структуру для JSON
+    drinks_leaderboard = [
+        {
+            "drink_id": row.drink_id,
+            "name": row.drink_name,
+            "count": row.total_count
+        }
+        for row in drinks_ranking_query
+    ]
+    # ====================
+    # CHECKINS
+    # ====================
     all_checkins = BarCheckIn.query.filter(
         BarCheckIn.bar_id == bar.id,
         BarCheckIn.timestamp.isnot(None)
@@ -665,6 +697,7 @@ def get_bar_b2b_analytics(id):
     return jsonify({
         "status": "success",
         "retention_rate": round(retention_rate, 1),
+        "drinks_leaderboard": drinks_leaderboard,
         "metrics": {
             "day": {
                 "portions": count_d,
