@@ -156,6 +156,7 @@ def get_bar(id):
             {
                 "id": bar.id,
                 "name": bar.name,
+                "opening_hours": bar.opening_hours,
                 "address": (
                     bar.get_full_address()
                     if bar.get_full_address()
@@ -729,3 +730,30 @@ def get_bar_b2b_analytics(id):
             }
         }
     }), 200
+
+
+@api.route('/bars/<int:bar_id>/opening_hours', methods=['PUT'])
+@mobile_token_required
+def update_opening_hours(bar_id):
+    bar = Bar.query.get_or_404(bar_id)
+
+    # 🌟 ИСПРАВЛЕНО: force=True заставит Flask распарсить JSON,
+    # даже если в http-заголовках клиента возникла микро-ошибка типов
+    data = request.get_json(force=True, silent=True)
+
+    if not data:
+        return jsonify({"status": "error", "message": "Пустой или невалидный JSON body"}), 400
+
+    # Синхронизируем полученную сетку с базой данных Postgres
+    bar.opening_hours = {
+        "Mon": data.get("Mon", "12:00-02:00"),
+        "Tue": data.get("Tue", "12:00-02:00"),
+        "Wed": data.get("Wed", "12:00-02:00"),
+        "Thu": data.get("Thu", "12:00-02:00"),
+        "Fri": data.get("Fri", "12:00-04:00"),
+        "Sat": data.get("Sat", "12:00-04:00"),
+        "Sun": data.get("Sun", "12:00-02:00")
+    }
+
+    db.session.commit()
+    return jsonify({"status": "success", "opening_hours": bar.opening_hours}), 200
