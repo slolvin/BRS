@@ -1,7 +1,7 @@
 import hashlib
 import re
 from datetime import datetime, timedelta
-
+from sqlalchemy.dialects.postgresql import JSONB
 import jwt
 from flask import current_app, request
 from flask_login import AnonymousUserMixin, UserMixin
@@ -257,6 +257,11 @@ class Bar(db.Model):
     qr_secret_hash = db.Column(db.String(128), unique=True, nullable=True)
     latitude = db.Column(db.Float, nullable=True)  # Широта (например: 55.7558)
     longitude = db.Column(db.Float, nullable=True)  # Долгота (например: 37.6173)
+    opening_hours = db.Column(JSONB, nullable=True, default=lambda: {
+        "Mon": "12:00-02:00", "Tue": "12:00-02:00", "Wed": "12:00-02:00",
+        "Thu": "12:00-02:00", "Fri": "12:00-04:00", "Sat": "12:00-04:00",
+        "Sun": "12:00-02:00"
+    })
 
     def __repr__(self):
         return f"<Bar {self.name!r}>"
@@ -287,6 +292,7 @@ class Bar(db.Model):
         return {
             "id": self.id,  # Убедись, что эта строчка ЕСТЬ и ключ называется именно 'id'
             "name": self.name,
+            "opening_hours": self.opening_hours or {},
             "full_address": self.get_full_address(),
             "rate": float(self.rate) if self.rate else 0.0,
         }
@@ -349,6 +355,8 @@ class Drink(db.Model):
             "description": self.description,
             "score": float(self.score) if self.score else None,
             "bar_id": self.bar_id,
+            "volume": self.volume,
+            "abv": self.abv
         }
         return json_post
 
