@@ -1,9 +1,11 @@
 import secrets
 from datetime import datetime, timezone, timedelta
 
-from flask import g, jsonify, request
+from flask import g, jsonify, request, current_app
 from sqlalchemy.exc import IntegrityError
-
+import os
+import uuid
+from werkzeug.utils import secure_filename
 from .. import db
 from ..models import Bar, BarCheckIn, DrunkAction, User, Drink
 from . import api
@@ -230,48 +232,71 @@ def add_drink_to_bar(bar_id):
     # 2. Проверяем права строковой ролевой модели БРС
     current_user = g.current_mobile_user
     if current_user.role not in ["manager", "administrator"]:
-        return (
-            jsonify(
-                {
-                    "error": "Forbidden",
-                    "message": "Недостаточно прав для добавления напитков",
-                }
-            ),
-            403,
-        )
+        return jsonify({
+            "error": "Forbidden",
+            "message": "Недостаточно прав для добавления напитков"
+        }), 403
 
-    # 3. Валидируем JSON от iOS
-    json_data = request.get_json()
-    if not json_data:
-        return (
-            jsonify({"error": "Bad Request", "message": "Отсутствуют JSON данные"}),
-            400,
-        )
+    # 3. УНИВЕРСАЛЬНАЯ ВАЛИДАЦИЯ: считываем и JSON, и Multipart Form Data
+    if request.is_json:
+        json_data = request.get_json()
+        if not json_data:
+            return jsonify({"error": "Bad Request", "message": "Отсутствуют JSON данные"}), 400
 
-    name = json_data.get("name")
-    drink_type = json_data.get("type", "Пиво")
-    abv = float(json_data.get("abv", 0.0))
+        name = json_data.get("name")
+        drink_type = json_data.get("type", "Пиво")
+        raw_abv = json_data.get("abv", 0.0)
+        image_url_or_name = json_data.get("image_url")
+    else:
+        # Данные из Multipart формы от нашего нового Swift-кода
+        name = request.form.get("name")
+        drink_type = request.form.get("type", "Пиво")
+        raw_abv = request.form.get("abv", 0.0)
+        image_url_or_name = None
 
     if not name:
-        return (
-            jsonify(
-                {"error": "Validation Error", "message": "Название напитка обязательно"}
-            ),
-            422,
-        )
+        return jsonify({
+            "error": "Validation Error",
+            "message": "Название напитка обязательно"
+        }), 422
 
-    # 4. Создаем напиток с правильным именем колонки СУБД (image_path вместо image)
-    from ..models import Drink
+    # Безопасно парсим крепость (ABV)
+    try:
+        abv = float(raw_abv)
+    except (ValueError, TypeError):
+        abv = 0.0
 
+    # 4. ОБРАБОТКА ЗАГРУЖАЕМОГО ФАЙЛА
+    image_filename = "placeholder"  # Дефолтное значение
+
+    if 'file' in request.files:
+        file = request.files['file']
+        if file and file.filename != '':
+            # Безопасно очищаем имя файла
+            filename = secure_filename(file.filename)
+            # Генерируем уникальный UUID, чтобы файлы не перезаписывали друг друга
+            ext = os.path.splitext(filename)[1]  # Вытаскиваем расширение (например, .jpg)
+            image_filename = f"{uuid.uuid4().hex}{ext}"
+
+            # Строим путь к статической папке внутри докера
+            upload_path = os.path.join(current_app.root_path, 'static', 'drinks')
+            if not os.path.exists(upload_path):
+                os.makedirs(upload_path)
+
+            # Сохраняем картинку на диск контейнера
+            file.save(os.path.join(upload_path, image_filename))
+    elif image_url_or_name:
+        # Сохраняем обратную совместимость для старых JSON-запросов со ссылками
+        image_filename = image_url_or_name
+
+    # 5. Создаем напиток с правильным именем колонки СУБД
     new_drink = Drink(
         name=name.strip(),
         type=drink_type,
         abv=abv,
         score=0.0,  # Защита Swift от null-значений
         bar_id=bar.id,
-        image_path=(
-            json_data.get("image_url") if json_data.get("image_url") else None
-        ),
+        image_path=image_filename
     )
 
     try:
@@ -281,16 +306,12 @@ def add_drink_to_bar(bar_id):
         db.session.rollback()
         return jsonify({"error": "Internal Server Error", "message": str(e)}), 500
 
-    return (
-        jsonify(
-            {
-                "status": "success",
-                "message": "Напиток успешно добавлен в меню",
-                "drink": new_drink.to_json(),
-            }
-        ),
-        201,
-    )
+    # 6. Возвращаем успешный ответ. Метод to_json() отдаст правильную структуру
+    return jsonify({
+        "status": "success",
+        "message": "Напиток успешно добавлен в меню",
+        "drink": new_drink.to_json()
+    }), 201
 
 
 @api.route("/bars/checkin", methods=["POST"])

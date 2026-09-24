@@ -348,6 +348,7 @@ class Drink(db.Model):
         return f"<Drink {self.name!r}>"
 
     def to_json(self):
+        image_name = self.image_path if (self.image_path and self.image_path != "NULL") else "placeholder"
         json_post = {
             "id": self.id,
             "name": self.name,
@@ -356,7 +357,8 @@ class Drink(db.Model):
             "score": float(self.score) if self.score else None,
             "bar_id": self.bar_id,
             "volume": self.volume,
-            "abv": self.abv
+            "abv": self.abv,
+            "image_name": image_name
         }
         return json_post
 
