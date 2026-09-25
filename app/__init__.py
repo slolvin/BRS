@@ -7,7 +7,6 @@ from flask_migrate import Migrate, upgrade
 # from flask_moment import Moment
 from flask_sqlalchemy import SQLAlchemy
 from flask_wtf.csrf import CSRFProtect
-from prometheus_flask_exporter import PrometheusMetrics
 
 from config import DevelopmentConfig
 
@@ -34,7 +33,6 @@ def create_app(config_name=DevelopmentConfig):
     db.init_app(app)
     csrf.init_app(app)
     login_manager.init_app(app)
-    metrics = PrometheusMetrics(app)
 
     from app.main import main as main_blueprint
 
