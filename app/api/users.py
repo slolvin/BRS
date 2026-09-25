@@ -116,6 +116,13 @@ def get_user_profile():
         "registered_at": str(reg_date),
     }
 
+    # === СОБИРАЕМ СПИСОК ИЗБРАННОГО (Многие-ко-многим из Postgres) ===
+    favorite_drinks_list = []
+    # user.favorite_drinks.all() вытащит все напитки, добавленные по звездочке
+    if hasattr(user, 'favorite_drinks') and user.favorite_drinks:
+        for drink in user.favorite_drinks.all():
+            favorite_drinks_list.append(drink.to_json())
+
     return jsonify(
         {
             "id": user.id,
@@ -123,9 +130,12 @@ def get_user_profile():
             "email": getattr(user, "email", "user@brs.com"),
             "role": user.role if user.role else "user",
             "monthly_badge": monthly_badge,
-            "stats": stats_payload,  # Отдаем идеально чистую структуру без лишних вложений
+            "stats": stats_payload,
             "recent_logs": logs_data,
             "drunk_history": drunk_data,
+
+            # 🌟 ДОБАВЛЯЕМ НОВЫЙ МАССИВ ДЛЯ ИЗБРАННЫХ НАПИТКОВ
+            "favorite_drinks": favorite_drinks_list
         }
     )
 

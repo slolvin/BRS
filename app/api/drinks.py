@@ -88,7 +88,11 @@ def get_drink(id):
         ).first()
         is not None
     )
+    user = g.current_mobile_user
+    is_fav = drink in user.favorite_drinks.all() if hasattr(user, 'favorite_drinks') else False
 
+    # Записываем в JSON-ответ для iOS
+    drink_data["is_favorite"] = is_fav
     # Предполагаем, что мы добавили отметку об оценке в DrunkAction (например, поле rated=True)
     # Если поля rated нет, мы можем временно проверять просто факт наличия заказа
     drink_data["can_rate"] = has_drunk
@@ -436,3 +440,52 @@ def get_drink_b2b_analytics(drink_id):
             "year": {"portions": portions_y, "liters": round(portions_y * drink_vol_liters, 2), "chart": year_sorted}
         }
     }), 200
+
+
+@api.route("/drinks/<int:drink_id>/toggle-favorite", methods=["POST"])
+@mobile_token_required
+def mobile_toggle_favorite(drink_id):
+    drink = Drink.query.get_or_404(drink_id)
+    user = g.current_mobile_user
+
+    # Используем вашу каноничную связь из веб-версии
+    if drink in user.favorite_drinks.all():
+        user.favorite_drinks.remove(drink)
+        is_favorite = False
+        message = f"Напиток «{drink.name}» удален из избранного."
+    else:
+        user.favorite_drinks.append(drink)
+        is_favorite = True
+        message = f"Напиток «{drink.name}» добавлен в избранное!"
+
+    db.session.commit()
+
+    return jsonify({
+        "status": "success",
+        "message": message,
+        "is_favorite": is_favorite  # Отдаем флаг клиенту
+    }), 200
+
+
+@api.route("/drinks/<int:drink_id>/unfavorite", methods=["POST"])
+@mobile_token_required  # Гарантирует, что мобильный юзер авторизован через g.current_mobile_user
+def mobile_unfavorite_drink(drink_id):
+    drink = Drink.query.get_or_404(drink_id)
+    user = g.current_mobile_user  # Получаем текущего мобильного пользователя
+
+    # Проверяем, есть ли напиток в списке избранного у пользователя
+    # (Используем .all() или ленивую загрузку, как в вашем веб-коде)
+    if drink in user.favorite_drinks.all():
+        # УДАЛЯЕМ ИЗ СВЯЗИ ТАК ЖЕ, КАК В ВЕБ-ВЕРСИИ
+        user.favorite_drinks.remove(drink)
+        db.session.commit()
+
+        return jsonify({
+            "status": "success",
+            "message": f"Напиток «{drink.name}» успешно удален из избранного."
+        }), 200
+    else:
+        return jsonify({
+            "status": "error",
+            "message": "Этот напиток не найден в вашем списке избранного."
+        }), 404

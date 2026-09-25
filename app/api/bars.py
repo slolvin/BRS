@@ -217,7 +217,7 @@ def toggle_mobile_bar_favorite(bar_id):
     # Возвращаем строгий JSON-статус вместо веб-страницы!
     return (
         jsonify(
-            {"status": "success", "message": message, "isFavorite": current_status}
+            {"status": "success", "message": message, "is_favorite": current_status}
         ),
         200,
     )
