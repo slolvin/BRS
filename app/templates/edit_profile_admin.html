@@ -1,135 +1,116 @@
-{% extends "base.html" %}
-
-{% block title %}BRS - Edit Profile [Admin Area]{% endblock %}
+{% extends 'base.html' %}
+{% block title %}Редактирование профиля: {{ user.username }}{% endblock %}
 
 {% block content %}
-	<div class="container py-5">
-		<!-- Заголовок админ-панели -->
-		<div class="d-flex align-items-center gap-3 mb-5">
-			<h1 class="h2 fw-bold text-white mb-0 text-uppercase tracking-wider">Управление пользователем</h1>
-			<div class="flex-grow-1 border-bottom border-secondary border-opacity-10"></div>
-			<span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 rounded-pill px-3 py-2 fs-7">
-				<i class="bi bi-shield-lock-fill me-1"></i> Root Access
-			</span>
-		</div>
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-12 col-lg-8">
 
-		<div class="row g-4">
+            <!-- Заголовок -->
+            <div class="d-flex align-items-center gap-3 mb-4">
+                <h1 class="h2 fw-bold text-white mb-0 text-uppercase tracking-wider">Управление правами</h1>
+                <div class="flex-grow-1 border-bottom border-secondary border-opacity-10"></div>
+                <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 rounded-pill px-3 py-2 fs-7">
+                    <i class="bi bi-shield-lock-fill me-1"></i> Режим Администратора
+                </span>
+            </div>
 
-			<!-- ЛЕВАЯ КОЛОНКА: Визитка редактируемого юзера -->
-			<div class="col-12 col-lg-4">
-				<div class="card border-0 rounded-4 shadow-sm bg-body-tertiary p-4 h-100 text-center">
+            <!-- Карточка формы -->
+            <div class="card border-0 rounded-4 shadow-sm bg-body-tertiary p-4 p-md-5">
+                <form action="{{ url_for('.edit_profile_admin', id=user.id) }}" method="POST" class="row g-4">
+                    {{ form.hidden_tag() }} <!-- Скрытый CSRF токен защиты Flask-WTF -->
 
-					<!-- Аватар со скруглением Bootstrap 5 -->
-					<div class="position-relative d-inline-block mx-auto mb-3">
-						<img src="{{ editing_user.gravatar_url(size=120) }}" alt="{{ editing_user.name }}"
-							 class="rounded-circle shadow border border-secondary border-opacity-25 p-1"
-							 style="width: 120px; height: 120px; object-fit: cover;">
-					</div>
+                    <!-- Юзернейм -->
+                    <div class="col-12 col-md-6">
+                        <label for="username" class="form-label small text-secondary fw-medium text-uppercase tracking-wider fs-8">Никнейм</label>
+                        {{ form.username(class="form-control bg-dark bg-opacity-20 border-secondary border-opacity-25 text-white") }}
+                        {% for error in form.username.errors %}
+                            <span class="text-danger small">{{ error }}</span>
+                        {% endfor %}
+                    </div>
 
-					<!-- Информация -->
-					<h4 class="fw-bold text-white mb-1">{% if editing_user.name %}{{ editing_user.name }}{% else %}{{ editing_user.username }}{% endif %}</h4>
-					<p class="text-secondary small mb-4">
-						<i class="bi bi-geo-alt-fill text-danger me-1"></i> {{ editing_user.location or 'Локация не указана' }}
-					</p>
+                    <!-- Email -->
+                    <div class="col-12 col-md-6">
+                        <label for="email" class="form-label small text-secondary fw-medium text-uppercase tracking-wider fs-8">Email</label>
+                        {{ form.email(class="form-control bg-dark bg-opacity-20 border-secondary border-opacity-25 text-white") }}
+                        {% for error in form.email.errors %}
+                            <span class="text-danger small">{{ error }}</span>
+                        {% endfor %}
+                    </div>
 
-					<!-- Технический статус для админа -->
-					<div class="border-top border-secondary border-opacity-10 pt-3 text-start w-100 mb-4">
-						<div class="mb-2">
-							<span class="text-secondary d-block fs-8 text-uppercase tracking-wider fw-medium">Системный ID</span>
-							<span class="text-white-50 small font-monospace">#{{ editing_user.id }}</span>
-						</div>
-						<div>
-							<span class="text-secondary d-block fs-8 text-uppercase tracking-wider fw-medium">Текущая роль</span>
-							<span class="badge bg-dark border border-secondary border-opacity-25 text-primary-emphasis fs-8 fw-semibold mt-1">
-								{{ editing_user.role.name }}
-							</span>
-						</div>
-					</div>
+                    <!-- ВЫПАДАЮЩИЙ СПИСОК РОЛЕЙ (Наш главный элемент управления) -->
+                    <div class="col-12 col-md-6">
+                        <label for="role" class="form-label small text-warning fw-medium text-uppercase tracking-wider fs-8">Уровень доступа / Роль</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-dark bg-opacity-50 border-secondary border-opacity-25 text-warning">
+                                <i class="bi bi-person-badge-fill"></i>
+                            </span>
+                            {{ form.role(class="form-select bg-dark bg-opacity-20 border-secondary border-opacity-25 text-white") }}
+                        </div>
+                    </div>
+                    <div class="col-12 col-md-6" id="bar-selector-wrapper">
+                        <label for="assigned_bar" class="form-label small text-info fw-medium text-uppercase tracking-wider fs-8">Закрепленное заведение БРС</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-dark bg-opacity-50 border-secondary border-opacity-25 text-info">
+                                <i class="bi bi-building-fill-gear"></i>
+                            </span>
+                            {{ form.assigned_bar(class="form-select bg-dark bg-opacity-20 border-secondary border-opacity-25 text-white") }}
+                        </div>
+                    </div>
 
-					<!-- Быстрые действия (сохранили логику кнопок) -->
-					<div class="d-flex gap-2 justify-content-center mt-auto w-100">
-						<button class="btn btn-outline-secondary w-50 py-2 fs-7 fw-medium text-uppercase tracking-wide">Follow</button>
-						<button class="btn btn-outline-secondary w-50 py-2 fs-7 fw-medium text-uppercase tracking-wide">Message</button>
-					</div>
+                    <!-- Реальное имя -->
+                    <div class="col-12 col-md-6">
+                        <label for="name" class="form-label small text-secondary fw-medium text-uppercase tracking-wider fs-8">Реальное имя</label>
+                        {{ form.name(class="form-control bg-dark bg-opacity-20 border-secondary border-opacity-25 text-white") }}
+                    </div>
 
-				</div>
-			</div>
+                    <!-- Локация -->
+                    <div class="col-12">
+                        <label for="location" class="form-label small text-secondary fw-medium text-uppercase tracking-wider fs-8">Город проживания</label>
+                        {{ form.location(class="form-control bg-dark bg-opacity-20 border-secondary border-opacity-25 text-white") }}
+                    </div>
 
-			<!-- ПРАВАЯ КОЛОНКА: Административная форма -->
-			<div class="col-12 col-lg-8">
-				<div class="card border-0 rounded-4 shadow-sm bg-body-tertiary p-4 p-md-5 h-100">
-					<h3 class="h5 fw-bold text-white mb-4 text-uppercase tracking-wide">Параметры учетной записи</h3>
+                    <!-- О себе -->
+                    <div class="col-12">
+                        <label for="about_me" class="form-label small text-secondary fw-medium text-uppercase tracking-wider fs-8">О пользователе</label>
+                        {{ form.about_me(class="form-control bg-dark bg-opacity-20 border-secondary border-opacity-25 text-white", rows="4") }}
+                    </div>
 
-					<form action="{{ url_for('.edit_profile_admin', id=editing_user.id) }}" method="post" class="row g-4">
+                    <!-- Кнопки отправки -->
+                    <div class="col-12 pt-3 border-top border-secondary border-opacity-10 d-flex flex-column-reverse flex-sm-row justify-content-end gap-2">
+                        <a href="javascript:history.back()" class="btn btn-outline-secondary px-4">Отмена</a>
+                        <button class="btn btn-danger px-5 fw-medium text-white" type="submit">
+                            <i class="bi bi-save me-1"></i> Сохранить права
+                        </button>
+                    </div>
 
-						<!-- Username -->
-						<div class="col-12 col-md-6">
-							<label for="username" class="form-label small text-secondary fw-medium text-uppercase tracking-wider fs-8">Имя пользователя (Никнейм)</label>
-							<div class="input-group">
-								<span class="input-group-text bg-dark bg-opacity-50 border-secondary border-opacity-25 text-secondary"><i class="bi bi-at"></i></span>
-								<input name="username" type="text" id="username" class="form-control bg-dark bg-opacity-20 border-secondary border-opacity-25 text-white" value="{{ editing_user.username }}" required>
-							</div>
-						</div>
+                </form>
+            </div>
 
-						<!-- Email -->
-						<div class="col-12 col-md-6">
-							<label for="email" class="form-label small text-secondary fw-medium text-uppercase tracking-wider fs-8">E-mail адрес</label>
-							<div class="input-group">
-								<span class="input-group-text bg-dark bg-opacity-50 border-secondary border-opacity-25 text-secondary"><i class="bi bi-envelope"></i></span>
-								<input name="email" type="email" id="email" class="form-control bg-dark bg-opacity-20 border-secondary border-opacity-25 text-white" value="{{ editing_user.email }}" required>
-							</div>
-						</div>
-
-						<!-- Full Name -->
-						<div class="col-12 col-md-6">
-							<label for="name" class="form-label small text-secondary fw-medium text-uppercase tracking-wider fs-8">Полное имя</label>
-							<div class="input-group">
-								<span class="input-group-text bg-dark bg-opacity-50 border-secondary border-opacity-25 text-secondary"><i class="bi bi-person"></i></span>
-								<input name="name" type="text" id="name" class="form-control bg-dark bg-opacity-20 border-secondary border-opacity-25 text-white" value="{{ editing_user.name or '' }}">
-							</div>
-						</div>
-
-						<!-- Location -->
-						<div class="col-12 col-md-6">
-							<label for="location" class="form-label small text-secondary fw-medium text-uppercase tracking-wider fs-8">Локация</label>
-							<div class="input-group">
-								<span class="input-group-text bg-dark bg-opacity-50 border-secondary border-opacity-25 text-secondary"><i class="bi bi-geo"></i></span>
-								<input name="location" type="text" id="location" class="form-control bg-dark bg-opacity-20 border-secondary border-opacity-25 text-white" value="{{ editing_user.location or '' }}">
-							</div>
-						</div>
-
-						<!-- Системная роль пользователя -->
-						<div class="col-12">
-							<label for="mySelector" class="form-label small text-secondary fw-medium text-uppercase tracking-wider fs-8">Уровень доступа (Роль)</label>
-							<div class="input-group">
-								<span class="input-group-text bg-dark bg-opacity-50 border-secondary border-opacity-25 text-danger"><i class="bi bi-shield-check"></i></span>
-								<select class="form-select bg-dark bg-opacity-20 border-secondary border-opacity-25 text-white" id="mySelector" name="role" aria-label="Роль пользователя">
-									<option value="{{ editing_user.role.id }}" selected>{{ editing_user.role.name }} (Текущая)</option>
-									<option value="1">User</option> <!-- Добавил дефолтную для полноты картины -->
-									<option value="2">Moderator</option>
-									<option value="3">Administrator</option>
-								</select>
-							</div>
-						</div>
-
-						<!-- About / Биография (перевели в удобную textarea) -->
-						<div class="col-12">
-							<label for="about_me" class="form-label small text-secondary fw-medium text-uppercase tracking-wider fs-8">Заметка о пользователе / Био</label>
-							<textarea name="about_me" id="about_me" rows="3" class="form-control bg-dark bg-opacity-20 border-secondary border-opacity-25 text-white" placeholder="Информации пока нет...">{{ editing_user.about_me or '' }}</textarea>
-						</div>
-
-						<!-- Кнопки отправки формы -->
-						<div class="col-12 pt-3 border-top border-secondary border-opacity-10 d-flex justify-content-end gap-2">
-							<a href="javascript:history.back()" class="btn btn-outline-secondary px-4">Отмена</a>
-							<button type="submit" class="btn btn-danger px-5 py-2 fw-medium shadow-sm">
-								<i class="bi bi-exclamation-triangle me-1"></i> Применить изменения
-							</button>
-						</div>
-
-					</form>
-				</div>
-			</div>
-
-		</div>
-	</div>
+        </div>
+    </div>
+</div>
 {% endblock %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var roleSelect = document.getElementById('role');
+    var barWrapper = document.getElementById('bar-selector-wrapper');
+
+    function toggleBarVisibility() {
+        // Если у пользователя роль обычного юзера, прячем блок выбора бара
+        if (roleSelect.value === 'user') {
+            barWrapper.style.opacity = '0';
+            barWrapper.style.pointerEvents = 'none';
+            // Или жестко скрываем:
+            barWrapper.style.display = 'none';
+        } else {
+            barWrapper.style.display = 'block';
+            barWrapper.style.opacity = '1';
+            barWrapper.style.pointerEvents = 'auto';
+        }
+    }
+
+    roleSelect.addEventListener('change', toggleBarVisibility);
+    toggleBarVisibility(); // Проверяем состояние при загрузке страницы
+});
+</script>

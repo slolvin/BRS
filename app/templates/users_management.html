@@ -1,0 +1,100 @@
+{% extends 'base.html' %}
+
+{% block title %}Управление пользователями{% endblock %}
+
+{% block content %}
+<div class="container-fluid mb-4">
+    <h1 style="color: white" class="mb-1">Пользователи системы</h1>
+    <p class="text-secondary small">Панель администратора для управления правами и уровнями доступа</p>
+</div>
+
+<div class="container-fluid">
+    <div class="card border-0 rounded-4 shadow-sm bg-body-tertiary p-4">
+        <div class="row mb-4">
+            <div class="col-12 col-md-5 col-lg-4">
+                <form action="{{ url_for('.users_management') }}" method="GET" class="input-group input-group-sm">
+                    <span class="input-group-text bg-dark bg-opacity-40 border-secondary border-opacity-25 text-secondary">
+                        <i class="bi bi-search"></i>
+                    </span>
+                    <input type="text" name="search" class="form-control bg-dark bg-opacity-10 border-secondary border-opacity-25 text-white"
+                           placeholder="Поиск по никнейму..." value="{{ search_query }}">
+                    {% if search_query %}
+                        <!-- Кнопка сброса поиска, если админ уже что-то нашел -->
+                        <a href="{{ url_for('.users_management') }}" class="btn btn-outline-secondary d-flex align-items-center justify-content-center px-2.5" title="Сбросить поиск">
+                            <i class="bi bi-x-lg"></i>
+                        </a>
+                    {% endif %}
+                    <button class="btn btn-primary px-3 text-uppercase tracking-wider fw-medium fs-9" type="submit">Найти</button>
+                </form>
+            </div>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-dark table-borderless bg-transparent mb-0 align-middle">
+                <thead>
+                    <tr class="text-secondary small text-uppercase tracking-wider fs-9 border-bottom border-secondary border-opacity-10">
+                        <th scope="col" class="pb-3 ps-3">Пользователь</th>
+                        <th scope="col" class="pb-3">Email</th>
+                        <th scope="col" class="pb-3 text-center">Роль / Доступ</th>
+                        <th scope="col" class="pb-3 text-center">Зарегистрирован</th>
+                        <th scope="col" class="pb-3 text-end pe-3">Действия</th>
+                    </tr>
+                </thead>
+                <tbody class="fs-8">
+                    {% for u in users %}
+                        <tr class="border-bottom border-secondary border-opacity-5">
+                            <!-- Аватар и Никнейм -->
+                            <td class="py-3 ps-3">
+                                <div class="d-flex align-items-center gap-2">
+                                    <img src="{{ u.gravatar_url(size=32) }}" alt="{{ u.username }}" class="rounded-circle border border-secondary border-opacity-25" style="width: 32px; height: 32px;">
+                                    <div>
+                                        <a href="{{ url_for('.user', username=u.username) }}" class="text-white fw-bold text-decoration-none hover-link">
+                                            {{ u.get_user_name() }}
+                                        </a>
+                                        <span class="text-muted d-block fs-9">@{{ u.username }}</span>
+                                    </div>
+                                </div>
+                            </td>
+                            
+                            <!-- Email -->
+                            <td class="py-3 text-secondary-emphasis">
+                                {{ u.email }}
+                            </td>
+                            
+                            <!-- Бейдж Роли -->
+                            <td class="py-3 text-center">
+                                {% if u.is_administrator() %}
+                                    <span class="badge bg-danger bg-opacity-15 text-danger border border-danger border-opacity-10 rounded-pill px-2.5 py-1">
+                                        Admin
+                                    </span>
+                                {% elif u.is_manager() %}
+                                    <span class="badge bg-purple bg-opacity-15 text-purple border border-purple border-opacity-10 rounded-pill px-2.5 py-1">
+                                        Manager
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-secondary bg-opacity-15 text-white-50 border border-secondary border-opacity-10 rounded-pill px-2.5 py-1">
+                                        User
+                                    </span>
+                                {% endif %}
+                            </td>
+                            
+                            <!-- Дата регистрации -->
+                            <td class="py-3 text-center text-muted">
+                                {{ u.member_since.strftime('%d.%m.%Y') if u.member_since else '—' }}
+                            </td>
+                            
+                            <!-- Кнопка перехода к редактированию -->
+                            <td class="py-3 text-end pe-3">
+                                <a href="{{ url_for('.edit_profile_admin', id=u.id) }}" 
+                                   class="btn btn-outline-light btn-sm px-3 rounded-3 fs-9 text-uppercase tracking-wider fw-medium">
+                                    <i class="bi bi-pencil me-1"></i> Edit
+                                </a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

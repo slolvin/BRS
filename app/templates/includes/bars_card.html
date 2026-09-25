@@ -33,14 +33,22 @@
         </div>
 
         <!-- Информация об администраторе (сжатая и аккуратная) -->
-        <div class="mb-4 pt-3 border-top border-secondary border-opacity-10">
-            <span class="text-secondary d-block fs-8 text-uppercase tracking-wider fw-medium mb-1">Управляющий</span>
-            <div class="d-flex align-items-center gap-1.5 text-white-50 small">
-                <i class="bi bi-person-badge text-secondary fs-7"></i>
-                <span>{{ bar.get_user_name() }}</span>
-                <span class="text-muted fs-8">(ID: {{ bar['admin_id'] }})</span>
+            <div class="mb-4 pt-3 border-top border-secondary border-opacity-10">
+                <span class="text-secondary d-block fs-8 text-uppercase tracking-wider fw-medium mb-1">Управляющий</span>
+                {% if bar.manager %}
+                    <div class="d-flex align-items-center gap-2 text-white-50 small">
+                        <a href="{{ url_for('.user', username=bar.manager.username) }}" class="text-white fw-semibold text-decoration-none small">
+                            <i class="bi bi-person-badge text-secondary fs-7"></i> @{{ bar.manager.username}}
+                        </a>
+                    </div>
+                {% else %}
+                    <!-- Если к бару пока никто не привязан в Postgres -->
+                    <span class="text-muted small italic">
+                        <i class="bi bi-person-dash me-1"></i> Не назначен
+                    </span>
+                {% endif %}
             </div>
-        </div>
+
 
         <!-- Динамический рейтинг со звездочками (выталкивается в самый низ контента) -->
         <div class="mt-auto pt-3 border-top border-secondary border-opacity-10">
@@ -99,12 +107,14 @@
                 </div>
 
                 <!-- Кнопка Редактирования (теперь занимает col-4 вместо col-5) -->
-                <div class="col-4">
-                    <a class="btn btn-outline-secondary w-100 py-2 fs-7 fw-medium text-uppercase tracking-wide h-100 d-flex align-items-center justify-content-center"
-                       href="{{ url_for('.edit_bar', id=bar.id) }}">
-                       <i class="bi bi-pencil me-1"></i> Edit
-                    </a>
-                </div>
+                {% if current_user.is_authenticated and (current_user.role == 'administrator' or (current_user.role == 'manager' and bar.admin_id == current_user.id)) %}
+                    <div class="col-4">
+                        <a class="btn btn-outline-secondary w-100 py-2 fs-7 fw-medium text-uppercase tracking-wide h-100 d-flex align-items-center justify-content-center"
+                           href="{{ url_for('.edit_bar', id=bar.id) }}">
+                           <i class="bi bi-pencil me-1"></i> Edit
+                        </a>
+                    </div>
+                {% endif %}
 
                 <!-- Кнопка перехода к Меню (теперь занимает col-6 вместо col-7) -->
                 <div class="col-6">

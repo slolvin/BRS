@@ -13,7 +13,7 @@
     <div class="collapse" id="collapseDrunkHistory">
         <div class="row g-3 mt-3">
             <!-- ИСПРАВЛЕНО: Запрашиваем историю экшенов из базы -->
-            {% set drunk_actions_list = current_user.drunk_history.all() %}
+            {% set drunk_actions_list = drunk_history_optimized %}
             {% if drunk_actions_list %}
                 {% for action in drunk_actions_list %}
                     <!-- Извлекаем сам напиток из записи лога -->

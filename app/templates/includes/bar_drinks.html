@@ -54,46 +54,7 @@
         <!-- Сетка карточек напитков (4 колонки на ПК, адаптив под планшеты и мобильные) -->
         <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-xl-4 g-4 justify-content-center">
             {% for drink in bar['drinks'] %}
-                <div class="col d-flex">
-
-                    <!-- Карточка напитка -->
-                    <div class="card h-100 w-100 shadow border-0 rounded-4 overflow-hidden bg-dark bg-opacity-20 hover-lift mx-auto" style="max-width: 320px;">
-
-                        <!-- Изображение напитка -->
-                        <div class="position-relative" style="height: 220px;">
-                            <img src="{{ drink['image'] }}" class="w-100 h-100" alt="{{ drink['name'] }}" style="object-fit: cover;">
-                            <!-- Градиентное наложение снизу картинки для мягкого перехода -->
-                            <div class="position-absolute bottom-0 start-0 w-100 h-50 bg-gradient-to-t"></div>
-                        </div>
-
-                        <!-- Тело карточки -->
-                        <div class="card-body p-4 d-flex flex-column">
-                            <!-- Название напитка -->
-                            <h5 class="card-title fw-bold text-white mb-2">{{ drink['name'] }}</h5>
-                            <!-- Описание -->
-                            <p class="card-text text-secondary small mb-4 flex-grow-1 lh-base">
-                                {{ drink['description'] }}
-                            </p>
-                        </div>
-
-                        <!-- Подвал карточки -->
-                        <div class="card-footer bg-transparent border-top border-secondary border-opacity-10 p-4 pt-0 d-flex align-items-center justify-content-between">
-                            <!-- Тип напитка -->
-                            <span class="badge bg-body-secondary text-secondary-emphasis fw-medium px-2.5 py-1.5 fs-8">
-                                {{ drink['type'] }}
-                            </span>
-
-                            <!-- Блок оценки/голосования -->
-                            {% if drink['rate'] is not none %}
-                                <div class="small-rating-container">
-                                    {% include "includes/rate_drink.html" %}
-                                </div>
-                            {% endif %}
-                        </div>
-
-                    </div>
-
-                </div>
+                {% include "includes/drink_card.html" %}
             {% endfor %}
         </div>
     </div>
