@@ -8,3 +8,10 @@ first.txt
 *.db
 .idea/workspace.xml
 postgres-data/
+
+# macOS
+*.DS_Store
+.DS_Store
+# Python
+__pycache__/
+*.pyc
