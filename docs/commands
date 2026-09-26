@@ -1,17 +1,33 @@
-in /HYDayReward/
-venv\Scripts\activate.bat
-$env:FLASK_APP = "app.py"
-flask --app app/app.py --debug run
-
-Docker
-docker build -t test .
-docker run -d -p 5001:5000 test
-
-
 flask db init
 flask db migrate
 flask db upgrade
+
 https://pypi.org/project/Flask-Migrate/
 python3 -m pip install black ruff
 python3 -m black app
 python3 -m ruff check app --fix
+
+# Flask Debug
+docker compose up
+
+# Gunicorn + Nginx http://localhost/
+docker compose -f compose.yaml -f docker-compose.prod.yml up
+
+# Remove old
+docker compose -f compose.yaml -f docker-compose.prod.yml down
+
+# HTTPS
+./deploy.sh
+
+# Crypto
+python3 -c "import secrets; print(secrets.token_hex(32))"
+
+# Create migration
+docker compose exec web flask db migrate -m "Add new fields"
+
+# Migrate
+./db_migrate.sh
+
+# DB restore
+cd /var/www/brs_project
+docker compose exec -T db psql -U brs_admin brs_production < backups/FILE_NAME.sql

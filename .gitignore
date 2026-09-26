@@ -1,4 +1,6 @@
 .venv
+.env
+first.txt
 .idea
 *.xml
 *.iml

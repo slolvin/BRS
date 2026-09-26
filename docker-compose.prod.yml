@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  web:
+    # Заменяем дев-сервер на промышленный Gunicorn
+    command: gunicorn --bind 0.0.0.0:5000 "app:create_app()"
+    environment:
+      - FLASK_DEBUG=0
+      - FLASK_CONFIG=production
+      - GUNICORN_CMD_ARGS=""
+    volumes: !reset [] # Отключаем локальную синхронизацию кода
+    ports: !reset []   # Закрываем порт 8000 наружу
+
+  db:
+    # Увеличиваем интервал проверки здоровья для продакшена, чтобы не спамить диск
+    healthcheck:
+      interval: 10s
+      retries: 5
+
+  adminer:
+    ports: !reset []   # Закрываем порт 8081 наружу
+
+  mailpit:
+    ports: !reset []   # Закрываем порты 8085 и 1025 наружу
+
+  nginx:
+    image: nginx:alpine
+    container_name: BRS_NGINX
+    restart: always
+    ports:
+      - "80:80"   # Открываем стандартный HTTP-порт для веба и Swift-приложения
+      - "443:443" # Задел на будущий SSL/HTTPS
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      web:
+        condition: service_started
