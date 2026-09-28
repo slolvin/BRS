@@ -1,6 +1,6 @@
 import re
 
-from flask import current_app, g, jsonify, request
+from flask import current_app, g, jsonify, request, render_template
 from flask_httpauth import HTTPBasicAuth
 from flask_mail import Message
 
@@ -459,3 +459,19 @@ def mobile_json_login():
         ),
         200,
     )
+
+@api.route('/privacy')
+def privacy_policy():
+    """Умный роут политики конфиденциальности для веба и iOS"""
+    user_agent = request.headers.get('User-Agent', '').lower()
+
+    # Проверяем, идет ли запрос от iPhone/Swift-приложения
+    is_mobile_app = 'iphone' in user_agent or 'brs' in user_agent or 'cfnetwork' in user_agent
+
+    if is_mobile_app:
+        # Отдаем изолированную красивую страницу без лишних меню сайтов
+        return render_template('privacy.html')
+    else:
+        # Для обычного веба отдаем страницу, «завернутую» в вашу общую оболочку
+        # Чтобы не создавать два файла, мы можем передать параметр или просто обернуть
+        return render_template('privacy_web.html')

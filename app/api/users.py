@@ -1,5 +1,5 @@
 
-from flask import g, jsonify, request
+from flask import g, jsonify, request, current_app
 from flask_login import current_user
 from sqlalchemy import func
 from werkzeug.security import generate_password_hash
@@ -453,3 +453,25 @@ def api_edit_profile():
         ),
         200,
     )
+
+
+@api.route('/user/delete-account', methods=['DELETE'])
+@mobile_token_required
+def delete_account():
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or len(auth_header.split(" ")) != 2:
+        return jsonify({"status": "error", "message": "Токен отсутствует"}), 401
+
+    token = auth_header.split(" ")[1]
+    user_to_delete = User.verify_auth_token(token)
+    if not user_to_delete:
+        return jsonify({"status": "error", "message": "Невалидный токен"}), 401
+
+    try:
+        # База данных сама каскадно сотрет всё: и чекины, и историю, и связи!
+        db.session.delete(user_to_delete)
+        db.session.commit()
+        return jsonify({"status": "success", "message": "Профиль и все чекины стерты"}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"status": "error", "message": str(e)}), 500

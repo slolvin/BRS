@@ -13,28 +13,25 @@
             <title>{% block title %}{% endblock %} - Main</title>
         {% endblock %}
     </head>
-    <body style="min-vh-100 d-flex flex-column bg-body">
+    <body class="min-vh-100 d-flex flex-column bg-body">
         {% block navbar %}
-             <!-- navbar-expand-lg управляет сворачиванием на мобильных -->
-            <!-- bg-body-tertiary и border-bottom делают навбар адаптивным к смене тем -->
-            <nav class="navbar navbar-expand-lg bg-body-tertiary border-bottom border-secondary border-opacity-10 py-3 shadow-sm">
+            <nav class="navbar navbar-expand-xl bg-body-tertiary border-bottom border-secondary border-opacity-10 py-3 shadow-sm">
                 <div class="container-fluid px-4">
 
-                    <!-- Логотип бренда -->
-                    <a class="navbar-brand fw-bold text-primary tracking-wider fs-4" href="/">BRS</a>
+                    <!-- БЛОК 1: Левая сторона — Логотип -->
+                    <a class="navbar-brand fw-bold text-primary tracking-wider fs-4 me-4" href="/">BRS</a>
 
-                    <!-- Кнопка мобильного меню (Исправлены data-bs атрибуты для Bootstrap 5) -->
-                    <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarBarsDemo" aria-controls="navbarBarsDemo" aria-expanded="false" aria-label="Toggle navigation">
+                    <!-- Кнопка мобильного меню (для маленьких экранов) -->
+                    <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarBarsDemo">
                         <span class="navbar-toggler-icon"></span>
                     </button>
 
-                    <!-- Обертка адаптивного меню -->
+                    <!-- Главная обертка меню -->
                     <div class="collapse navbar-collapse" id="navbarBarsDemo">
 
-                        <!-- Навигационные ссылки (ms-auto сдвигает их, а в BS5 вместо mr-auto используется me-auto) -->
-                        <ul class="navbar-nav me-auto mb-2 mb-lg-0 gap-1 mt-2 mt-lg-0">
+                        <!-- БЛОК 2: Центр — Все навигационные ссылки (w-100 и justify-content-start упорядочивают их) -->
+                        <ul class="navbar-nav me-auto mb-2 mb-xl-0 gap-3 align-items-xl-center flex-wrap">
                             {% if current_user.is_authenticated %}
-                                <!-- 1. Ссылки, доступные ВСЕМ залогиненным пользователям -->
                                 <li class="nav-item">
                                     <a class="nav-link fw-medium text-uppercase fs-7" href="{{ url_for('main.metrics') }}">Statistics</a>
                                 </li>
@@ -45,41 +42,30 @@
                                     <a class="nav-link fw-medium text-uppercase fs-7" href="{{ url_for('main.get_drinks_list') }}">Drinks</a>
                                 </li>
 
-                                <!-- 2. Ссылки управления (Видят ТОЛЬКО Менеджеры и Админы) -->
-                                {% if current_user.is_manager() %}
+                                {% if current_user.is_administrator() %}
                                     <li class="nav-item">
-                                        <a class="nav-link fw-medium text-uppercase fs-7 text-info" href="{{ url_for('main.add_bar') }}">
+                                        <a class="nav-link fw-medium text-uppercase fs-7 text-info d-inline-flex align-items-center" href="{{ url_for('main.add_bar') }}">
                                             <i class="bi bi-plus-square me-1"></i> Add Bar
                                         </a>
                                     </li>
+                                {% endif %}
+
+                                {% if current_user.is_manager() %}
                                     <li class="nav-item">
-                                        <a class="nav-link fw-medium text-uppercase fs-7 text-info" href="{{ url_for('main.add_drink') }}">
+                                        <a class="nav-link fw-medium text-uppercase fs-7 text-info d-inline-flex align-items-center" href="{{ url_for('main.add_drink') }}">
                                             <i class="bi bi-plus-square me-1"></i> Add Drink
                                         </a>
                                     </li>
                                 {% endif %}
 
-                                <!-- 3. Панель управления пользователями (Видит ТЫЛЬКО Супер-Администратор) -->
                                 {% if current_user.is_administrator() %}
                                     <li class="nav-item">
-                                        <a class="nav-link fw-medium text-uppercase fs-7 text-danger" href="{{ url_for('main.users_management') }}">
+                                        <a class="nav-link fw-medium text-uppercase fs-7 text-danger d-inline-flex align-items-center" href="{{ url_for('main.users_management') }}">
                                             <i class="bi bi-people-fill me-1"></i> Users
                                         </a>
                                     </li>
                                 {% endif %}
-
-                                <!-- 4. Сервисные ссылки профиля и выхода -->
-                                <li class="nav-item">
-                                    <a class="nav-link fw-medium text-uppercase fs-7 text-primary-emphasis" href="{{ url_for('main.user', username=current_user.username) }}">
-                                        <i class="bi bi-person-circle me-1"></i> Profile
-                                    </a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link fw-medium text-uppercase fs-7 text-danger opacity-75" href="{{ url_for('auth.logout') }}">Sign Out</a>
-                                </li>
-
                             {% else %}
-                                <!-- 5. Ссылки для неавторизованных гостей -->
                                 <li class="nav-item">
                                     <a class="nav-link fw-medium text-uppercase fs-7" href="{{ url_for('auth.login') }}">Login</a>
                                 </li>
@@ -89,23 +75,31 @@
                             {% endif %}
                         </ul>
 
-                        <!-- Правая интерактивная панель: Поиск + Тогглер темы -->
-                        <div class="d-flex flex-column flex-lg-row align-items-stretch align-items-lg-center gap-3 mt-3 mt-lg-0">
+                        <!-- БЛОК 3: Правая сторона — Профиль, Поиск, Тема и Выход (ms-auto прижимает этот блок строго к правому краю) -->
+                        <div class="d-flex flex-column flex-xl-row align-items-stretch align-items-xl-center gap-3 mt-3 mt-xl-0 ms-auto">
 
-                            <!-- Форма поиска в новом стиле -->
-                            <form class="d-flex gap-2" role="search">
-                                <input class="form-control bg-dark bg-opacity-10 border-secondary border-opacity-25 text-white" type="search" placeholder="Search bars..." aria-label="Search">
+                            {% if current_user.is_authenticated %}
+                                <a class="nav-link fw-medium text-uppercase fs-7 text-primary-emphasis d-inline-flex align-items-center" href="{{ url_for('main.user', username=current_user.username) }}">
+                                    <i class="bi bi-person-circle me-1"></i> Profile
+                                </a>
+                                <a class="nav-link fw-medium text-uppercase fs-7 text-danger opacity-75" href="{{ url_for('auth.logout') }}">Sign Out</a>
+                            {% endif %}
+
+                            <a class="nav-link fw-medium text-uppercase fs-7 opacity-50" href="{{ url_for('main.privacy_policy') }}">Privacy Policy</a>
+
+                            <!-- Поиск -->
+                            <form class="d-flex gap-2 mb-0" role="search">
+                                <input class="form-control bg-dark bg-opacity-10 border-secondary border-opacity-25 text-white" type="search" placeholder="Search bars..." aria-label="Search" style="min-width: 150px;">
                                 <button class="btn btn-outline-primary" type="submit">
                                     <i class="bi bi-search"></i>
                                 </button>
                             </form>
 
-                            <!-- Встроенный компактный тогглер тем (убрали текст, оставили только иконку для аккуратности) -->
+                            <!-- Тогглер темы -->
                             <button class="btn btn-outline-secondary rounded-pill d-flex align-items-center justify-content-center"
-                                    id="themeToggler" type="button" title="Переключить тему" style="width: 42px; height: 42px;">
+                                    id="themeToggler" type="button" title="Переключить тему" style="width: 42px; height: 42px; flex-shrink: 0;">
                                 <i class="bi bi-moon-stars-fill fs-5" id="themeIcon"></i>
                             </button>
-
                         </div>
 
                     </div>

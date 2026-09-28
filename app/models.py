@@ -116,7 +116,14 @@ class User(UserMixin, db.Model):
         "Drink",
         secondary=favorite_drinks,
         lazy="dynamic",
-        backref=db.backref("favorited_by", lazy="dynamic"),
+        # Добавляем каскад для автоматической очистки связей в таблице-переходнике
+        backref=db.backref("favorited_by", lazy="dynamic", cascade="all, delete"),
+    )
+    checkins = db.relationship(
+        "BarCheckIn",
+        backref="user",
+        lazy="dynamic",
+        cascade="all, delete-orphan"  # Синхронизирует удаление на уровне Python
     )
 
     # Новая история выпитого (один ко многим к таблице логов)
@@ -200,7 +207,8 @@ class User(UserMixin, db.Model):
         "Bar",
         secondary=user_favorite_bars,
         lazy="dynamic",
-        backref=db.backref("favorited_by", lazy="dynamic"),
+        # Добавляем аналогичный каскад для таблицы-переходника избранных баров
+        backref=db.backref("favorited_by", lazy="dynamic", cascade="all, delete"),
     )
 
     def log_action(self, action_type, description=None):
@@ -388,7 +396,15 @@ class ActionLog(db.Model):
     timestamp = db.Column(db.DateTime, default=datetime.utcnow, index=True)
 
     # Связь с пользователем
-    user = db.relationship("User", backref=db.backref("actions", lazy="dynamic"))
+    user = db.relationship(
+        "User",
+        backref=db.backref(
+            "actions",
+            lazy="dynamic",
+            cascade="all, delete-orphan",  # 🔥 Говорим Python удалять логи при удалении юзера
+            passive_deletes=True  # Передает управление каскадом самой СУБД PostgreSQL
+        )
+    )
 
 
 class DrinkRating(db.Model):
@@ -420,7 +436,7 @@ class BarCheckIn(db.Model):
     __tablename__ = "bar_checkins"
 
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     bar_id = db.Column(db.Integer, db.ForeignKey("bars.id"), nullable=False)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
