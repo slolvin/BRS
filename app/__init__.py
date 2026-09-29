@@ -4,7 +4,6 @@ from flask_login import LoginManager
 from flask_mail import Mail
 from flask_migrate import Migrate, upgrade
 
-# from flask_moment import Moment
 from flask_sqlalchemy import SQLAlchemy
 from flask_wtf.csrf import CSRFProtect
 
@@ -12,7 +11,6 @@ from config import DevelopmentConfig
 
 bootstrap = Bootstrap5()
 mail = Mail()
-# moment = Moment()
 db = SQLAlchemy()
 csrf = CSRFProtect()
 
@@ -29,7 +27,6 @@ def create_app(config_name=DevelopmentConfig):
 
     bootstrap.init_app(app)
     mail.init_app(app)
-    # moment.init_app(app)
     db.init_app(app)
     csrf.init_app(app)
     login_manager.init_app(app)
@@ -46,7 +43,5 @@ def create_app(config_name=DevelopmentConfig):
 
     app.register_blueprint(api_1_0_blueprint, url_prefix="/api/v1.0")
     csrf.exempt(api_1_0_blueprint)
-
-    # custom errors and routes
 
     return app

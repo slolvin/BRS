@@ -25,7 +25,6 @@ def register_mobile_user():
     email = json_data.get("email", "").strip().lower()
     password = json_data.get("password", "")
 
-    # 1. Базовая валидация полей
     if not username or not email or not password:
         return (
             jsonify(
@@ -54,7 +53,6 @@ def register_mobile_user():
             422,
         )
 
-    # 2. Проверяем уникальность email и username в СУБД Postgres
     if User.query.filter_by(email=email).first():
         return (
             jsonify(
@@ -72,31 +70,22 @@ def register_mobile_user():
             409,
         )
 
-    # 3. Создаем нового пользователя с дефолтной ролью 'user'
     new_user = User(
         username=username,
         email=email,
         role="user",
-        confirmed=False,  # Ждет подтверждения по почте
+        confirmed=False,
     )
-    new_user.password = password  # Использует сеттер твоей модели для хэширования
+    new_user.password = password
 
     try:
         db.session.add(new_user)
-        db.session.commit()  # СУБД генерирует id
+        db.session.commit()
 
-        # 4. ОТПРАВКА ПИСЬМА ЧЕРЕЗ MAILPIT
         token = new_user.generate_confirmation_token()
-
-        # Ссылка, по которой пользователь перейдет для подтверждения (пока ведет на бэк)
         confirm_url = f"{request.host_url.rstrip('/')}/api/v1.0/auth/confirm/{token}"
-
         msg = Message("Подтверждение регистрации БРС", recipients=[email])
-
-        # 1. Оставляем текстовую заглушку для старых почтовых клиентов
         msg.body = f"Привет, {username}! Для подтверждения аккаунта перейдите по ссылке: {confirm_url}"
-
-        # 2. 🌟 ДОБАВЛЯЕМ КРАСИВЫЙ HTML-ШАБЛОН (Стиль БРС v4.0)
         msg.html = f"""
         <!DOCTYPE html>
         <html>
@@ -179,16 +168,11 @@ def register_mobile_user():
 
 @api.route("/auth/confirm/<token>", methods=["GET"])
 def confirm_mobile_user(token):
-    """Эндпоинт, на который кликают из письма"""
     from itsdangerous import URLSafeTimedSerializer as Serializer
 
     s = Serializer(current_app.config["SECRET_KEY"])
-
-    # Ссылки на редиректы
     app_deeplink = "http://localhost:8000/auth/login"
     web_login_url = f"{request.host_url.rstrip('/')}/auth/login"
-
-    # Базовые CSS-стили для страниц, чтобы не дублировать код
     base_css = """
     <style>
         body {
@@ -242,7 +226,6 @@ def confirm_mobile_user(token):
         data = s.loads(token, max_age=3600)
         user_id = data.get("confirm")
     except:
-        # 1. СТРАНИЦА ОШИБКИ: Токен просрочен или поврежден
         return f"""
         <!DOCTYPE html>
         <html>
@@ -266,7 +249,6 @@ def confirm_mobile_user(token):
     user = User.query.get_or_404(user_id)
 
     if user.confirmed:
-        # 2. СТРАНИЦА ИНФО: Аккаунт уже активирован ранее
         return f"""
         <!DOCTYPE html>
         <html>
@@ -289,7 +271,6 @@ def confirm_mobile_user(token):
 
     if user.confirm(token):
         db.session.commit()
-        # 3. СТРАНИЦА УСПЕХА: Первая успешная активация аккаунта
         return f"""
         <!DOCTYPE html>
         <html>
@@ -310,7 +291,6 @@ def confirm_mobile_user(token):
         </html>
         """, 200
     else:
-        # 4. СТРАНИЦА ОШИБКИ: Сбой функции подтверждения
         return f"""
         <!DOCTYPE html>
         <html>
@@ -373,17 +353,8 @@ def auth_error():
     return unauthorized("Invalid credentials")
 
 
-# @api.route('/tokens/', methods=['POST'])
-# def get_token():
-#     if g.current_user.is_anonymous or g.token_used:
-#         return unauthorized('Invalid credentials')
-#     return jsonify({'token': g.current_user.generate_auth_token(
-#         expiration=3600), 'expiration': 3600})
-
-
 @api.route("/auth/login", methods=["POST"])
 def mobile_json_login():
-    """Мобильный вход через JSON с точной структурой ответа (status + вложенный user)"""
     json_data = request.get_json()
     if not json_data:
         return (
@@ -411,10 +382,8 @@ def mobile_json_login():
             ),
             422,
         )
-
     user = User.query.filter_by(email=email).first()
 
-    # 1. Валидация существования юзера и пароля
     if not user or not user.verify_password(password):
         return (
             jsonify(
@@ -427,7 +396,6 @@ def mobile_json_login():
             401,
         )
 
-    # 2. Валидация Mailpit-активации
     if not user.confirmed:
         return (
             jsonify(
@@ -439,8 +407,6 @@ def mobile_json_login():
             ),
             403,
         )
-
-    # Генерируем JWT-токен сессии БРС
     token = user.generate_auth_token(expiration=3600)
 
     return (
@@ -462,16 +428,9 @@ def mobile_json_login():
 
 @api.route('/privacy')
 def privacy_policy():
-    """Умный роут политики конфиденциальности для веба и iOS"""
     user_agent = request.headers.get('User-Agent', '').lower()
-
-    # Проверяем, идет ли запрос от iPhone/Swift-приложения
     is_mobile_app = 'iphone' in user_agent or 'brs' in user_agent or 'cfnetwork' in user_agent
-
     if is_mobile_app:
-        # Отдаем изолированную красивую страницу без лишних меню сайтов
         return render_template('privacy.html')
     else:
-        # Для обычного веба отдаем страницу, «завернутую» в вашу общую оболочку
-        # Чтобы не создавать два файла, мы можем передать параметр или просто обернуть
         return render_template('privacy_web.html')

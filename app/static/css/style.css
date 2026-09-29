@@ -1,11 +1,9 @@
-/* Контейнер для звезд, развернутый справа налево для корректной работы CSS-селекторов */
 .rating-stars {
     display: flex;
     flex-direction: row-reverse;
     justify-content: flex-end;
     gap: 4px;
 }
-/* Контейнер для звезд (развернут справа налево) */
 .rating-stars {
     display: flex;
     flex-direction: row-reverse;
@@ -13,12 +11,10 @@
     gap: 6px;
 }
 
-/* Полностью скрываем стандартные радиокнопки */
 .rating-stars input[type="radio"] {
     display: none;
 }
 
-/* Базовый стиль для лейбла — пустая звезда в виде фонового SVG */
 .rating-stars label {
     width: 26px;
     height: 26px;
@@ -29,13 +25,10 @@
     transition: transform 0.1s ease-in-out;
 }
 
-/* Эффект легкого увеличения при наведении */
 .rating-stars label:hover {
     transform: scale(1.15);
 }
 
-/* Стиль закрашенной звезды (золотой SVG) */
-/* Подсвечивает выбранную радиокнопку и все радиокнопки перед ней (слева направо) */
 .rating-stars input[type="radio"]:checked ~ label,
 .rating-stars label:hover,
 .rating-stars label:hover ~ label,
@@ -47,5 +40,5 @@
 
 
 .hover-danger:hover {
-    color: #dc3545 !important; /* Bootstrap danger color */
+    color: #dc3545 !important;
 }

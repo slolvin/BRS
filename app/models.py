@@ -23,16 +23,12 @@ class Role(db.Model):
     email = db.Column(db.String(64), unique=True, index=True)
     password_hash = db.Column(db.String(512))
 
-    # Управлять ролями теперь максимально просто: обычная строка
-    # Дефолтное значение — 'user'
     role = db.Column(db.String(32), default="user", nullable=False)
 
-    # Ваши старые поля профиля
     name = db.Column(db.String(64))
     location = db.Column(db.String(64))
     about_me = db.Column(db.Text())
 
-    # Хелпер-методы для быстрой проверки прав в коде и шаблонах Jinja
     def is_manager(self):
         return self.role in ["manager", "administrator"]
 
@@ -78,8 +74,6 @@ favorite_drinks = db.Table(
 
 
 class DrunkAction(db.Model):
-    """Модель лога выпитых напитков (каждый лог — один факт употребления)"""
-
     __tablename__ = "drunk_actions"
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(
@@ -90,9 +84,8 @@ class DrunkAction(db.Model):
     )
     timestamp = db.Column(
         db.DateTime, default=datetime.utcnow, index=True
-    )  # Дата и время
+    )
 
-    # Отношения для быстрого доступа из лога к объектам
     drink = db.relationship("Drink", backref=db.backref("drink_logs", lazy="dynamic"))
 
 
@@ -111,33 +104,29 @@ class User(UserMixin, db.Model):
     last_seen = db.Column(db.DateTime(), default=datetime.utcnow)
     avatar_hash = db.Column(db.String(32))
     confirmed = db.Column(db.Boolean, default=False, nullable=False)
-    # Отношение для избранных напитков
+
     favorite_drinks = db.relationship(
         "Drink",
         secondary=favorite_drinks,
         lazy="dynamic",
-        # Добавляем каскад для автоматической очистки связей в таблице-переходнике
         backref=db.backref("favorited_by", lazy="dynamic", cascade="all, delete"),
     )
     checkins = db.relationship(
         "BarCheckIn",
         backref="user",
         lazy="dynamic",
-        cascade="all, delete-orphan"  # Синхронизирует удаление на уровне Python
+        cascade="all, delete-orphan"
     )
 
-    # Новая история выпитого (один ко многим к таблице логов)
     drunk_history = db.relationship(
         "DrunkAction", backref="user", lazy="dynamic", cascade="all, delete-orphan"
     )
 
     def generate_confirmation_token(self):
-        """Генерирует токен для ссылки подтверждения регистрации"""
         s = Serializer(current_app.config["SECRET_KEY"])
         return s.dumps({"confirm": self.id})
 
     def confirm(self, token):
-        """Проверяет токен подтверждения из письма"""
         s = Serializer(current_app.config["SECRET_KEY"])
         try:
             data = s.loads(token, max_age=3600)  # Токен активен 1 час
@@ -151,31 +140,23 @@ class User(UserMixin, db.Model):
         return True
 
     def generate_auth_token(self, expiration=604800):
-        """
-        Генерирует JWT-токен для мобильного приложения.
-        по умолчанию срок действия — 7 дней (604800 секунд).
-        """
         payload = {
             "user_id": self.id,
             "exp": datetime.utcnow() + timedelta(seconds=expiration),
             "iat": datetime.utcnow(),
         }
-        # Шифруем токен с помощью SECRET_KEY вашего Flask-приложения
         return jwt.encode(payload, current_app.config["SECRET_KEY"], algorithm="HS256")
 
     @staticmethod
     def verify_auth_token(token):
-        """
-        Проверяет токен. Если он валиден — возвращает объект пользователя, иначе None.
-        """
         try:
             payload = jwt.decode(
                 token, current_app.config["SECRET_KEY"], algorithms=["HS256"]
             )
         except jwt.ExpiredSignatureError:
-            return None  # Срок действия токена истек
+            return None
         except jwt.InvalidTokenError:
-            return None  # Токен подделан или некорректен
+            return None
 
         return User.query.get(payload["user_id"])
 
@@ -192,7 +173,6 @@ class User(UserMixin, db.Model):
         return self.name if self.name else self.username
 
     def is_drink_drunk(self, drink_id):
-        """Метод проверки: пил ли пользователь этот напиток вообще хоть раз"""
         return self.drunk_history.filter_by(drink_id=drink_id).first() is not None
 
     def to_json(self):
@@ -207,12 +187,10 @@ class User(UserMixin, db.Model):
         "Bar",
         secondary=user_favorite_bars,
         lazy="dynamic",
-        # Добавляем аналогичный каскад для таблицы-переходника избранных баров
         backref=db.backref("favorited_by", lazy="dynamic", cascade="all, delete"),
     )
 
     def log_action(self, action_type, description=None):
-        """Метод для быстрой записи действий в журнал"""
         log = ActionLog(
             user_id=self.id, action_type=action_type, description=description
         )
@@ -263,8 +241,8 @@ class Bar(db.Model):
         "Drink", backref="bar", lazy="joined", cascade="all, delete-orphan"
     )
     qr_secret_hash = db.Column(db.String(128), unique=True, nullable=True)
-    latitude = db.Column(db.Float, nullable=True)  # Широта (например: 55.7558)
-    longitude = db.Column(db.Float, nullable=True)  # Долгота (например: 37.6173)
+    latitude = db.Column(db.Float, nullable=True)
+    longitude = db.Column(db.Float, nullable=True)
     opening_hours = db.Column(JSONB, nullable=True, default=lambda: {
         "Mon": "12:00-02:00", "Tue": "12:00-02:00", "Wed": "12:00-02:00",
         "Thu": "12:00-02:00", "Fri": "12:00-04:00", "Sat": "12:00-04:00",
@@ -285,12 +263,9 @@ class Bar(db.Model):
         return self.manager.get_user_name() if self.manager else "Неизвестно"
 
     def get_bar_rate(self):
-        # 1. Собираем только напитки с выставленной оценкой
         rated_drinks = [item for item in self.drinks if item.score is not None]
-        # 2. Если такие напитки есть — безопасно считаем среднее
         if len(rated_drinks) > 0:
             self.rate = sum(item.score for item in rated_drinks) / len(rated_drinks)
-        # 3. Если напитков нет или ни у одного нет оценки — рейтинг строго 0
         else:
             self.rate = 0
 
@@ -298,7 +273,7 @@ class Bar(db.Model):
 
     def to_json(self):
         return {
-            "id": self.id,  # Убедись, что эта строчка ЕСТЬ и ключ называется именно 'id'
+            "id": self.id,
             "name": self.name,
             "opening_hours": self.opening_hours or {},
             "full_address": self.get_full_address(),
@@ -307,13 +282,10 @@ class Bar(db.Model):
 
     @staticmethod
     def from_json(json_post):
-        # body = json_post.get('body')
         name = json_post.get("name")
         city = json_post.get("city")
         address = json_post.get("address")
         admin_id = json_post.get("admin_id")
-        # if body is None or body == '':
-        #     raise ValidationError('Bar does not have a body')
         return Bar(name=name, address=address, city=city, admin_id=admin_id)
 
 
@@ -329,22 +301,17 @@ class Drink(db.Model):
         db.Integer, db.ForeignKey("bars.id", ondelete="CASCADE"), nullable=True
     )
 
-    # НОВОЕ ПОЛЕ: Хранит средний балл (например, 4.50)
     rating = db.Column(db.Numeric(5, 2), default=0.0)
-    # Новые поля для геймификации
-    volume = db.Column(db.Integer, default=0)  # Объём в мл (например: 500, 250, 50)
+    volume = db.Column(db.Integer, default=0)
     abv = db.Column(
         db.Numeric(4, 1), default=0.0
-    )  # Крепость в % (например: 5.0, 12.5, 40.0)
+    )
 
-    # НОВАЯ СВЯЗЬ: Позволяет получать все оценки этого напитка через drink.ratings.all()
     ratings = db.relationship(
         "DrinkRating", backref="drink", lazy="dynamic", cascade="all, delete-orphan"
     )
 
-    # МЕТОД ДЛЯ АВТОМАТИЧЕСКОГО ПЕРЕСЧЕТА
     def update_rating(self):
-        """Пересчитывает средний рейтинг напитка на основе всех оценок пользователей"""
         all_ratings = self.ratings.all()
         if not all_ratings:
             self.rating = 0.0
@@ -372,13 +339,10 @@ class Drink(db.Model):
 
     @staticmethod
     def from_json(json_post):
-        # body = json_post.get('body')
         name = json_post.get("name")
         drink_type = json_post.get("type")
         description = json_post.get("description")
         bar_id = json_post.get("bar_id")
-        # if body is None or body == '':
-        #     raise ValidationError('Bar does not have a body')
         return Drink(name=name, type=drink_type, description=description, bar_id=bar_id)
 
 
@@ -391,18 +355,17 @@ class ActionLog(db.Model):
     )
     action_type = db.Column(
         db.String(64), nullable=False
-    )  # 'register', 'favorite_add', 'rate'
+    )
     description = db.Column(db.String(256))
     timestamp = db.Column(db.DateTime, default=datetime.utcnow, index=True)
 
-    # Связь с пользователем
     user = db.relationship(
         "User",
         backref=db.backref(
             "actions",
             lazy="dynamic",
-            cascade="all, delete-orphan",  # 🔥 Говорим Python удалять логи при удалении юзера
-            passive_deletes=True  # Передает управление каскадом самой СУБД PostgreSQL
+            cascade="all, delete-orphan",
+            passive_deletes=True
         )
     )
 
@@ -412,16 +375,14 @@ class DrinkRating(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
     drink_id = db.Column(db.Integer, db.ForeignKey("drinks.id"), nullable=False)
-    value = db.Column(db.Integer, nullable=False)  # Сама оценка, например от 1 до 5
+    value = db.Column(db.Integer, nullable=False)
 
-    # Уникальный индекс, чтобы один пользователь не мог оценить один и тот же напиток дважды
     __table_args__ = (
         db.UniqueConstraint("user_id", "drink_id", name="_user_drink_uc"),
     )
 
 
 class AnonymousUser(AnonymousUserMixin):
-    # Гость не является ни менеджером, ни админом, ни подтвержденным юзером
     def is_manager(self):
         return False
 
@@ -440,9 +401,7 @@ class BarCheckIn(db.Model):
     bar_id = db.Column(db.Integer, db.ForeignKey("bars.id"), nullable=False)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
-    # Метод проверки: не истекли ли 3 часа с момента сканирования QR
     def is_expired(self):
-        # 2026-й год на дворе, используем чистый тайм-дельта
         return datetime.utcnow() > self.timestamp + timedelta(hours=3)
 
     def to_json(self):
@@ -454,6 +413,4 @@ class BarCheckIn(db.Model):
             "is_active": not self.is_expired(),
         }
 
-
-# Привязываем кастомного гостя к менеджеру логина Flask
 login_manager.anonymous_user = AnonymousUser

@@ -1,5 +1,5 @@
 
-from flask import g, jsonify, request, current_app
+from flask import g, jsonify, request
 from flask_login import current_user
 from sqlalchemy import func
 from werkzeug.security import generate_password_hash
@@ -7,15 +7,12 @@ from werkzeug.security import generate_password_hash
 from .. import db
 from ..models import ActionLog, Drink, DrunkAction, User
 from . import api
-
-# from .decorators import login_required
 from .decorators import mobile_token_required
 
 
 @api.route("/user/profile")
 @mobile_token_required
 def get_user_profile():
-    # В продакшене: user = g.current_user
     user = g.current_mobile_user
 
     result = (
@@ -31,11 +28,9 @@ def get_user_profile():
 
     count_glasses = result.glasses_count or 0
     total_ml = result.total_ml or 0
-    # Принудительно приводим к float, чтобы в JSON улетело дробное число (Double для Swift)
     avg_abv = float(result.average_abv) if result.average_abv else 0.0
     total_liters = float(total_ml / 1000.0)
 
-    # === РАСЧЕТ ЛЮБИМОГО НАПИТКА ===
     fav_drink_query = (
         db.session.query(Drink, func.count(DrunkAction.id).label("drink_count"))
         .join(DrunkAction, DrunkAction.drink_id == Drink.id)
@@ -45,14 +40,12 @@ def get_user_profile():
         .first()
     )
 
-    # Берем имя любимого напитка
     fav_drink_name = (
         fav_drink_query[0].name
         if fav_drink_query and fav_drink_query[0]
         else "Не определен"
     )
 
-    # Расчет звания месяца
     if total_liters == 0:
         monthly_badge = "Трезвенник"
     elif total_liters >= 5.0 and avg_abv <= 6.0:
@@ -62,14 +55,12 @@ def get_user_profile():
     else:
         monthly_badge = "Эстет"
 
-    # Форматируем дату регистрации
     reg_date = (
         user.member_since.strftime("%Y-%m-%d")
         if hasattr(user, "member_since") and user.member_since
         else "2026-05-28"
     )
 
-    # Собираем логи действий (ActionLog)
     user_logs = user.actions.order_by(ActionLog.timestamp.desc()).limit(10).all()
     logs_data = []
     for log in user_logs:
@@ -83,7 +74,6 @@ def get_user_profile():
             }
         )
 
-    # Собираем историю выпитого (DrunkAction)
     drunk_actions = (
         user.drunk_history.order_by(DrunkAction.timestamp.desc()).limit(15).all()
     )
@@ -105,9 +95,6 @@ def get_user_profile():
                 }
             )
 
-    # =========================================================================
-    # ВАЖНО: СТРОГО СОБЛЮДАЕМ СТРУКТУРУ КЛЮЧЕЙ PROFILESTATS ДЛЯ SWIFT
-    # =========================================================================
     stats_payload = {
         "total_glasses": int(count_glasses),
         "total_liters": float(round(total_liters, 2)),
@@ -116,9 +103,8 @@ def get_user_profile():
         "registered_at": str(reg_date),
     }
 
-    # === СОБИРАЕМ СПИСОК ИЗБРАННОГО (Многие-ко-многим из Postgres) ===
     favorite_drinks_list = []
-    # user.favorite_drinks.all() вытащит все напитки, добавленные по звездочке
+
     if hasattr(user, 'favorite_drinks') and user.favorite_drinks:
         for drink in user.favorite_drinks.all():
             favorite_drinks_list.append(drink.to_json())
@@ -134,7 +120,6 @@ def get_user_profile():
             "recent_logs": logs_data,
             "drunk_history": drunk_data,
 
-            # 🌟 ДОБАВЛЯЕМ НОВЫЙ МАССИВ ДЛЯ ИЗБРАННЫХ НАПИТКОВ
             "favorite_drinks": favorite_drinks_list
         }
     )
@@ -199,10 +184,7 @@ def update_user_location():
 @api.route("/admin/users", methods=["GET"])
 @mobile_token_required
 def api_users_management():
-    """Возвращает отфильтрованный список всех пользователей для админки iOS."""
     current_user = g.current_mobile_user
-
-    # Жесткий барьер безопасности верховного админа
     if current_user.role.lower() != "administrator":
         return (
             jsonify(
@@ -214,7 +196,6 @@ def api_users_management():
             403,
         )
 
-    # Поддерживаем ваш веб-поиск ?search=...
     search_query = request.args.get("search", "").strip()
     query = User.query
 
@@ -223,7 +204,6 @@ def api_users_management():
 
     all_users = query.order_by(User.username.asc()).all()
 
-    # Формируем JSON с полями под спецификацию iOS
     users_list = []
     for user in all_users:
         users_list.append(
@@ -245,7 +225,6 @@ def api_users_management():
 @api.route("/admin/users/<int:user_id>/edit", methods=["POST"])
 @mobile_token_required
 def api_edit_profile_admin(user_id):
-    """Принимает плоский JSON и обновляет профиль любого пользователя."""
     current_user = g.current_mobile_user
 
     if current_user.role.lower() != "administrator":
@@ -254,12 +233,11 @@ def api_edit_profile_admin(user_id):
     target_user = User.query.get_or_404(user_id)
     json_data = request.get_json() or {}
 
-    # Заменяем веб-логику form.validate_on_submit() на проверку JSON данных
     new_username = json_data.get("username", "").strip()
     new_email = json_data.get("email", "").strip()
     new_role = (
         json_data.get("role", "").lower().strip()
-    )  # 'user', 'manager', 'administrator'
+    )
 
     if not new_username or not new_email or not new_role:
         return (
@@ -272,7 +250,6 @@ def api_edit_profile_admin(user_id):
             422,
         )
 
-    # Проверка на дубликаты (уникальность в СУБД)
     if (
         new_username != target_user.username
         and User.query.filter_by(username=new_username).first()
@@ -286,7 +263,6 @@ def api_edit_profile_admin(user_id):
             409,
         )
 
-    # Сохраняем изменения в модель СУБД из JSON
     target_user.username = new_username
     target_user.email = new_email
     target_user.role = new_role
@@ -319,7 +295,6 @@ def api_edit_profile_admin(user_id):
 @api.route("/admin/managers", methods=["GET"])
 @mobile_token_required
 def get_all_managers():
-    """Возвращает список всех пользователей с ролью manager или administrator для назначения в бары."""
     current_user = g.current_mobile_user
     if current_user.role.lower() != "administrator":
         return (
@@ -332,7 +307,6 @@ def get_all_managers():
             403,
         )
 
-    # Вытаскиваем из СУБД тех, кто имеет право управлять заведениями
     managers = (
         User.query.filter(User.role.in_(["manager", "administrator"]))
         .order_by(User.username.asc())
@@ -353,10 +327,6 @@ def get_all_managers():
 @api.route("/user/edit_profile", methods=["POST"])
 @mobile_token_required
 def api_edit_profile():
-    """
-    Мобильный эндпоинт редактирования профиля текущим пользователем.
-    Принимает плоский JSON, поддерживает опциональную смену пароля.
-    """
     current_user = g.current_mobile_user
     json_data = request.get_json() or {}
 
@@ -380,7 +350,6 @@ def api_edit_profile():
             422,
         )
 
-    # 1. Проверка уникальности Email, если пользователь решил его поменять
     if new_email != current_user.email:
         email_exists = User.query.filter_by(email=new_email).first()
         if email_exists:
@@ -395,12 +364,10 @@ def api_edit_profile():
             )
         current_user.email = new_email
 
-    # 2. Обновляем личные данные в Postgres
     current_user.name = new_name
     current_user.location = new_location
     current_user.about_me = new_about_me
 
-    # 3. Валидация и хэширование нового пароля из блока «Безопасность»
     if password or password_confirm:
         if password != password_confirm:
             return (
@@ -423,10 +390,8 @@ def api_edit_profile():
                 422,
             )
 
-        # Записываем в базу безопасный хэш вместо сырой строки!
         current_user.password_hash = generate_password_hash(password)
 
-    # 4. Пишем каноничный системный лог БРС, как в вашей веб-версии
     if hasattr(current_user, "log_action"):
         current_user.log_action(
             action_type="edit_profile",
@@ -468,7 +433,6 @@ def delete_account():
         return jsonify({"status": "error", "message": "Невалидный токен"}), 401
 
     try:
-        # База данных сама каскадно сотрет всё: и чекины, и историю, и связи!
         db.session.delete(user_to_delete)
         db.session.commit()
         return jsonify({"status": "success", "message": "Профиль и все чекины стерты"}), 200

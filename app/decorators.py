@@ -5,20 +5,16 @@ from flask_login import current_user
 
 
 def manager_required(f):
-    """Доступ разрешен только менеджерам и админам"""
-
     @wraps(f)
     def decorated_view(*args, **kwargs):
         if not current_user.is_authenticated or not current_user.is_manager():
-            abort(403)  # Отдаем ошибку "Доступ запрещен"
+            abort(403)
         return f(*args, **kwargs)
 
     return decorated_view
 
 
 def admin_required(f):
-    """Доступ разрешен ТОЛЬКО супер-администраторам"""
-
     @wraps(f)
     def decorated_view(*args, **kwargs):
         if not current_user.is_authenticated or not current_user.is_administrator():

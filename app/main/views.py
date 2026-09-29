@@ -29,18 +29,12 @@ def allowed_file(filename):
 
 @main.route('/privacy')
 def privacy_policy():
-    """Умный роут политики конфиденциальности для веба и iOS"""
     user_agent = request.headers.get('User-Agent', '').lower()
-
-    # Проверяем, идет ли запрос от iPhone/Swift-приложения
     is_mobile_app = 'iphone' in user_agent or 'brs' in user_agent or 'cfnetwork' in user_agent
 
     if is_mobile_app:
-        # Отдаем изолированную красивую страницу без лишних меню сайтов
         return render_template('privacy.html')
     else:
-        # Для обычного веба отдаем страницу, «завернутую» в вашу общую оболочку
-        # Чтобы не создавать два файла, мы можем передать параметр или просто обернуть
         return render_template('privacy_web.html')
 
 
@@ -210,7 +204,6 @@ def edit_profile_admin(id):
         user.name = form.name.data
         user.location = form.location.data
         user.about_me = form.about_me.data
-        # user.confirmed = form.confirmed.data (если используете флаг подтверждения)
 
         selected_bar_id = form.assigned_bar.data
 
@@ -529,7 +522,7 @@ def get_drinks_list():
         drinks=drinks,
         pagination=pagination,
         options=options,
-        filter_args=filter_args,  # Передаем очищенный словарь в HTML
+        filter_args=filter_args,
     )
 
 

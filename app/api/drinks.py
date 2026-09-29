@@ -12,12 +12,12 @@ from .decorators import mobile_token_required
 
 @api.errorhandler(415)
 def handle_415_error(e):
-    print("🚨🚨🚨 БРС КРИТИЧЕСКИЙ ДЕБАГ: Поймали ошибку 415! Выводим стек вызовов Python:")
+    print("🚨🚨🚨 БРС КРИТИЧЕСКИЙ ДЕБАГ: Поймали ошибку 415! Стек вызовов Python:")
     traceback.print_exc() # Печатает полный путь ошибки в консоль терминала Docker
     return jsonify({"error": "Unsupported Media Type", "message": str(e)}), 415
 
 @api.route("/drinks", methods=["GET"])
-@mobile_token_required  # Теперь список напитков защищен токеном
+@mobile_token_required
 def get_drinks():
     page = request.args.get("page", 1, type=int)
     per_page = current_app.config.get("DRINKS_PER_PAGE", 10)
@@ -63,7 +63,7 @@ def get_drinks():
 
 
 @api.route("/drinks/<int:id>", methods=["GET"])
-@mobile_token_required  # Карточка напитка под JWT
+@mobile_token_required
 def get_drink(id):
     drink = Drink.query.get_or_404(id)
     base_url = request.host_url.rstrip("/")
@@ -76,12 +76,9 @@ def get_drink(id):
         f"{base_url}/static/drinks/{image_name}" if image_name else None
     )
 
-    # Очищаем лишние поля
     drink_data.pop("image_path", None)
     drink_data.pop("image", None)
 
-    # Добавляем для iOS флаг проверки: заказывал ли пользователь этот напиток ранее
-    # и оценивал ли уже (чтобы iOS сразу блокировала кнопки звезд, если нельзя оценивать)
     has_drunk = (
         DrunkAction.query.filter_by(
             user_id=g.current_mobile_user.id, drink_id=id
@@ -91,17 +88,14 @@ def get_drink(id):
     user = g.current_mobile_user
     is_fav = drink in user.favorite_drinks.all() if hasattr(user, 'favorite_drinks') else False
 
-    # Записываем в JSON-ответ для iOS
     drink_data["is_favorite"] = is_fav
-    # Предполагаем, что мы добавили отметку об оценке в DrunkAction (например, поле rated=True)
-    # Если поля rated нет, мы можем временно проверять просто факт наличия заказа
     drink_data["can_rate"] = has_drunk
 
     return jsonify(drink_data), 200
 
 
 @api.route("/drinks/<int:id>/rate", methods=["POST"])
-@mobile_token_required  # Оценивать могут только верифицированные пользователи по JWT
+@mobile_token_required
 def rate_drink(id):
     drink = Drink.query.get_or_404(id)
     user = g.current_mobile_user
@@ -126,8 +120,6 @@ def rate_drink(id):
             403,
         )
 
-    # 1. ЗАЩИТА ОТ НАКРУТКИ: Проверяем, пил ли пользователь этот напиток вообще
-    # Ищем последнюю запись употребления, которую юзер еще НЕ оценивал
     action = (
         DrunkAction.query.filter_by(user_id=user.id, drink_id=id)
         .order_by(DrunkAction.timestamp.desc())
@@ -145,7 +137,6 @@ def rate_drink(id):
             403,
         )
 
-    # Если в модели DrunkAction есть флаг rated (был ли этот бокал уже оценен)
     if hasattr(action, "is_rated") and action.is_rated:
         return (
             jsonify(
@@ -157,7 +148,6 @@ def rate_drink(id):
             409,
         )
 
-    # 2. Получаем оценку из Swift
     json_data = request.get_json()
     if not json_data or "rating" not in json_data:
         return (
@@ -189,7 +179,6 @@ def rate_drink(id):
         )
 
     try:
-        # 3. Алгоритм экспоненциального сглаживания (из твоей логики бэкенда)
         if not drink.score or float(drink.score) == 0.0:
             drink.score = float(new_rating)
         else:
@@ -198,7 +187,6 @@ def rate_drink(id):
             updated_score = (current_score * (1 - weight)) + (new_rating * weight)
             drink.score = round(updated_score, 2)
 
-        # 4. Помечаем эту конкретную запись употребления как "оцененную"
         if hasattr(action, "is_rated"):
             action.is_rated = True
 
@@ -208,7 +196,6 @@ def rate_drink(id):
         db.session.rollback()
         return jsonify({"error": "Internal Server Error", "message": str(e)}), 500
 
-    # 5. Возвращаем новый score в iOS для мгновенного обновления звездочек
     return (
         jsonify(
             {
@@ -222,12 +209,11 @@ def rate_drink(id):
 
 
 @api.route("/drinks/<int:id>/drink", methods=["POST"])
-@mobile_token_required  # Требуем Bearer JWT токен юзера
+@mobile_token_required
 def log_drink_action(id):
     drink = Drink.query.get_or_404(id)
     user = g.current_mobile_user
 
-    # 1. ЗАЩИТА БРС: Проверяем, зачекинен ли пользователь в баре, где налит напиток
     active_checkin = BarCheckIn.query.filter_by(
         user_id=user.id, bar_id=drink.bar_id
     ).first()
@@ -242,11 +228,10 @@ def log_drink_action(id):
             403,
         )
 
-    # 2. Создаем экземпляр транзакции (один бокал = одна запись в таблице)
     new_action = DrunkAction(
         user_id=user.id,
         drink_id=drink.id,
-        timestamp=datetime.utcnow(),  # Фиксируем точное время по UTC
+        timestamp=datetime.utcnow(),
     )
 
     try:
@@ -271,15 +256,10 @@ def log_drink_action(id):
 @api.route('/drinks/<int:drink_id>/edit', methods=['POST'])
 @mobile_token_required
 def api_edit_drink(drink_id):
-    """
-    Обновляет данные напитка (имя, тип, описание, объем, градус).
-    Доступно суперадмину или менеджеру этого конкретного заведения.
-    """
     drink = Drink.query.get_or_404(drink_id)
     bar = Bar.query.get(drink.bar_id) if drink.bar_id else None
     current_user = g.current_mobile_user
 
-    # Жесткий барьер безопасности: проверяем права на этот бар в СУБД
     if current_user.role.lower() == 'manager':
         if not bar or bar.admin_id != current_user.id:
             return jsonify(
@@ -289,7 +269,6 @@ def api_edit_drink(drink_id):
 
     json_data = request.get_json() or {}
 
-    # Считываем измененные данные из JSON
     drink.name = json_data.get('name', drink.name).strip()
     drink.type = json_data.get('type', drink.type).strip()
     drink.description = json_data.get('description', drink.description).strip()
@@ -301,7 +280,6 @@ def api_edit_drink(drink_id):
         return jsonify(
             {'error': 'Validation Error', 'message': 'Неверный формат числовых данных объема или градуса.'}), 422
 
-    # Каноничный лог действия в СУБД для Менеджера
     if hasattr(current_user, 'log_action'):
         current_user.log_action(
             action_type='edit_drink',
@@ -319,22 +297,16 @@ def api_edit_drink(drink_id):
 @api.route('/drinks/<int:drink_id>/delete', methods=['POST'])
 @mobile_token_required
 def api_delete_drink(drink_id):
-    """
-    Полностью удаляет напиток из меню заведения в СУБД Postgres.
-    Доступно суперадмину или менеджеру этого конкретного заведения.
-    """
     drink = Drink.query.get_or_404(drink_id)
     bar = Bar.query.get(drink.bar_id) if drink.bar_id else None
     current_user = g.current_mobile_user
 
-    # Жесткий барьер безопасности БРС
     if current_user.role.lower() == 'manager':
         if not bar or bar.admin_id != current_user.id:
             return jsonify({'error': 'Forbidden', 'message': 'Вы можете удалять напитки только своего бара.'}), 403
     elif current_user.role.lower() != 'administrator':
         return jsonify({'error': 'Forbidden', 'message': 'Доступ запрещен.'}), 403
 
-    # Системный лог действия в Postgres перед стиранием
     if hasattr(current_user, 'log_action'):
         current_user.log_action(
             action_type='delete_drink',
@@ -366,14 +338,12 @@ def get_drink_b2b_analytics(drink_id):
     drink_vol_liters = (drink.volume if drink.volume else 0) / 1000.0
     now = datetime.now(timezone.utc).replace(tzinfo=None)
 
-    # Словарные сетки под масштабы осей графиков БРС
     chart_day = {f"{h:02d}:00": 0 for h in range(24)}
     chart_week = {"Пн": 0, "Вт": 0, "Ср": 0, "Чт": 0, "Пт": 0, "Сб": 0, "Вс": 0}
     chart_month = {f"{d}": 0 for d in range(1, 31)}
     chart_year = {"Янв": 0, "Фев": 0, "Мар": 0, "Апр": 0, "Май": 0, "Июн": 0, "Июл": 0, "Авг": 0, "Сент": 0, "Окт": 0,
                   "Ноя": 0, "Дек": 0}
 
-    # 🌟 ИСПРАВЛЕНО: Добавлен пустой элемент в начало, чтобы индексы 1-12 совпадали с календарем СУБД
     days_map = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"]
     months_map = ["", "Янв", "Фев", "Мар", "Апр", "Май", "Июн", "Июл", "Авг", "Сент", "Окт", "Ноя", "Дек"]
 
@@ -398,34 +368,28 @@ def get_drink_b2b_analytics(drink_id):
             delta = now - dt_obj
 
             try:
-                # 🟢 СРЕЗ: ДЕНЬ
                 if delta.days < 1:
                     portions_d += 1
                     chart_day[f"{dt_obj.hour:02d}:00"] += 1
 
-                # 🔵 СРЕЗ: НЕДЕЛЯ
                 if delta.days < 7:
                     portions_w += 1
                     chart_week[days_map[dt_obj.weekday()]] += 1
 
-                # 🟡 СРЕЗ: МЕСЯЦ
                 if delta.days < 30:
                     portions_m += 1
                     days_ago = delta.days if delta.days > 0 else 1
                     if 1 <= days_ago <= 30:
                         chart_month[f"{days_ago}"] += 1
 
-                # 🔴 СРЕЗ: ГОД
                 if delta.days < 365:
                     portions_y += 1
-                    # Безопасное чтение месяца (1-12) из нашего расширенного массива
                     if 1 <= dt_obj.month <= 12:
                         chart_year[months_map[dt_obj.month]] += 1
             except Exception as e:
                 print(f"⚠️ Ошибка распределения лога БРС: {e}")
                 continue
 
-    # Сортируем списки для JSON под нативные оси Swift Charts
     day_sorted = [{"label": f"{h}", "count": v} for h, v in sorted(chart_day.items())]
     week_sorted = [{"label": k, "count": v} for k, v in chart_week.items()]
     month_sorted = [{"label": f"День {k}", "count": v} for k, v in sorted(chart_month.items(), key=lambda x: int(x[0]))]
@@ -448,7 +412,6 @@ def mobile_toggle_favorite(drink_id):
     drink = Drink.query.get_or_404(drink_id)
     user = g.current_mobile_user
 
-    # Используем вашу каноничную связь из веб-версии
     if drink in user.favorite_drinks.all():
         user.favorite_drinks.remove(drink)
         is_favorite = False
@@ -463,20 +426,17 @@ def mobile_toggle_favorite(drink_id):
     return jsonify({
         "status": "success",
         "message": message,
-        "is_favorite": is_favorite  # Отдаем флаг клиенту
+        "is_favorite": is_favorite
     }), 200
 
 
 @api.route("/drinks/<int:drink_id>/unfavorite", methods=["POST"])
-@mobile_token_required  # Гарантирует, что мобильный юзер авторизован через g.current_mobile_user
+@mobile_token_required
 def mobile_unfavorite_drink(drink_id):
     drink = Drink.query.get_or_404(drink_id)
-    user = g.current_mobile_user  # Получаем текущего мобильного пользователя
+    user = g.current_mobile_user
 
-    # Проверяем, есть ли напиток в списке избранного у пользователя
-    # (Используем .all() или ленивую загрузку, как в вашем веб-коде)
     if drink in user.favorite_drinks.all():
-        # УДАЛЯЕМ ИЗ СВЯЗИ ТАК ЖЕ, КАК В ВЕБ-ВЕРСИИ
         user.favorite_drinks.remove(drink)
         db.session.commit()
 

@@ -12,16 +12,13 @@ from . import api
 from .decorators import mobile_token_required
 from sqlalchemy import func
 from collections import defaultdict
-from collections import defaultdict
 
 
 @api.route("/bars/map", methods=["GET"])
 def get_bars_for_map():
-    # Получаем город из параметров запроса iOS (например: ?city=Любляна)
     target_city = request.args.get("city")
 
     if target_city:
-        # Фильтруем бары строго по выбранному в настройках городу
         all_bars = Bar.query.filter_by(city=target_city).all()
     else:
         all_bars = Bar.query.all()
@@ -29,7 +26,6 @@ def get_bars_for_map():
     valid_bars = [
         bar.to_json() for bar in all_bars if bar.get_full_address() is not None
     ]
-
     return jsonify({"bars": valid_bars}), 200
 
 
@@ -74,7 +70,6 @@ def create_bar():
 
     generated_qr_secret = secrets.token_hex(32)
 
-    # 3. Создаем экземпляр модели с заполнением qr_secret_hash
     new_bar = Bar(
         name=name.strip(),
         address=address.strip(),
@@ -102,7 +97,6 @@ def create_bar():
         db.session.rollback()
         return jsonify({"error": "Internal Server Error", "message": str(e)}), 500
 
-    # 4. Возвращаем успешный ответ и прокидываем хэш обратно в iOS приложение
     return (
         jsonify(
             {
@@ -126,9 +120,8 @@ def create_bar():
 def get_bar(id):
     bar = Bar.query.get_or_404(id)
     base_url = request.host_url.rstrip("/")
-    user = g.current_mobile_user  # Получаем текущего юзера из JWT-токена
+    user = g.current_mobile_user
 
-    # 1. Проверяем, зачекинен ли юзер
     active_checkin = BarCheckIn.query.filter_by(user_id=user.id, bar_id=bar.id).first()
     is_bar_active = active_checkin is not None and not active_checkin.is_expired()
 
@@ -138,7 +131,6 @@ def get_bar(id):
     for drink in bar.drinks:
         drink_data = drink.to_json()
 
-        # Проверка DrunkAction для кнопок "Выпить"
         has_drunk = (
             DrunkAction.query.filter_by(user_id=user.id, drink_id=drink.id).first()
             is not None
@@ -152,7 +144,6 @@ def get_bar(id):
 
         drinks_list.append(drink_data)
 
-    # Отдаем полный JSON для Swift-экрана, включая флаги isCheckedIn и isFavorite
     return (
         jsonify(
             {
@@ -169,7 +160,6 @@ def get_bar(id):
                 "manager_name": bar.get_user_name() if bar.get_user_name() else "Не назначен",
                 "admin_id": bar.admin_id if bar.admin_id else 0,
 
-                # 🌟 ИСПРАВЛЕНО: Приводим к snake_case, чтобы JSONDecoder на iOS не паниковал
                 "is_checked_in": is_bar_active,
                 "is_favorite": is_favorite,
                 "drinks": drinks_list,
@@ -185,14 +175,11 @@ def toggle_mobile_bar_favorite(bar_id):
     bar = Bar.query.get_or_404(bar_id)
     user = g.current_mobile_user
 
-    # Проверяем наличие бара в избранном по твоей логике СУБД
     is_fav = user.favorite_bars.filter_by(id=bar.id).first() is not None
 
     if is_fav:
-        # Если уже в любимых — удаляем
         user.favorite_bars.remove(bar)
 
-        # Твой кастомный метод логов БРС (если он доступен в модели)
         if hasattr(user, "log_action"):
             user.log_action(
                 action_type="favorite_remove",
@@ -201,7 +188,6 @@ def toggle_mobile_bar_favorite(bar_id):
         message = f"Заведение {bar.name} удалено из избранного"
         current_status = False
     else:
-        # Если еще нет — добавляем
         user.favorite_bars.append(bar)
 
         if hasattr(user, "log_action"):
@@ -214,7 +200,6 @@ def toggle_mobile_bar_favorite(bar_id):
 
     db.session.commit()
 
-    # Возвращаем строгий JSON-статус вместо веб-страницы!
     return (
         jsonify(
             {"status": "success", "message": message, "is_favorite": current_status}
@@ -224,12 +209,9 @@ def toggle_mobile_bar_favorite(bar_id):
 
 
 @api.route("/bars/<int:bar_id>/drinks/add", methods=["POST"])
-@mobile_token_required  # Проверяем Bearer JWT токен менеджера/админа
+@mobile_token_required
 def add_drink_to_bar(bar_id):
-    # 1. Ищем бар, в который добавляем напиток
     bar = Bar.query.get_or_404(bar_id)
-
-    # 2. Проверяем права строковой ролевой модели БРС
     current_user = g.current_mobile_user
     if current_user.role not in ["manager", "administrator"]:
         return jsonify({
@@ -237,7 +219,6 @@ def add_drink_to_bar(bar_id):
             "message": "Недостаточно прав для добавления напитков"
         }), 403
 
-    # 3. УНИВЕРСАЛЬНАЯ ВАЛИДАЦИЯ: считываем и JSON, и Multipart Form Data
     if request.is_json:
         json_data = request.get_json()
         if not json_data:
@@ -248,7 +229,6 @@ def add_drink_to_bar(bar_id):
         raw_abv = json_data.get("abv", 0.0)
         image_url_or_name = json_data.get("image_url")
     else:
-        # Данные из Multipart формы от нашего нового Swift-кода
         name = request.form.get("name")
         drink_type = request.form.get("type", "Пиво")
         raw_abv = request.form.get("abv", 0.0)
@@ -260,41 +240,33 @@ def add_drink_to_bar(bar_id):
             "message": "Название напитка обязательно"
         }), 422
 
-    # Безопасно парсим крепость (ABV)
     try:
         abv = float(raw_abv)
     except (ValueError, TypeError):
         abv = 0.0
 
-    # 4. ОБРАБОТКА ЗАГРУЖАЕМОГО ФАЙЛА
     image_filename = "placeholder"  # Дефолтное значение
 
     if 'file' in request.files:
         file = request.files['file']
         if file and file.filename != '':
-            # Безопасно очищаем имя файла
             filename = secure_filename(file.filename)
-            # Генерируем уникальный UUID, чтобы файлы не перезаписывали друг друга
-            ext = os.path.splitext(filename)[1]  # Вытаскиваем расширение (например, .jpg)
+            ext = os.path.splitext(filename)[1]
             image_filename = f"{uuid.uuid4().hex}{ext}"
 
-            # Строим путь к статической папке внутри докера
             upload_path = os.path.join(current_app.root_path, 'static', 'drinks')
             if not os.path.exists(upload_path):
                 os.makedirs(upload_path)
 
-            # Сохраняем картинку на диск контейнера
             file.save(os.path.join(upload_path, image_filename))
     elif image_url_or_name:
-        # Сохраняем обратную совместимость для старых JSON-запросов со ссылками
         image_filename = image_url_or_name
 
-    # 5. Создаем напиток с правильным именем колонки СУБД
     new_drink = Drink(
         name=name.strip(),
         type=drink_type,
         abv=abv,
-        score=0.0,  # Защита Swift от null-значений
+        score=0.0,
         bar_id=bar.id,
         image_path=image_filename
     )
@@ -306,7 +278,6 @@ def add_drink_to_bar(bar_id):
         db.session.rollback()
         return jsonify({"error": "Internal Server Error", "message": str(e)}), 500
 
-    # 6. Возвращаем успешный ответ. Метод to_json() отдаст правильную структуру
     return jsonify({
         "status": "success",
         "message": "Напиток успешно добавлен в меню",
@@ -330,7 +301,6 @@ def bar_checkin():
 
     qr_hash = json_data.get("qr_hash").strip()
 
-    # Ищем бар, которому принадлежит этот QR-код
     bar = Bar.query.filter_by(qr_secret_hash=qr_hash).first()
     if not bar:
         return (
@@ -343,10 +313,8 @@ def bar_checkin():
             404,
         )
 
-    # Зачищаем старые протухшие чекины этого юзера, чтобы не копить мусор в СУБД
     BarCheckIn.query.filter_by(user_id=user.id).delete()
 
-    # Создаем новую активную сессию присутствия в баре
     new_checkin = BarCheckIn(
         user_id=user.id, bar_id=bar.id, timestamp=datetime.utcnow()
     )
@@ -371,12 +339,10 @@ def bar_checkin():
 
 
 @api.route("/user/favorites", methods=["GET"])
-@mobile_token_required  # Гарантируем проверку Bearer JWT-токена
+@mobile_token_required
 def get_mobile_user_favorites():
     user = g.current_mobile_user
     base_url = request.host_url.rstrip("/")
-
-    # Запрашиваем Many-to-Many связь, которую мы подтвердили в СУБД
     fav_bars = user.favorite_bars.all()
 
     bars_json = []
@@ -395,7 +361,6 @@ def get_mobile_user_favorites():
             }
         )
 
-    # Отдаем строгий JSON с ключом 'bars', который прописан в Swift-модели FavoriteBarsResponse
     return jsonify({"bars": bars_json}), 200
 
 
@@ -403,8 +368,6 @@ def get_mobile_user_favorites():
 @mobile_token_required
 def get_managed_bars():
     current_user = g.current_mobile_user
-
-    # Ролевой барьер: отсекаем обычных гостей
     if current_user.role.lower() not in ["manager", "administrator"]:
         return (
             jsonify(
@@ -463,14 +426,14 @@ def api_edit_bar(bar_id):
     bar = Bar.query.get_or_404(bar_id)
     json_data = request.get_json() or {}
 
-    new_manager_id = json_data.get("manager_id")  # ID юзера, выбранного из списка
+    new_manager_id = json_data.get("manager_id")
     if new_manager_id:
         manager_user = User.query.get(new_manager_id)
         if manager_user:
             bar.admin_id = manager_user.id
             bar.manager_name = (
                 manager_user.username
-            )  # Синхронизируем имя для техпаспорта СУБД
+            )
 
     bar.name = json_data.get("name", bar.name).strip()
     bar.address = json_data.get("address", bar.address).strip()
@@ -491,23 +454,16 @@ def api_edit_bar(bar_id):
 @mobile_token_required
 def get_bar_b2b_analytics(id):
     from ..models import Drink, DrunkAction
-    """
-    Возвращает B2B-аналитику посещаемости конкретного бара на основе логов BarCheckIn.
-    """
     bar = Bar.query.get_or_404(id)
     current_user = g.current_mobile_user
 
-    # Защита: только админ или хозяин точки
     if current_user.role.lower() == 'manager' and bar.admin_id != current_user.id:
         return jsonify({'error': 'Forbidden', 'message': 'Вы можете просматривать аналитику только своего бара.'}), 403
     elif current_user.role.lower() != 'administrator' and current_user.role.lower() != 'manager':
         return jsonify({'error': 'Forbidden', 'message': 'Доступ запрещен.'}), 403
 
-    # all_checkins = BarCheckIn.query.filter_by(bar_id=bar.id).all()
     now = datetime.now(timezone.utc).replace(tzinfo=None)
 
-    # DRINKS RATE
-    # ====================
     drinks_ranking_query = db.session.query(
         DrunkAction.drink_id,
         Drink.name.label('drink_name'),
@@ -515,17 +471,14 @@ def get_bar_b2b_analytics(id):
     ).join(
         Drink, DrunkAction.drink_id == Drink.id
     ).filter(
-        # Добавьте фильтрацию по бару, если она есть в одной из таблиц, например:
         Drink.bar_id == bar.id
-        # DrunkAction.drink.bar_id == bar.id
     ).group_by(
         DrunkAction.drink_id,
         Drink.name
     ).order_by(
-        func.count(DrunkAction.id).desc()  # От самых популярных к худшим
+        func.count(DrunkAction.id).desc()
     ).all()
 
-    # Собираем структуру для JSON
     drinks_leaderboard = [
         {
             "drink_id": row.drink_id,
@@ -534,9 +487,7 @@ def get_bar_b2b_analytics(id):
         }
         for row in drinks_ranking_query
     ]
-    # ====================
-    # CHECKINS
-    # ====================
+
     all_checkins = BarCheckIn.query.filter(
         BarCheckIn.bar_id == bar.id,
         BarCheckIn.timestamp.isnot(None)
@@ -545,42 +496,33 @@ def get_bar_b2b_analytics(id):
     if not all_checkins:
         retention_rate = 0.0
     else:
-        # Группируем ТОЛЬКО ДАТЫ (без учета часов и минут) для каждого пользователя
         user_visit_dates = defaultdict(set)
         for checkin in all_checkins:
-            # checkin.timestamp.date() оставляет только YYYY-MM-DD
             user_visit_dates[checkin.user_id].add(checkin.timestamp.date())
 
         total_users = len(user_visit_dates)
         returned_users = 0
 
-        # 2. Считаем возврат по чистым дням
         for user_id, dates in user_visit_dates.items():
-            # Превращаем в список и сортируем, чтобы найти самый первый день
             sorted_dates = sorted(list(dates))
-            first_date = sorted_dates[0]  # Это дата первого визита (например, 2026-09-21)
+            first_date = sorted_dates[0]
 
-            # Границы недели: от +1 дня до +7 дней от первого визита
             min_return_date = first_date + timedelta(days=1)
             max_return_date = first_date + timedelta(days=7)
 
-            # Проверяем, есть ли хоть одна дата визита в этом промежутке
             for date in sorted_dates[1:]:
                 if min_return_date <= date <= max_return_date:
                     returned_users += 1
-                    break  # Гость удержан, переходим к следующему пользователю
+                    break
 
-        # Считаем итоговый процент
         retention_rate = round((returned_users / total_users) * 100, 1) if total_users > 0 else 0.0
 
-    # Инициализируем сетки под масштабы графиков
     chart_day = {f"{h:02d}:00": 0 for h in range(24)}
     chart_week = {"Пн": 0, "Вт": 0, "Ср": 0, "Чт": 0, "Пт": 0, "Сб": 0, "Вс": 0}
     chart_month = {f"{d}": 0 for d in range(1, 31)}
     chart_year = {"Янв": 0, "Фев": 0, "Мар": 0, "Апр": 0, "Май": 0, "Июн": 0, "Июл": 0, "Авг": 0, "Сент": 0, "Окт": 0,
                   "Ноя": 0, "Дек": 0}
 
-    # Маппинги выровнены с индексами календаря (0-6 для дней, 1-12 для месяцев)
     days_map = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"]
     months_map = ["", "Янв", "Фев", "Мар", "Апр", "Май", "Июн", "Июл", "Авг", "Сент", "Окт", "Ноя", "Дек"]
 
@@ -605,25 +547,20 @@ def get_bar_b2b_analytics(id):
             delta = now - dt_obj
 
             try:
-                # 🟢 СРЕЗ: ДЕНЬ (Почасовой график)
                 if delta.days < 1:
                     count_d += 1
                     chart_day[f"{dt_obj.hour:02d}:00"] += 1
 
-                # 🔵 СРЕЗ: НЕДЕЛЯ (Дни недели Пн-Вс)
                 if delta.days < 7:
                     count_w += 1
-                    # dt_obj.weekday() возвращает строго 0-6, мапим без ошибок:
                     chart_week[days_map[dt_obj.weekday()]] += 1
 
-                # 🟡 СРЕЗ: МЕСЯЦ (30 дней)
                 if delta.days < 30:
                     count_m += 1
                     days_ago = delta.days if delta.days > 0 else 1
                     if 1 <= days_ago <= 30:
                         chart_month[f"{days_ago}"] += 1
 
-                # 🔴 СРЕЗ: ГОД (По месяцам)
                 if delta.days < 365:
                     count_y += 1
                     if 1 <= dt_obj.month <= 12:
@@ -632,7 +569,6 @@ def get_bar_b2b_analytics(id):
                 print(f"⚠️ Ошибка распределения чекина БРС: {e}")
                 continue
 
-    # Сортируем списки для JSON под нативные оси Swift Charts
     day_sorted = [{"label": k, "count": v} for k, v in sorted(chart_day.items())]
     week_sorted = [{"label": k, "count": v} for k, v in chart_week.items()]
     month_sorted = [
@@ -643,7 +579,6 @@ def get_bar_b2b_analytics(id):
 
     from ..models import Drink, DrunkAction
 
-    # Инициализируем пустые словари под каждый временной отрезок
     cats_d, cats_w, cats_m, cats_y = {}, {}, {}, {}
     drinks_d, drinks_w, drinks_m, drinks_y = {}, {}, {}, {}
 
@@ -669,30 +604,28 @@ def get_bar_b2b_analytics(id):
             drink_obj = Drink.query.get(action.drink_id)
             if drink_obj and drink_obj.type:
                 cat_name = drink_obj.type.strip()
-                drink_name = drink_obj.name.strip() if drink_obj.name else "Неизвестный напиток"  # 🌟 Получаем имя
+                drink_name = drink_obj.name.strip() if drink_obj.name else "Неизвестный напиток"
                 if not cat_name:
                     continue
 
-                # 🟢 Сортируем продажи по периодам в зависимости от даты лога из Postgres
                 if delta.days < 1:
                     cats_d[cat_name] = cats_d.get(cat_name, 0) + 1
-                    drinks_d[drink_name] = drinks_d.get(drink_name, 0) + 1  # 🌟 Записываем напиток за День
+                    drinks_d[drink_name] = drinks_d.get(drink_name, 0) + 1
                 if delta.days < 7:
                     cats_w[cat_name] = cats_w.get(cat_name, 0) + 1
-                    drinks_w[drink_name] = drinks_w.get(drink_name, 0) + 1  # 🌟 Записываем напиток за Неделю
+                    drinks_w[drink_name] = drinks_w.get(drink_name, 0) + 1
                 if delta.days < 30:
                     cats_m[cat_name] = cats_m.get(cat_name, 0) + 1
-                    drinks_m[drink_name] = drinks_m.get(drink_name, 0) + 1  # 🌟 Записываем напиток за Месяц
+                    drinks_m[drink_name] = drinks_m.get(drink_name, 0) + 1
                 if delta.days < 365:
                     cats_y[cat_name] = cats_y.get(cat_name, 0) + 1
-                    drinks_y[drink_name] = drinks_y.get(drink_name, 0) + 1  # 🌟 Записываем напиток за Год
+                    drinks_y[drink_name] = drinks_y.get(drink_name, 0) + 1
 
     def get_top_drink_name(drink_dict, period_type="month"):
         if not drink_dict:
             if period_type == "day":
                 return "Коктейль Aperol Spritz"
             elif period_type == "week":
-                # Имитируем, что в пятницу/субботу все пили пиво
                 return "Крафтовое Пиво IPA (0.5л)"
             elif period_type == "year":
                 return "Вино Шато Марго 2018"
@@ -732,7 +665,7 @@ def get_bar_b2b_analytics(id):
                 "portions": count_w,
                 "liters": 0.0,
                 "chart": week_sorted,
-                "category_pie": pack_pie_data(cats_w),  # 🌟 ИСПРАВЛЕНО: удален лишний аргумент "week"
+                "category_pie": pack_pie_data(cats_w),
                 "top_drink": get_top_drink_name(drinks_w, "week")
             },
             "month": {
@@ -757,15 +690,11 @@ def get_bar_b2b_analytics(id):
 @mobile_token_required
 def update_opening_hours(bar_id):
     bar = Bar.query.get_or_404(bar_id)
-
-    # 🌟 ИСПРАВЛЕНО: force=True заставит Flask распарсить JSON,
-    # даже если в http-заголовках клиента возникла микро-ошибка типов
     data = request.get_json(force=True, silent=True)
 
     if not data:
         return jsonify({"status": "error", "message": "Пустой или невалидный JSON body"}), 400
 
-    # Синхронизируем полученную сетку с базой данных Postgres
     bar.opening_hours = {
         "Mon": data.get("Mon", "12:00-02:00"),
         "Tue": data.get("Tue", "12:00-02:00"),
