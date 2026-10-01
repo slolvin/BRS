@@ -11,7 +11,7 @@ gunicorn==26.2.0
 SQLAlchemy==2.0.29
 Flask-SQLAlchemy==3.1.1
 Flask-Migrate==4.1.0
-alembic==1.13.1
+alembic==1.20.0
 psycopg2-binary==2.9.12
 # Auth and forms
 Flask-Login==0.6.3
