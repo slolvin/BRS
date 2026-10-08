@@ -15,10 +15,7 @@ from config import DevelopmentConfig
 app = create_app(DevelopmentConfig)
 
 if __name__ == "__main__":
-    # migrate = Migrate(app, db)
     app.run(host="0.0.0.0", port=5000, debug=True)
-#     app.run(host="0.0.0.0", port=5000)
-#     app.run(debug=True)
 
 
 @app.shell_context_processor
@@ -28,6 +25,4 @@ def make_shell_context():
 
 @app.cli.command()
 def deploy():
-    """Run deployment tasks."""
-    # migrate database to latest revision
     upgrade()

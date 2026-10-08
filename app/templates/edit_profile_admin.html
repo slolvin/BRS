@@ -5,8 +5,6 @@
 <div class="container py-5">
     <div class="row justify-content-center">
         <div class="col-12 col-lg-8">
-
-            <!-- Заголовок -->
             <div class="d-flex align-items-center gap-3 mb-4">
                 <h1 class="h2 fw-bold text-white mb-0 text-uppercase tracking-wider">Управление правами</h1>
                 <div class="flex-grow-1 border-bottom border-secondary border-opacity-10"></div>
@@ -14,13 +12,9 @@
                     <i class="bi bi-shield-lock-fill me-1"></i> Режим Администратора
                 </span>
             </div>
-
-            <!-- Карточка формы -->
             <div class="card border-0 rounded-4 shadow-sm bg-body-tertiary p-4 p-md-5">
                 <form action="{{ url_for('.edit_profile_admin', id=user.id) }}" method="POST" class="row g-4">
-                    {{ form.hidden_tag() }} <!-- Скрытый CSRF токен защиты Flask-WTF -->
-
-                    <!-- Юзернейм -->
+                    {{ form.hidden_tag() }}
                     <div class="col-12 col-md-6">
                         <label for="username" class="form-label small text-secondary fw-medium text-uppercase tracking-wider fs-8">Никнейм</label>
                         {{ form.username(class="form-control bg-dark bg-opacity-20 border-secondary border-opacity-25 text-white") }}
@@ -28,8 +22,6 @@
                             <span class="text-danger small">{{ error }}</span>
                         {% endfor %}
                     </div>
-
-                    <!-- Email -->
                     <div class="col-12 col-md-6">
                         <label for="email" class="form-label small text-secondary fw-medium text-uppercase tracking-wider fs-8">Email</label>
                         {{ form.email(class="form-control bg-dark bg-opacity-20 border-secondary border-opacity-25 text-white") }}
@@ -37,8 +29,6 @@
                             <span class="text-danger small">{{ error }}</span>
                         {% endfor %}
                     </div>
-
-                    <!-- ВЫПАДАЮЩИЙ СПИСОК РОЛЕЙ (Наш главный элемент управления) -->
                     <div class="col-12 col-md-6">
                         <label for="role" class="form-label small text-warning fw-medium text-uppercase tracking-wider fs-8">Уровень доступа / Роль</label>
                         <div class="input-group">
@@ -57,36 +47,26 @@
                             {{ form.assigned_bar(class="form-select bg-dark bg-opacity-20 border-secondary border-opacity-25 text-white") }}
                         </div>
                     </div>
-
-                    <!-- Реальное имя -->
                     <div class="col-12 col-md-6">
                         <label for="name" class="form-label small text-secondary fw-medium text-uppercase tracking-wider fs-8">Реальное имя</label>
                         {{ form.name(class="form-control bg-dark bg-opacity-20 border-secondary border-opacity-25 text-white") }}
                     </div>
-
-                    <!-- Локация -->
                     <div class="col-12">
                         <label for="location" class="form-label small text-secondary fw-medium text-uppercase tracking-wider fs-8">Город проживания</label>
                         {{ form.location(class="form-control bg-dark bg-opacity-20 border-secondary border-opacity-25 text-white") }}
                     </div>
-
-                    <!-- О себе -->
                     <div class="col-12">
                         <label for="about_me" class="form-label small text-secondary fw-medium text-uppercase tracking-wider fs-8">О пользователе</label>
                         {{ form.about_me(class="form-control bg-dark bg-opacity-20 border-secondary border-opacity-25 text-white", rows="4") }}
                     </div>
-
-                    <!-- Кнопки отправки -->
                     <div class="col-12 pt-3 border-top border-secondary border-opacity-10 d-flex flex-column-reverse flex-sm-row justify-content-end gap-2">
                         <a href="javascript:history.back()" class="btn btn-outline-secondary px-4">Отмена</a>
                         <button class="btn btn-danger px-5 fw-medium text-white" type="submit">
                             <i class="bi bi-save me-1"></i> Сохранить права
                         </button>
                     </div>
-
                 </form>
             </div>
-
         </div>
     </div>
 </div>
@@ -97,11 +77,9 @@ document.addEventListener('DOMContentLoaded', function() {
     var barWrapper = document.getElementById('bar-selector-wrapper');
 
     function toggleBarVisibility() {
-        // Если у пользователя роль обычного юзера, прячем блок выбора бара
         if (roleSelect.value === 'user') {
             barWrapper.style.opacity = '0';
             barWrapper.style.pointerEvents = 'none';
-            // Или жестко скрываем:
             barWrapper.style.display = 'none';
         } else {
             barWrapper.style.display = 'block';
@@ -111,6 +89,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     roleSelect.addEventListener('change', toggleBarVisibility);
-    toggleBarVisibility(); // Проверяем состояние при загрузке страницы
+    toggleBarVisibility();
 });
 </script>

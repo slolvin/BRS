@@ -10,8 +10,6 @@
 
 <div class="container-fluid">
     <div class="row g-4">
-        
-        <!-- ================= ЛИЧНЫЕ МЕТРИКИ ================= -->
         <div class="col-12 col-xl-4">
             <div class="card h-100 shadow border-0 rounded-4 overflow-hidden bg-dark bg-opacity-20">
                 <div class="card-header bg-transparent border-bottom border-secondary border-opacity-10 p-4">
@@ -42,7 +40,6 @@
             </div>
         </div>
 
-        <!-- ================= ТОП НАПИТКОВ СООБЩЕСТВА ================= -->
         <div class="col-12 col-md-6 col-xl-4">
             <div class="card h-100 shadow border-0 rounded-4 overflow-hidden bg-dark bg-opacity-20">
                 <div class="card-header bg-transparent border-bottom border-secondary border-opacity-10 p-4">
@@ -52,8 +49,6 @@
                 </div>
                 <div class="card-body p-4">
                     <div class="d-flex flex-column gap-3">
-
-                        <!-- В данный момент -->
                         <div class="d-flex justify-content-between align-items-center p-3 rounded-4 bg-body-tertiary bg-opacity-25 border border-secondary border-opacity-10">
                             <div>
                                 <span class="text-secondary d-block fs-8 text-uppercase tracking-wider fw-medium mb-1">Прямо сейчас</span>
@@ -63,8 +58,6 @@
                                 <i class="bi bi-lightning-fill me-1"></i> {{ cm.drinks.moment.value }} за сутки
                             </span>
                         </div>
-
-                        <!-- За месяц -->
                         <div class="d-flex justify-content-between align-items-center p-3 rounded-4 bg-body-tertiary bg-opacity-10 border border-secondary border-opacity-10">
                             <div>
                                 <span class="text-secondary d-block fs-8 text-uppercase tracking-wider fw-medium mb-1">За месяц</span>
@@ -72,8 +65,6 @@
                             </div>
                             <span class="text-white-50 small">{{ cm.drinks.month.value }} заказов</span>
                         </div>
-
-                        <!-- За год -->
                         <div class="d-flex justify-content-between align-items-center p-3 rounded-4 bg-body-tertiary bg-opacity-10 border border-secondary border-opacity-10">
                             <div>
                                 <span class="text-secondary d-block fs-8 text-uppercase tracking-wider fw-medium mb-1">За год</span>
@@ -81,8 +72,6 @@
                             </div>
                             <span class="text-white-50 small">{{ cm.drinks.year.value }} заказов</span>
                         </div>
-
-                        <!-- За все время -->
                         <div class="d-flex justify-content-between align-items-center p-3 rounded-4 bg-body-tertiary bg-opacity-10 border border-secondary border-opacity-10">
                             <div>
                                 <span class="text-secondary d-block fs-8 text-uppercase tracking-wider fw-medium mb-1">За все время</span>
@@ -98,7 +87,6 @@
             </div>
         </div>
 
-        <!-- ================= ТОП БАРОВ СООБЩЕСТВА ================= -->
         <div class="col-12 col-md-6 col-xl-4">
             <div class="card h-100 shadow border-0 rounded-4 overflow-hidden bg-dark bg-opacity-20">
                 <div class="card-header bg-transparent border-bottom border-secondary border-opacity-10 p-4">
@@ -108,8 +96,6 @@
                 </div>
                 <div class="card-body p-4">
                     <div class="d-flex flex-column gap-3">
-
-                        <!-- В данный момент -->
                         <div class="d-flex justify-content-between align-items-center p-3 rounded-4 bg-body-tertiary bg-opacity-25 border border-secondary border-opacity-10">
                             <div>
                                 <span class="text-secondary d-block fs-8 text-uppercase tracking-wider fw-medium mb-1">Прямо сейчас</span>
@@ -119,8 +105,6 @@
                                 <i class="bi bi-people-fill me-1"></i> +{{ cm.bars.moment.value }} бокалов
                             </span>
                         </div>
-
-                        <!-- За месяц -->
                         <div class="d-flex justify-content-between align-items-center p-3 rounded-4 bg-body-tertiary bg-opacity-10 border border-secondary border-opacity-10">
                             <div>
                                 <span class="text-secondary d-block fs-8 text-uppercase tracking-wider fw-medium mb-1">За месяц</span>
@@ -128,8 +112,6 @@
                             </div>
                             <span class="text-white-50 small">★ {{ cm.bars.month.object.rate or '0.0' if cm.bars.month.object else '0.0' }} ({{ cm.bars.month.value }} заказов)</span>
                         </div>
-
-                        <!-- За год -->
                         <div class="d-flex justify-content-between align-items-center p-3 rounded-4 bg-body-tertiary bg-opacity-10 border border-secondary border-opacity-10">
                             <div>
                                 <span class="text-secondary d-block fs-8 text-uppercase tracking-wider fw-medium mb-1">За год</span>
@@ -138,7 +120,6 @@
                             <span class="text-white-50 small">{{ cm.bars.year.value }} заказов</span>
                         </div>
 
-                        <!-- За все время -->
                         <div class="d-flex justify-content-between align-items-center p-3 rounded-4 bg-body-tertiary bg-opacity-10 border border-secondary border-opacity-10">
                             <div>
                                 <span class="text-secondary d-block fs-8 text-uppercase tracking-wider fw-medium mb-1">За все время</span>

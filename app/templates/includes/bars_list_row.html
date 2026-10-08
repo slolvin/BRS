@@ -1,14 +1,9 @@
 <div class="card w-100 shadow border-0 rounded-4 overflow-hidden bg-dark bg-opacity-20 mb-2">
     <div class="row g-0 align-items-center">
-
-        <!-- 1. ИЗОБРАЖЕНИЕ БАРА -->
         <div class="col-12 col-md-3 col-xl-2" style="height: 120px; background: linear-gradient(45deg, #1f232b, #2d323f);">
             <img class="w-100 h-100" src="/static/icons/placeholder.png" alt="{{ bar['name'] }}" style="object-fit: cover;">
         </div>
-
-        <!-- 2. ОСНОВНАЯ ИНФОРМАЦИЯ -->
         <div class="col-12 col-md-5 col-xl-6 p-3 px-md-4">
-            <!-- Название и Управляющий -->
             <div class="d-flex flex-wrap align-items-baseline gap-2 mb-1">
                 <h5 class="card-title fw-bold text-white mb-0 text-uppercase tracking-wide">{{ bar['name'] }}</h5>
                 {% if bar.manager %}
@@ -21,8 +16,6 @@
                     </span>
                 {% endif %}
             </div>
-
-            <!-- Геолокация -->
             <div class="mb-0">
                 <a href="https://www.google.com/maps/search/?api=1&query=1200%20{{ bar['address'] }}"
                    class="text-primary text-decoration-none small d-inline-flex align-items-start gap-1 hover-link"
@@ -32,8 +25,6 @@
                 </a>
             </div>
         </div>
-
-        <!-- 3. РЕЙТИНГ -->
         <div class="col-6 col-md-2 p-3 text-md-center border-top border-md-0 border-secondary border-opacity-10">
             {% set current_rate = bar['rate'] if bar['rate'] is not none else bar.get_bar_rate() %}
             {% set full_stars = current_rate | int %}
@@ -57,12 +48,8 @@
                 </span>
             </div>
         </div>
-
-        <!-- 4. КНОПКИ ДЕЙСТВИЯ -->
         <div class="col-6 col-md-2 p-3 border-top border-md-0 border-secondary border-opacity-10">
             <div class="d-flex justify-content-end align-items-center gap-2">
-
-                <!-- Кнопка Избранное -->
                 <div class="d-flex gap-2">
                     {% if current_user.is_authenticated %}
                         <form action="{{ url_for('.toggle_favorite', bar_id=bar.id) }}" method="POST" class="m-0">
@@ -81,25 +68,19 @@
                             <i class="bi bi-heart"></i>
                         </a>
                     {% endif %}
-
-                    <!-- Кнопка Редактирования -->
                     {% if current_user.is_authenticated and (current_user.role == 'administrator' or (current_user.role == 'manager' and bar.admin_id == current_user.id)) %}
                         <a class="btn btn-outline-secondary btn-sm p-2 d-flex align-items-center justify-content-center" style="width: 38px; height: 38px;"
                            href="{{ url_for('.edit_bar', id=bar.id) }}" title="Edit">
                            <i class="bi bi-pencil"></i>
                         </a>
                     {% endif %}
-
-                    <!-- Кнопка перехода к Меню -->
                     <a class="btn btn-primary btn-sm px-3 h-100 d-flex align-items-center justify-content-center gap-1 shadow-sm" style="height: 38px;"
                        href="{{ url_for('.get_bar_drinks', id=bar.id) }}">
                        <span>Menu</span>
                        <i class="bi bi-arrow-right-short fs-5 lh-1"></i>
                     </a>
                 </div>
-
             </div>
         </div>
-
     </div>
 </div>

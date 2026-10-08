@@ -98,25 +98,18 @@ def register_mobile_user():
             <table border="0" cellpadding="0" cellspacing="0" width="100%" style="table-layout: fixed;">
                 <tr>
                     <td align="center" style="padding: 40px 20px;">
-                        <!-- Главный контейнер письма -->
                         <table border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 500px; background-color: #1a1a1f; border-radius: 20px; overflow: hidden; border: 1px solid rgba(255,255,255,0.05); box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
-
-                            <!-- Шапка с мини-логотипом -->
                             <tr>
                                 <td align="center" style="padding: 30px 40px 10px 40px;">
                                     <span style="font-size: 28px; font-weight: 800; color: #ff9500; letter-spacing: 2px;">БРС СИСТЕМА</span>
                                 </td>
                             </tr>
-
-                            <!-- Основной контент -->
                             <tr>
                                 <td style="padding: 20px 40px 30px 40px; text-align: center;">
                                     <h2 style="margin: 0 0 16px 0; color: #ffffff; font-size: 22px; font-weight: 700;">Привет, {username}! 👋</h2>
                                     <p style="margin: 0 0 24px 0; color: #a1a1aa; font-size: 15px; line-height: 1.6;">
                                         Добро пожаловать в экосистему БРС Самара. Вы успешно зарегистрировали аккаунт. Чтобы активировать его и получить доступ к чекинам и карте заведений, подтвердите ваш email.
                                     </p>
-
-                                    <!-- КНОПКА-ССЫЛКА -->
                                     <table border="0" cellpadding="0" cellspacing="0" style="margin: 30px auto;">
                                         <tr>
                                             <td align="center" style="border-radius: 12px; background-color: #ff9500;">
@@ -126,22 +119,17 @@ def register_mobile_user():
                                             </td>
                                         </tr>
                                     </table>
-
-                                    <!-- Таймер и безопасность -->
                                     <p style="margin: 20px 0 0 0; color: #71717a; font-size: 12px; font-style: italic;">
                                         ⏳ Ссылка активна в течение 1 часа.<br>
                                         Если вы не регистрировались в БРС, просто проигнорируйте это письмо.
                                     </p>
                                 </td>
                             </tr>
-
-                            <!-- Подвал -->
                             <tr>
                                 <td style="padding: 20px 40px; background-color: rgba(255,255,255,0.02); border-top: 1px solid rgba(255,255,255,0.03); text-align: center;">
                                     <span style="color: #52525b; font-size: 11px;">© 2026 БРС Система. Самара, Россия.</span>
                                 </td>
                             </tr>
-
                         </table>
                     </td>
                 </tr>

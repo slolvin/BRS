@@ -7,7 +7,6 @@
             {% block styles %}
                 {{ bootstrap.load_css() }}
                 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
-                <!-- Leaflet CSS -->
                 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.css" />
             {% endblock %}
             <title>{% block title %}{% endblock %} - Main</title>
@@ -17,19 +16,11 @@
         {% block navbar %}
             <nav class="navbar navbar-expand-xl bg-body-tertiary border-bottom border-secondary border-opacity-10 py-3 shadow-sm">
                 <div class="container-fluid px-4">
-
-                    <!-- БЛОК 1: Левая сторона — Логотип -->
                     <a class="navbar-brand fw-bold text-primary tracking-wider fs-4 me-4" href="/">BRS</a>
-
-                    <!-- Кнопка мобильного меню (для маленьких экранов) -->
                     <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarBarsDemo">
                         <span class="navbar-toggler-icon"></span>
                     </button>
-
-                    <!-- Главная обертка меню -->
                     <div class="collapse navbar-collapse" id="navbarBarsDemo">
-
-                        <!-- БЛОК 2: Центр — Все навигационные ссылки (w-100 и justify-content-start упорядочивают их) -->
                         <ul class="navbar-nav me-auto mb-2 mb-xl-0 gap-3 align-items-xl-center flex-wrap">
                             {% if current_user.is_authenticated %}
                                 <li class="nav-item">
@@ -74,28 +65,20 @@
                                 </li>
                             {% endif %}
                         </ul>
-
-                        <!-- БЛОК 3: Правая сторона — Профиль, Поиск, Тема и Выход (ms-auto прижимает этот блок строго к правому краю) -->
                         <div class="d-flex flex-column flex-xl-row align-items-stretch align-items-xl-center gap-3 mt-3 mt-xl-0 ms-auto">
-
                             {% if current_user.is_authenticated %}
                                 <a class="nav-link fw-medium text-uppercase fs-7 text-primary-emphasis d-inline-flex align-items-center" href="{{ url_for('main.user', username=current_user.username) }}">
                                     <i class="bi bi-person-circle me-1"></i> Profile
                                 </a>
                                 <a class="nav-link fw-medium text-uppercase fs-7 text-danger opacity-75" href="{{ url_for('auth.logout') }}">Sign Out</a>
                             {% endif %}
-
                             <a class="nav-link fw-medium text-uppercase fs-7 opacity-50" href="{{ url_for('main.privacy_policy') }}">Privacy Policy</a>
-
-                            <!-- Поиск -->
                             <form class="d-flex gap-2 mb-0" role="search">
                                 <input class="form-control bg-dark bg-opacity-10 border-secondary border-opacity-25 text-white" type="search" placeholder="Search bars..." aria-label="Search" style="min-width: 150px;">
                                 <button class="btn btn-outline-primary" type="submit">
                                     <i class="bi bi-search"></i>
                                 </button>
                             </form>
-
-                            <!-- Тогглер темы -->
                             <button class="btn btn-outline-secondary rounded-pill d-flex align-items-center justify-content-center"
                                     id="themeToggler" type="button" title="Переключить тему" style="width: 42px; height: 42px; flex-shrink: 0;">
                                 <i class="bi bi-moon-stars-fill fs-5" id="themeIcon"></i>
@@ -110,14 +93,10 @@
             {% block content %}{% endblock %}
         </main>
         {% block footer %}
-        <!-- mt-auto гарантирует, что футер всегда прижат к низу, если контента мало -->
             <div class="container-fluid bg-body-tertiary border-top border-secondary border-opacity-10 mt-auto">
                 <div class="container">
                     <footer class="d-flex flex-wrap justify-content-between align-items-center py-3">
-
-                        <!-- Левая часть: Копирайт и Email -->
                         <div class="col-12 col-md-6 d-flex align-items-center justify-content-center justify-content-md-start mb-3 mb-md-0">
-                            <!-- Неоновая иконка коктейля вместо логотипа Bootstrap -->
                             <a href="/" class="me-2 text-primary fs-5 lh-1" title="На главную">
                                 <i class="bi bi-layer-forward"></i>
                             </a>
@@ -125,8 +104,6 @@
                                 © 2026 SlOlVin <a href="mailto:harisyork@outlook.com" class="text-secondary text-decoration-none border-bottom border-secondary border-opacity-25 pb-0.5 ms-1 hover-link">harisyork@outlook.com</a>
                             </span>
                         </div>
-
-                        <!-- Правая часть: Иконки соцсетей -->
                         <ul class="nav col-12 col-md-6 justify-content-center justify-content-md-end list-unstyled d-flex gap-3">
                             <li>
                                 <a class="text-secondary fs-5 opacity-75 opacity-100-hover" href="#" aria-label="Twitter">
@@ -144,7 +121,6 @@
                                 </a>
                             </li>
                         </ul>
-
                     </footer>
                 </div>
             </div>
@@ -184,22 +160,19 @@
         </script>
         <script>
             document.addEventListener("DOMContentLoaded", function() {
-                // Находим все POST-формы на странице
                 const forms = document.querySelectorAll('form[method="post"], form[method="POST"]');
 
                 forms.forEach(form => {
-                    // Проверяем, нет ли там уже csrf_token, чтобы не дублировать
                     if (!form.querySelector('input[name="csrf_token"]')) {
                         const input = document.createElement('input');
                         input.type = 'hidden';
                         input.name = 'csrf_token';
-                        input.value = "{{ csrf_token() }}"; // Flask сам подставит строку токена
+                        input.value = "{{ csrf_token() }}";
                         form.insertBefore(input, form.firstChild);
                     }
                 });
             });
         </script>
-        <!-- Leaflet JavaScript -->
         <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.js"></script>
     </body>
 </html>

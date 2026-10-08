@@ -1,54 +1,39 @@
 <!DOCTYPE html>
 <html lang="en" data-bs-theme="dark">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Privacy Policy - BRS</title>
-    <!-- Загружаем стили Bootstrap и иконки, как в вашем основном проекте -->
-    {{ bootstrap.load_css() }}
-    <!-- <link rel="stylesheet" href="https://jsdelivr.net"> -->
-    <style>
-        body {
-            background-color: #101012; /* Фирменный глубокий темный фон */
-            color: #aeaeae;
-        }
-        .privacy-navbar {
-            background-color: #161618;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-        }
-    </style>
-</head>
-<body class="min-vh-100 d-flex flex-column">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Privacy Policy - BRS</title>
+        {{ bootstrap.load_css() }}
+        <style>
+            body {
+                background-color: #101012;
+                color: #aeaeae;
+            }
+            .privacy-navbar {
+                background-color: #161618;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            }
+        </style>
+    </head>
+    <body class="min-vh-100 d-flex flex-column">
 
-    <!-- 🛠️ НАША НОВАЯ МИНИ-ШАПКА (Растягивается на весь экран) -->
-    <nav class="privacy-navbar py-3 shadow-sm w-100">
-        <div class="container d-flex align-items-center justify-content-between">
-            
-            <!-- Кнопка Назад (Ведет на главную страницу сайта) -->
-            <a href="/" class="btn btn-link text-secondary text-decoration-none d-inline-flex align-items-center g-2 ps-0">
-                <i class="bi bi-arrow-left fs-5 me-2"></i>
-                <span class="fw-medium text-uppercase fs-7">Назад</span>
-            </a>
+        <nav class="privacy-navbar py-3 shadow-sm w-100">
+            <div class="container d-flex align-items-center justify-content-between">
+                <a href="/" class="btn btn-link text-secondary text-decoration-none d-inline-flex align-items-center g-2 ps-0">
+                    <i class="bi bi-arrow-left fs-5 me-2"></i>
+                    <span class="fw-medium text-uppercase fs-7">Назад</span>
+                </a>
+                <span class="navbar-brand fw-bold text-primary tracking-wider fs-4 mb-0" style="margin-right: 50px;">BRS</span>
+                <div></div>
+            </div>
+        </nav>
 
-            <!-- Логотип строго по центру -->
-            <span class="navbar-brand fw-bold text-primary tracking-wider fs-4 mb-0" style="margin-right: 50px;">BRS</span>
-            
-            <!-- Пустышка справа для идеального центрирования флекс-бокса -->
-            <div></div>
-            
-        </div>
-    </nav>
-
-    <!-- ОСНОВНОЙ КОНТЕНТ ПОЛИТИКИ -->
-    <main class="flex-grow-1 container my-5" style="max-width: 800px;">
-        <!-- Встраиваем чистый текст политики из privacy.html -->
-        {% include 'privacy.html' %}
-    </main>
-
-    <!-- Простейший аккуратный футер -->
-    <footer class="py-4 text-center border-top border-secondary border-opacity-10 mt-auto">
-        <span class="font-mono fs-8 opacity-50">© 2026 BRS App. All rights reserved.</span>
-    </footer>
-
-</body>
+        <main class="flex-grow-1 container my-5" style="max-width: 800px;">
+            {% include 'privacy.html' %}
+        </main>
+        <footer class="py-4 text-center border-top border-secondary border-opacity-10 mt-auto">
+            <span class="font-mono fs-8 opacity-50">© 2026 BRS App. All rights reserved.</span>
+        </footer>
+    </body>
 </html>

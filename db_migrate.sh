@@ -2,8 +2,8 @@
 
 # --- НАСТРОЙКИ СЕРВЕРА ---
 SERVER_USER="root"
-SERVER_IP="123.45.67.89"              # Измените на IP вашего VPS
-PROJECT_DIR="/var/www/brs_project"    # Папка проекта на сервере
+SERVER_IP="123.45.67.89"
+PROJECT_DIR="/var/www/brs_project"
 
 echo "🔄 Запуск ручной миграции БД на удаленном сервере $SERVER_IP..."
 

@@ -9,8 +9,6 @@
 
     <div class="container-fluid px-0 w-100 mb-4">
         <form action="{{ url_for('.get_bars_list') }}" method="GET" class="row g-3 align-items-end bg-body-tertiary p-3 rounded-4 shadow-sm w-100 m-0">
-
-            <!-- Фильтр по городу -->
             <div class="col-12 col-md-2">
                 <label for="city" class="form-label small text-secondary fw-medium">Город</label>
                 <select class="form-select" id="city" name="city">
@@ -20,8 +18,6 @@
                     {% endfor %}
                 </select>
             </div>
-
-            <!-- Фильтр по типу напитка -->
             <div class="col-12 col-md-2">
                 <label for="type" class="form-label small text-secondary fw-medium">Тип напитка</label>
                 <select class="form-select" id="type" name="type">
@@ -31,8 +27,6 @@
                     {% endfor %}
                 </select>
             </div>
-
-            <!-- Фильтр по расстоянию (заглушка) -->
             <div class="col-12 col-md-2">
                 <label for="distance" class="form-label small text-secondary fw-medium">Расстояние</label>
                 <select class="form-select" id="distance" name="distance">
@@ -42,8 +36,6 @@
                     <option value="5km" {% if request.args.get('distance') == '5km' %}selected{% endif %}>До 5 км</option>
                 </select>
             </div>
-
-            <!-- Фильтр по рейтингу -->
             <div class="col-12 col-md-2">
                 <label for="rating" class="form-label small text-secondary fw-medium">Рейтинг</label>
                 <select class="form-select" id="rating" name="rating">
@@ -53,27 +45,20 @@
                     <option value="3.5" {% if request.args.get('rating') == '3.5' %}selected{% endif %}>★ 3.5 и выше</option>
                 </select>
             </div>
-
-            <!-- ИНТЕГРИРОВАННЫЙ ПЕРЕКЛЮЧАТЕЛЬ ВИДА (БЕЗ JS) -->
             <div class="col-12 col-sm-6 col-md-2">
                 <label class="form-label small text-secondary fw-medium d-block">Отображение</label>
                 {% set current_view = request.args.get('view', 'cards') %}
                 <div class="btn-group w-100" role="group" aria-label="View toggle group">
-                    <!-- Радиокнопка: Карточки -->
                     <input type="radio" class="btn-check" name="view" id="view_cards" value="cards" {% if current_view == 'cards' %}checked{% endif %}>
                     <label class="btn btn-outline-secondary d-flex align-items-center justify-content-center py-2" for="view_cards" title="Сетка карточек">
                         <i class="bi bi-grid-3x3-gap-fill"></i>
                     </label>
-
-                    <!-- Радиокнопка: Список -->
                     <input type="radio" class="btn-check" name="view" id="view_list" value="list" {% if current_view == 'list' %}checked{% endif %}>
                     <label class="btn btn-outline-secondary d-flex align-items-center justify-content-center py-2" for="view_list" title="Список строк">
                         <i class="bi bi-list-ul"></i>
                     </label>
                 </div>
             </div>
-
-            <!-- Фильтр "Открыто сейчас" и Кнопка Filter в одной колонке для компактности -->
             <div class="col-12 col-sm-6 col-md-2 d-flex align-items-center justify-content-between gap-2">
                 <div class="form-check my-auto">
                     {% set is_checked = 'checked' if request.args.get('open_now') == 'true' else '' %}
@@ -82,16 +67,12 @@
                         Открыто сейчас
                     </label>
                 </div>
-
                 <button class="btn btn-primary px-3 py-2" type="submit">
                     <i class="bi bi-funnel-fill"></i> <span class="d-none d-sm-inline d-md-none d-lg-inline">Filter</span>
                 </button>
             </div>
-
         </form>
     </div>
-
-    <!-- Контентная зона -->
     <div class="container-fluid mt-4">
         {% if request.args.get('view') == 'list' %}
             <div class="row g-3">
@@ -121,8 +102,6 @@
                     Интерактивный поиск
                 </span>
             </div>
-
-            <!-- Контейнер для самой карты Leaflet (Высота регулируется через style) -->
             <div id="main-map" class="rounded-3 border border-secondary border-opacity-10" style="height: 400px; z-index: 1;"></div>
         </div>
     </div>
@@ -130,7 +109,6 @@
 {% block scripts %}
     <script>
         document.addEventListener("DOMContentLoaded", function () {
-            // 1. Формируем массив данных баров силами Jinja
             const barsData = [
                 {% for bar in bars %}
                     {% if bar.latitude and bar.longitude %}
@@ -149,29 +127,20 @@
 
             console.log("Загружено баров для карты:", barsData.length);
 
-            // 2. Определяем безопасные стартовые координаты, если массив пустой
             const startLat = barsData.length > 0 ? barsData[0].lat : 55.7558;
             const startLng = barsData.length > 0 ? barsData[0].lng : 37.6173;
             const startZoom = barsData.length > 0 ? 12 : 10;
 
             try {
-                // 3. Инициализируем карту Leaflet
                 const map = L.map('main-map').setView([startLat, startLng], startZoom);
 
-                // ИСПРАВЛЕНО: Изменен тип комментария с # на // (JS стандарт)
                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                     attribution: '&copy; <a href="https://openstreetmap.org">OpenStreetMap</a> contributors',
                     maxZoom: 19
                 }).addTo(map);
-
-                // 4. Создаем группу для маркеров
                 const markerGroup = new L.featureGroup();
-
-                // 5. Расставляем маркеры баров
                 barsData.forEach(function (bar) {
                     const marker = L.marker([bar.lat, bar.lng]);
-
-                    // Верстка поп-апа внутри карты
                     const popupContent = `
                         <div class="text-start" style="font-family: inherit; color: #f8f9fa;">
                             <div class="d-flex justify-content-between align-items-center mb-1 gap-3">
@@ -194,16 +163,11 @@
 
                     markerGroup.addLayer(marker);
                 });
-
-                // Добавляем маркеры на карту
                 map.addLayer(markerGroup);
 
-                // 6. Автоматически подгоняем масштаб под все маркеры с отступами в 40 пикселей
                 if (barsData.length > 0) {
                     map.fitBounds(markerGroup.getBounds(), { padding: [40, 40] });
                 }
-
-                // Заставляем Leaflet принудительно пересчитать размеры окна
                 setTimeout(() => { map.invalidateSize(); }, 200);
 
             } catch (error) {
@@ -213,7 +177,6 @@
     </script>
 
     <style>
-        /* Стилизация всплывающего окна под темную тему */
         .dark-theme-popup .leaflet-popup-content-wrapper {
             background: #212529 !important;
             border: 1px solid rgba(255, 255, 255, 0.15) !important;

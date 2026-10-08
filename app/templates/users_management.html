@@ -19,7 +19,6 @@
                     <input type="text" name="search" class="form-control bg-dark bg-opacity-10 border-secondary border-opacity-25 text-white"
                            placeholder="Поиск по никнейму..." value="{{ search_query }}">
                     {% if search_query %}
-                        <!-- Кнопка сброса поиска, если админ уже что-то нашел -->
                         <a href="{{ url_for('.users_management') }}" class="btn btn-outline-secondary d-flex align-items-center justify-content-center px-2.5" title="Сбросить поиск">
                             <i class="bi bi-x-lg"></i>
                         </a>
@@ -42,7 +41,6 @@
                 <tbody class="fs-8">
                     {% for u in users %}
                         <tr class="border-bottom border-secondary border-opacity-5">
-                            <!-- Аватар и Никнейм -->
                             <td class="py-3 ps-3">
                                 <div class="d-flex align-items-center gap-2">
                                     <img src="{{ u.gravatar_url(size=32) }}" alt="{{ u.username }}" class="rounded-circle border border-secondary border-opacity-25" style="width: 32px; height: 32px;">
@@ -54,13 +52,9 @@
                                     </div>
                                 </div>
                             </td>
-                            
-                            <!-- Email -->
                             <td class="py-3 text-secondary-emphasis">
                                 {{ u.email }}
                             </td>
-                            
-                            <!-- Бейдж Роли -->
                             <td class="py-3 text-center">
                                 {% if u.is_administrator() %}
                                     <span class="badge bg-danger bg-opacity-15 text-danger border border-danger border-opacity-10 rounded-pill px-2.5 py-1">
@@ -76,13 +70,9 @@
                                     </span>
                                 {% endif %}
                             </td>
-                            
-                            <!-- Дата регистрации -->
                             <td class="py-3 text-center text-muted">
                                 {{ u.member_since.strftime('%d.%m.%Y') if u.member_since else '—' }}
                             </td>
-                            
-                            <!-- Кнопка перехода к редактированию -->
                             <td class="py-3 text-end pe-3">
                                 <a href="{{ url_for('.edit_profile_admin', id=u.id) }}" 
                                    class="btn btn-outline-light btn-sm px-3 rounded-3 fs-9 text-uppercase tracking-wider fw-medium">
@@ -94,7 +84,6 @@
                 </tbody>
             </table>
         </div>
-
     </div>
 </div>
 {% endblock %}

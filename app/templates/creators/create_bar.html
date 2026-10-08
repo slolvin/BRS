@@ -3,10 +3,7 @@
 {% block content %}
     <div class="container py-5">
         <div class="row justify-content-center">
-            <!-- Удерживаем ту же ширину col-lg-8 для визуального единообразия во всем приложении -->
             <div class="col-12 col-lg-8">
-
-                <!-- Заголовок страницы -->
                 <div class="d-flex align-items-center gap-3 mb-4">
                     <h1 class="h2 fw-bold text-white mb-0 text-uppercase tracking-wider">Добавить заведение</h1>
                     <div class="flex-grow-1 border-bottom border-secondary border-opacity-10"></div>
@@ -14,12 +11,8 @@
                         <i class="bi bi-shop me-1"></i> Новый бар
                     </span>
                 </div>
-
-                <!-- Карточка с формой в едином дизайн-коде -->
                 <div class="card border-0 rounded-4 shadow-sm bg-body-tertiary p-4 p-md-5">
                     <form action="{{ url_for('.add_bar') }}" method="post" enctype="multipart/form-data" class="row g-4">
-
-                        <!-- 1. Название заведения (на всю ширину строки) -->
                         <div class="col-12">
                             <label for="name" class="form-label small text-secondary fw-medium text-uppercase tracking-wider fs-8">Название бара</label>
                             <div class="input-group">
@@ -31,8 +24,6 @@
                                        value="{{ request.form['name'] or '' }}" required>
                             </div>
                         </div>
-
-                        <!-- 2. Город -->
                         <div class="col-12 col-md-4">
                             <label for="city" class="form-label small text-secondary fw-medium text-uppercase tracking-wider fs-8">Город</label>
                             <div class="input-group">
@@ -44,8 +35,6 @@
                                        value="{{ request.form['city'] or '' }}" required>
                             </div>
                         </div>
-
-                        <!-- 3. Адрес -->
                         <div class="col-12 col-md-8">
                             <label for="address" class="form-label small text-secondary fw-medium text-uppercase tracking-wider fs-8">Адрес заведения</label>
                             <div class="input-group">
@@ -57,18 +46,14 @@
                                        value="{{ request.form['address'] or '' }}" required>
                             </div>
                         </div>
-
-                        <!-- 4. Кнопки управления (полностью зеркально форме напитка) -->
                         <div class="col-12 pt-3 border-top border-secondary border-opacity-10 d-flex flex-column-reverse flex-sm-row justify-content-end gap-2">
                             <a href="javascript:history.back()" class="btn btn-outline-secondary px-4">Отмена</a>
                             <button class="btn btn-primary px-5 fw-medium" type="submit">
                                 <i class="bi bi-check-lg me-1"></i> Зарегистрировать бар
                             </button>
                         </div>
-
                     </form>
                 </div>
-
             </div>
         </div>
     </div>

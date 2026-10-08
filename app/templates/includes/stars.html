@@ -1,15 +1,11 @@
 <div class="d-flex align-items-center justify-content-center justify-content-md-start gap-2">
-    <!-- Получаем оценку по вашей проверенной логике -->
     {% set current_rate = bar['rate'] if bar['rate'] is not none else bar.get_bar_rate() %}
-
-    <!-- Гарантируем, что на выходе будет float, даже если метод вернул что-то иное -->
     {% set current_score = (current_rate | float) if current_rate is not none else 0.0 %}
 
     {% set full_stars = current_score | int %}
     {% set half_star = (current_score - full_stars) >= 0.49 %}
     {% set empty_stars = 5 - full_stars - (1 if half_star else 0) %}
 
-    <!-- Контейнер для звёздочек -->
     <div class="d-flex text-warning fs-4 lh-1">
         {% for _ in range(full_stars) %}
             <i class="bi bi-star-fill me-1"></i>
@@ -24,7 +20,6 @@
         {% endfor %}
     </div>
 
-    <!-- Текстовое значение оценки рядом со звездами -->
     <span class="badge bg-body-tertiary border border-secondary border-opacity-25 text-secondary-emphasis fs-6 fw-bold px-2 py-1 rounded">
         {{ "%.1f"|format(current_score) }}
     </span>

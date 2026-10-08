@@ -4,7 +4,6 @@
 
 {% block content %}
 	<div class="container py-5">
-		<!-- Заголовок личного кабинета -->
 		<div class="d-flex align-items-center gap-3 mb-5">
 			<h1 class="h2 fw-bold text-white mb-0 text-uppercase tracking-wider">Личный кабинет</h1>
 			<div class="flex-grow-1 border-bottom border-secondary border-opacity-10"></div>
@@ -12,35 +11,24 @@
 				<i class="bi bi-person-gear me-1"></i> Профиль
 			</span>
 		</div>
-
 		<div class="row g-4">
-
-			<!-- ЛЕВАЯ КОЛОНКА: Карточка пользователя -->
 			<div class="col-12 col-lg-4">
 				<div class="card border-0 rounded-4 shadow-sm bg-body-tertiary p-4 h-100 text-center">
-
-					<!-- Аватар пользователя (Gravatar) со скруглением -->
 					<div class="position-relative d-inline-block mx-auto mb-3">
 						<img src="{{ current_user.gravatar_url(size=120) }}" alt="{{ current_user.name }}"
 							 class="rounded-circle shadow border border-secondary border-opacity-25 p-1"
 							 style="width: 120px; height: 120px; object-fit: cover;">
 					</div>
-
-					<!-- Имя и Роль -->
 					<h4 class="fw-bold text-white mb-1">{{ current_user.name }}</h4>
 					<div class="mb-3">
 						<span class="badge bg-secondary rounded-pill px-2.5 py-1 fs-8 text-uppercase tracking-wider fw-semibold">
 							<i class="bi bi-shield-lock me-1"></i> {{ current_user.role or 'User' }}
 						</span>
 					</div>
-
-					<!-- Локация / Гео -->
 					<p class="text-secondary small mb-4 d-flex align-items-center justify-content-center gap-1">
 						<i class="bi bi-geo-alt text-danger"></i>
 						<span>{{ current_user.location or 'Локация не указана' }}</span>
 					</p>
-
-					<!-- Кнопки быстрых действий (Follow / Message) -->
 					<div class="d-flex gap-2 justify-content-center pt-2 border-top border-secondary border-opacity-10 w-100">
 						<button class="btn btn-primary w-50 py-2 fs-7 fw-medium text-uppercase tracking-wide">
 							<i class="bi bi-person-plus me-1"></i> Follow
@@ -52,15 +40,11 @@
 
 				</div>
 			</div>
-
-			<!-- ПРАВАЯ КОЛОНКА: Настройки и редактирование профиля -->
 			<div class="col-12 col-lg-8">
 				<div class="card border-0 rounded-4 shadow-sm bg-body-tertiary p-4 p-md-5 h-100">
 					<h3 class="h5 fw-bold text-white mb-4 text-uppercase tracking-wide">Редактировать личные данные</h3>
 
 					<form action="{{ url_for('.edit_profile') }}" method="post" class="row g-4">
-
-						<!-- Имя пользователя -->
 						<div class="col-12 col-md-6">
 							<label for="name" class="form-label small text-secondary fw-medium text-uppercase tracking-wider fs-8">Полное имя</label>
 							<div class="input-group">
@@ -70,8 +54,6 @@
 								<input name="name" type="text" id="name" class="form-control bg-dark bg-opacity-20 border-secondary border-opacity-25 text-white" value="{{ current_user.name }}" required>
 							</div>
 						</div>
-
-						<!-- Email -->
 						<div class="col-12 col-md-6">
 							<label for="email" class="form-label small text-secondary fw-medium text-uppercase tracking-wider fs-8">Электронная почта</label>
 							<div class="input-group">
@@ -81,8 +63,6 @@
 								<input name="email" type="email" id="email" class="form-control bg-dark bg-opacity-20 border-secondary border-opacity-25 text-white" value="{{ current_user.email }}" required>
 							</div>
 						</div>
-
-						<!-- Локация -->
 						<div class="col-12">
 							<label for="location" class="form-label small text-secondary fw-medium text-uppercase tracking-wider fs-8">Город / Местоположение</label>
 							<div class="input-group">
@@ -92,20 +72,15 @@
 								<input name="location" type="text" id="location" class="form-control bg-dark bg-opacity-20 border-secondary border-opacity-25 text-white" value="{{ current_user.location or '' }}" placeholder="Например: Москва, Россия">
 							</div>
 						</div>
-
-						<!-- Кнопка отправки изменений -->
 						<div class="col-12 pt-3 border-top border-secondary border-opacity-10 d-flex justify-content-end">
 							<button type="submit" class="btn btn-primary px-5 py-2 fw-medium shadow-sm">
 								<i class="bi bi-save me-1"></i> Сохранить изменения
 							</button>
 						</div>
-
 					</form>
 				</div>
 			</div>
-
 		</div>
-		<!-- БЛОК: Любимые заведения пользователя -->
 		<div class="row mt-4">
 			<div class="col-12">
 				<div class="card border-0 rounded-4 shadow-sm bg-body-tertiary p-4">
@@ -121,23 +96,18 @@
 						{% if favorite_bars %}
 							{% include "includes/user_favorite_bars.html" %}
 						{% else %}
-							<!-- Если список пуст -->
 							<div class="col-12 text-center py-4 text-secondary">
 								<i class="bi bi-heartbreak fs-2 d-block mb-2 text-opacity-50"></i>
 								<span class="small">Вы еще не добавили ни одного заведения в избранное</span>
 							</div>
 						{% endif %}
 					</div>
-
 				</div>
 			</div>
 		</div>
-		<!-- НИЖНИЙ БЛОК: История оценок и активности пользователя -->
 		<div class="row mt-4">
 			<div class="col-12">
 				<div class="card border-0 rounded-4 shadow-sm bg-body-tertiary p-4 p-md-5">
-
-					<!-- Заголовок секции истории -->
 					<div class="d-flex align-items-center justify-content-between mb-4">
 						<div>
 							<h3 class="h5 fw-bold text-white mb-1 text-uppercase tracking-wide">История вашей активности</h3>
@@ -147,18 +117,12 @@
 							Всего событий: {{ user_logs|length }}
 						</span>
 					</div>
-
-					<!-- Список последних действий -->
 					<div class="list-group list-group-flush border-top border-secondary border-opacity-10">
-
 						{% if user_logs %}
 							{% for log in user_logs %}
 								<div class="list-group-item bg-transparent border-secondary border-opacity-10 px-0 py-3 d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2 {% if loop.last %}border-bottom-0{% endif %}">
 									<div class="d-flex align-items-center gap-3">
-
-										<!-- Улучшенная логика иконок на основе типов действий -->
 										{% if log.action_type in ['rate', 'rate_drink'] %}
-											<!-- Желтая звезда для оценки баров и напитков -->
 											<div class="bg-warning bg-opacity-10 text-warning rounded-3 p-2 fs-5 lh-1 border border-warning border-opacity-10">
 												<i class="bi bi-star-fill"></i>
 											</div>
@@ -171,16 +135,12 @@
 												<i class="bi bi-heartbreak-fill"></i>
 											</div>
 										{% else %}
-											<!-- Зеленая галочка для регистрации, редактирования профиля и т.д. -->
 											<div class="bg-success bg-opacity-10 text-success rounded-3 p-2 fs-5 lh-1 border border-success border-opacity-10">
 												<i class="bi bi-patch-check-fill"></i>
 											</div>
 										{% endif %}
-
-										<!-- Текст лога -->
 										<div>
 											<span class="text-white small fw-medium d-block">{{ log.description }}</span>
-											<!-- Красивое отображение категории -->
 											<span class="text-muted fs-8">
 												Категория:
 												{% if log.action_type == 'rate_drink' %}Оценка напитка
@@ -191,8 +151,6 @@
 											</span>
 										</div>
 									</div>
-
-									<!-- Правая часть: Бейджи и Дата -->
 									<div class="d-flex align-items-center gap-2 ms-5 ms-sm-0">
 										{% if log.action_type in ['rate', 'rate_drink'] %}
 											<span class="badge bg-dark border border-secondary border-opacity-25 text-warning fw-semibold px-2 py-1">
@@ -211,13 +169,9 @@
 								<span class="small">У вас пока нет зарегистрированной активности</span>
 							</div>
 						{% endif %}
-
 					</div>
-
-
 				</div>
 			</div>
 		</div>
-
 	</div>
 {% endblock %}

@@ -1,12 +1,10 @@
 <div class="d-flex align-items-center gap-2">
-    <!-- Принудительно приводим к float -->
     {% set current_score = (drink.rating | float) if drink.rating is not none else 0.0 %}
 
     {% set full_stars = current_score | int %}
     {% set half_star = (current_score - full_stars) >= 0.49 %}
     {% set empty_stars = 5 - full_stars - (1 if half_star else 0) %}
 
-    <!-- Контейнер для звёздочек -->
     <div class="d-flex text-warning fs-6 lh-1">
         {% for _ in range(full_stars) %}
             <i class="bi bi-star-fill me-1"></i>
@@ -21,7 +19,6 @@
         {% endfor %}
     </div>
 
-    <!-- Текстовое значение оценки -->
     <span class="badge bg-body-tertiary border border-secondary border-opacity-25 text-secondary-emphasis small fw-semibold px-2 py-1 rounded">
         {{ "%.1f"|format(current_score) }}
     </span>

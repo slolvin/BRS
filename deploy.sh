@@ -2,10 +2,10 @@
 
 # --- НАСТРОЙКИ СЕРВЕРА ---
 SERVER_USER="root"
-SERVER_IP="123.45.67.89"              # Измените на IP вашего VPS
-PROJECT_DIR="/var/www/brs_project"    # Папка проекта на сервере
-DOMAIN="yourdomain.com"               # Ваш реальный домен
-EMAIL="your-email@gmail.com"          # Email для Let's Encrypt
+SERVER_IP="123.45.67.89"
+PROJECT_DIR="/var/www/brs_project"
+DOMAIN="yourdomain.com"
+EMAIL="your-email@gmail.com"
 
 echo "🚀 Запуск деплоя BRS с бэкапом БД на сервер $SERVER_IP..."
 

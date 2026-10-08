@@ -17,8 +17,6 @@
                     {% for drink in fav_drinks %}
                         <div class="col-12 col-md-6">
                             <div class="card bg-dark bg-opacity-40 border-secondary border-opacity-10 rounded-3 h-100 p-3 d-flex flex-column justify-content-between position-relative">
-
-                                <!-- Кнопка быстрого удаления из избранного -->
                                 <form action="{{ url_for('main.toggle_drink_favorite', drink_id=drink.id) }}" method="POST" class="position-absolute top-0 end-0 m-2.5">
                                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                                     <button type="submit" class="btn btn-link text-secondary hover-danger p-1 d-flex align-items-center justify-content-center"
@@ -27,7 +25,7 @@
                                     </button>
                                 </form>
 
-                                <div class="pe-4"> <!-- Отступ справа, чтобы текст не налезал на крестик -->
+                                <div class="pe-4">
                                     <div class="d-flex align-items-center justify-content-between mb-2 gap-2">
                                         <h4 class="h6 fw-bold text-white mb-0 text-truncate" style="max-width: 75%;">{{ drink.name }}</h4>
                                         <span class="badge bg-dark border border-secondary border-opacity-25 text-secondary small fw-medium fs-8">{{ drink.type }}</span>
@@ -39,12 +37,10 @@
 
                                 <div class="mt-3">
                                     {% if drink.bar_id %}
-                                        <!-- Если бар указан, строим ссылку как обычно -->
                                         <a href="{{ url_for('.get_bar_drinks', id=drink.bar_id) }}" class="btn btn-outline-warning btn-sm w-100 py-1.5 fs-8 text-uppercase tracking-wide">
                                             Перейти к бару <i class="bi bi-box-arrow-in-right fs-6 lh-1 ms-1"></i>
                                         </a>
                                     {% else %}
-                                        <!-- Если бара нет, показываем заблокированную кнопку-заглушку -->
                                         <button class="btn btn-outline-secondary btn-sm w-100 py-1.5 fs-8 text-uppercase tracking-wide" disabled title="Этот напиток временно не привязан к заведению">
                                             Бар не указан <i class="bi bi-dash-circle fs-6 lh-1 ms-1"></i>
                                         </button>

@@ -4,7 +4,6 @@
 
 {% block content %}
     <div class="container py-5">
-		<!-- Заголовок панели управления -->
 		<div class="d-flex align-items-center gap-3 mb-5">
 			<h1 class="h2 fw-bold text-white mb-0 text-uppercase tracking-wider">Панель управления баром</h1>
 			<div class="flex-grow-1 border-bottom border-secondary border-opacity-10"></div>
@@ -14,19 +13,14 @@
 		</div>
 
 		<div class="row g-4">
-
-			<!-- ЛЕВАЯ КОЛОНКА: Визуальное превью и статус -->
 			<div class="col-12 col-lg-4">
 				<div class="card border-0 rounded-4 shadow-sm bg-body-tertiary overflow-hidden h-100">
-					<!-- Заглушка изображения бара -->
 					<div class="position-relative" style="height: 180px; background: linear-gradient(45deg, #1f232b, #2d323f);">
 						<div class="position-absolute top-50 start-50 translate-middle text-center text-secondary opacity-50">
 							<i class="bi bi-image fs-1 d-block mb-1"></i>
 							<span class="fs-8 text-uppercase tracking-wider">Логотип / Фото бара</span>
 						</div>
 					</div>
-
-					<!-- Информация под фото -->
 					<div class="card-body p-4 text-center">
 						<h4 class="fw-bold text-white mb-1">{{ editing_bar['name'] }}</h4>
 						<p class="text-secondary small mb-3"><i class="bi bi-geo-alt-fill text-danger me-1"></i> {{ editing_bar['city'] }}</p>
@@ -44,34 +38,22 @@
 					</div>
 				</div>
 			</div>
-
-			<!-- ПРАВАЯ КОЛОНКА: Форма редактирования -->
 			<div class="col-12 col-lg-8">
 				<div class="card border-0 rounded-4 shadow-sm bg-body-tertiary p-4 p-md-5">
 					<h3 class="h5 fw-bold text-white mb-4 text-uppercase tracking-wide">Основная информация</h3>
-
-					<!-- Добавлен параметр enctype для будущей загрузки файлов -->
 					<form action="{{ url_for('.edit_bar', id=editing_bar.id) }}" method="post" enctype="multipart/form-data" class="row g-4">
-
-						<!-- Название -->
 						<div class="col-12 col-md-7">
 							<label for="name" class="form-label small text-secondary fw-medium text-uppercase tracking-wider fs-8">Название бара</label>
 							<input name="name" type="text" id="name" class="form-control bg-dark bg-opacity-20 border-secondary border-opacity-25 text-white" value="{{ editing_bar.name }}" required>
 						</div>
-
-						<!-- Admin ID -->
 						<div class="col-12 col-md-5">
 							<label for="admin_id" class="form-label small text-secondary fw-medium text-uppercase tracking-wider fs-8">ID Администратора</label>
 							<input name="admin_id" type="text" id="admin_id" class="form-control bg-dark bg-opacity-20 border-secondary border-opacity-25 text-white" value="{{ editing_bar.admin_id }}" required>
 						</div>
-
-						<!-- Адрес -->
 						<div class="col-12">
 							<label for="address" class="form-label small text-secondary fw-medium text-uppercase tracking-wider fs-8">Адрес</label>
 							<input name="address" type="text" id="address" class="form-control bg-dark bg-opacity-20 border-secondary border-opacity-25 text-white" value="{{ editing_bar.address }}" required>
 						</div>
-
-						<!-- ЗАГЛУШКА: Загрузка изображения бара -->
 						<div class="col-12">
 							<label for="bar_image" class="form-label small text-secondary fw-medium text-uppercase tracking-wider fs-8">Обновить фотографию заведения</label>
 							<div class="input-group">
@@ -81,8 +63,6 @@
 								</label>
 							</div>
 						</div>
-
-						<!-- Кнопки управления (в одну линию через flex-row) -->
 						<div class="col-12 pt-3 border-top border-secondary border-opacity-10 d-flex justify-content-end gap-2">
 							<a class="btn btn-outline-secondary px-4" href="/">Отмена</a>
 							<button type="submit" class="btn btn-primary px-4 fw-medium">
@@ -95,7 +75,6 @@
 		</div>
 		<div class="col-12 pt-4 border-top border-secondary border-opacity-10 text-center">
 			<h3 class="h6 text-warning text-uppercase tracking-wider mb-3">Локальный QR-код заведения для гостей</h3>
-
 			{% if qr_base64 %}
 				<div class="d-inline-block p-3 bg-white rounded-3 mb-2">
 					<img src="data:image/png;base64,{{ qr_base64 }}"
@@ -118,44 +97,29 @@
 		<div class="row mt-5">
 			<div class="col-12">
 				<div class="card border-0 rounded-4 shadow-sm bg-body-tertiary p-4 p-md-5">
-
-					<!-- Шапка секции меню -->
 					<div class="d-flex flex-column flex-md-row align-items-start align-items-md-center justify-content-between gap-3 mb-4 pb-4 border-bottom border-secondary border-opacity-10">
 						<div>
 							<h3 class="h5 fw-bold text-white mb-1 text-uppercase tracking-wide">Ассортимент и меню</h3>
 							<p class="text-secondary small mb-0">Управляйте позициями карты напитков, редактируйте информацию и отслеживайте их оценки.</p>
 						</div>
-
-						<!-- Кнопка добавления нового напитка -->
 						{% if current_user.is_authenticated %}
 							{% if current_user.role == 'administrator' or (current_user.role == 'manager' and editing_bar.admin_id == current_user.id) %}
-								<!-- Кнопка рендерится только для Главного админа или Менеджера этого заведения -->
 								<a href="{{ url_for('main.add_drink', bar_id=editing_bar.id) }}" class="btn btn-success px-4 py-2 fw-medium d-flex align-items-center gap-2 shadow-sm rounded-3">
 									<i class="bi bi-plus-circle-fill me-1"></i> Добавить напиток в меню
 								</a>
 							{% endif %}
 						{% endif %}
 					</div>
-
-					<!-- ДИНАМИЧЕСКИЙ ВЫВОД КАРТОЧЕК НАПИТКОВ -->
-					<!-- Проверяем, есть ли вообще напитки у этого бара -->
 					{% if editing_bar.drinks and editing_bar.drinks|length > 0 %}
-
-						<!-- Сетка для карточек (3 колонки внутри панели админки, чтобы они не зажимались) -->
 						<div class="row row-cols-1 row-cols-sm-2 row-cols-xl-3 g-4">
 							{% for drink in editing_bar.drinks %}
 								<div class="col d-flex">
-
-									<!-- Подключаем нашу интерактивную карточку, которую верстали ранее -->
-									<!-- Она содержит фото, название, тип, описание, текущий рейтинг и форму изменения оценки -->
 									{% include "includes/drink_card_admin.html" %}
 								</div>
 							{% endfor %}
 						</div>
 
 					{% else %}
-
-						<!-- КРАСИВАЯ ЗАГЛУШКА: Если меню заведения пока полностью пустое -->
 						<div class="text-center py-5 my-3 bg-dark bg-opacity-10 rounded-4 border border-secondary border-opacity-10">
 							<div class="text-secondary opacity-50 display-5 mb-3">
 								<i class="bi bi-cup-straw"></i>
@@ -168,9 +132,7 @@
 								<i class="bi bi-plus me-1"></i> Создать позицию
 							</a>
 						</div>
-
 					{% endif %}
-
 				</div>
 			</div>
 		</div>

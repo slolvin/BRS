@@ -3,46 +3,32 @@
 {% block title %}All Drins in {{ bar['name'] }} {% endblock %}
 
 {% block content %}
-    <!-- БЛОК 1: Шапка бара (Hero-секция) -->
     <div class="py-5 mb-5 bg-body-tertiary rounded-4 shadow-sm border border-secondary border-opacity-10">
         <div class="container">
             <div class="row align-items-center g-4">
-
-                <!-- Основная информация -->
                 <div class="col-12 col-md-8">
-                    <!-- Категория/Тег и Автор -->
                     <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
                         <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 rounded-pill px-3 py-2 small">
                             <i class="bi bi-person-circle me-1"></i> Эксперт: {{ bar.get_user_name() }}
                         </span>
                     </div>
-
-                    <!-- Название бара -->
                     <h1 class="display-4 fw-bold text-white mb-2 text-uppercase tracking-tight">{{ bar['name'] }}</h1>
-
-                    <!-- Геолокация -->
                     <p class="lead text-secondary mb-0 d-flex align-items-center gap-2 fs-5">
                         <i class="bi bi-geo-alt-fill text-danger"></i>
                         <span>{{ bar['city'] }}, {{ bar['address'] }}</span>
                     </p>
                 </div>
-
-                <!-- Блок рейтинга бара -->
                 <div class="col-12 col-md-4 text-md-end">
                     <div class="bg-dark bg-opacity-50 p-4 rounded-4 border border-secondary border-opacity-25 d-inline-block text-center text-md-start shadow-sm w-100" style="max-width: 280px;">
                         <span class="text-secondary small fw-medium d-block mb-2 text-uppercase tracking-wider">Оценка заведения</span>
                         {% include "includes/stars.html" %}
                     </div>
                 </div>
-
             </div>
         </div>
     </div>
 
-    <!-- БЛОК 2: Меню напитков -->
     <div class="container mb-5">
-
-        <!-- Заголовок секции -->
         <div class="d-flex align-items-center gap-3 mb-4">
             <h2 class="h3 fw-bold text-white mb-0 text-uppercase tracking-wider">Drinks</h2>
             <div class="flex-grow-1 border-bottom border-secondary border-opacity-25"></div>
@@ -50,8 +36,6 @@
                 {{ bar['drinks']|length }} items
             </span>
         </div>
-
-        <!-- Сетка карточек напитков (4 колонки на ПК, адаптив под планшеты и мобильные) -->
         <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-xl-4 g-4 justify-content-center">
             {% for drink in bar['drinks'] %}
                 {% include "includes/drink_card.html" %}

@@ -1,5 +1,4 @@
 <div class="card border-0 rounded-4 shadow-sm bg-body-tertiary p-4 mt-4">
-    <!-- Кликабельный шапка-заголовок -->
     <div class="d-flex align-items-center justify-content-between cursor-pointer"
          data-bs-toggle="collapse" data-bs-target="#collapseBars" aria-expanded="false" aria-controls="collapseBars"
          style="cursor: pointer;">
@@ -11,7 +10,6 @@
         </span>
     </div>
 
-    <!-- Сворачиваемая зона контента -->
     <div class="collapse" id="collapseBars">
         <div class="row g-3 mt-3">
             {% for bar in favorite_bars %}
@@ -26,8 +24,6 @@
                                 <i class="bi bi-geo-alt-fill me-1 small"></i>{{ bar.get_full_address() or bar.city or 'Адрес не указан' }}
                             </p>
                         </div>
-
-                        <!-- Кнопка перехода к бару -->
                         <div class="mt-3">
                             <a href="{{ url_for('.get_bar_drinks', id=bar.id) }}" class="btn btn-outline-primary btn-sm w-100 py-1.5 fs-8 text-uppercase tracking-wide">
                                 Открыть меню <i class="bi bi-arrow-right short ms-1"></i>

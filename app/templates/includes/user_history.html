@@ -2,7 +2,6 @@
     <div class="col-12">
         <div class="card border-0 rounded-4 shadow-sm bg-body-tertiary p-4 p-md-5">
 
-            <!-- Заголовок секции истории -->
             <div class="d-flex align-items-center justify-content-between mb-4">
                 <div>
                     <h3 class="h5 fw-bold text-white mb-1 text-uppercase tracking-wide fs-7">История активности</h3>
@@ -13,7 +12,6 @@
                 </span>
             </div>
 
-            <!-- Список последних действий -->
             <div class="list-group list-group-flush border-top border-secondary border-opacity-10">
 
                 {% if user_logs %}
@@ -21,7 +19,6 @@
                         <div class="list-group-item bg-transparent border-secondary border-opacity-10 px-0 py-3 d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2 {% if loop.last %}border-bottom-0{% endif %}">
                             <div class="d-flex align-items-center gap-3">
 
-                                <!-- Иконки и цвета на основе типа действия -->
                                 {% if log.action_type in ['rate', 'rate_drink'] %}
                                     <div class="bg-warning bg-opacity-10 text-warning rounded-3 p-2 fs-5 lh-1 border border-warning border-opacity-10">
                                         <i class="bi bi-star-fill"></i>
@@ -40,7 +37,6 @@
                                     </div>
                                 {% endif %}
 
-                                <!-- Текст лога -->
                                 <div>
                                     <span class="text-white small fw-medium d-block">{{ log.description }}</span>
                                     <span class="text-muted fs-8">
@@ -55,7 +51,6 @@
                                 </div>
                             </div>
 
-                            <!-- Правая часть: Бейджи и Дата -->
                             <div class="d-flex align-items-center gap-2 ms-5 ms-sm-0">
                                 {% if log.action_type in ['rate', 'rate_drink'] %}
                                     <span class="badge bg-dark border border-secondary border-opacity-25 text-warning fw-semibold px-2 py-1 fs-8">
@@ -75,8 +70,8 @@
                     </div>
                 {% endif %}
 
-            </div> <!-- Конец списка list-group -->
+            </div>
 
-        </div> <!-- Конец карточки card -->
-    </div> <!-- Конец колонки col-12 -->
-</div> <!-- Конец строки row -->
+        </div>
+    </div>
+</div>
