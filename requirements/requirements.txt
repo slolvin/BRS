@@ -38,4 +38,4 @@ importlib_resources==7.1.0
 colorama==0.4.6
 zipp==4.1.0
 # Mail
-Flask-Mail==0.9.1
+Flask-Mail==0.10.0
